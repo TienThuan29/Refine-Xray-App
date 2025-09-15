@@ -18,8 +18,10 @@ export class TestService {
             if (!testItem.id || !testItem.name) {
                 throw new Error('Test item must have both id and name fields');
             }
-
+            
+            // Save object
             await this.dynamoRepo.putItem(testItem);
+
             logger.info(`Successfully created test item with id: ${testItem.id}`);
             return testItem;
         }

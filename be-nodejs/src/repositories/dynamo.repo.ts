@@ -11,14 +11,14 @@ import { DescribeTableCommand } from '@aws-sdk/client-dynamodb';
 
 export class DynamoRepository {
 
-    private tableName: string;
+    private tableName: string; 
 
     constructor(tableName: string) {
         this.tableName = dynamoDbInstance.getTableName(tableName);
         logger.info(`DynamoRepository initialized for table: ${this.tableName}`);
     }
 
-    async tableExists(): Promise<boolean> {
+    public async tableExists(): Promise<boolean> {
         try {
             const command = new DescribeTableCommand({
                 TableName: this.tableName,
@@ -34,7 +34,7 @@ export class DynamoRepository {
     }
 
 
-    async putItem(item: Record<string, any>): Promise<boolean> {
+    public async putItem(item: Record<string, any>): Promise<boolean> {
         try{
             const exists = await this.tableExists();
             if (!exists) {
@@ -62,7 +62,7 @@ export class DynamoRepository {
 
 
 
-    async getItem(key: Record<string, any>): Promise<Record<string, any> | null> {
+    public async getItem(key: Record<string, any>): Promise<Record<string, any> | null> {
         const command = new GetCommand({
             TableName: this.tableName,
             Key: key,
@@ -72,7 +72,7 @@ export class DynamoRepository {
     }
 
 
-    async updateItem(key: Record<string, any>, updates: Record<string, any>): Promise<boolean> {
+    public async updateItem(key: Record<string, any>, updates: Record<string, any>): Promise<boolean> {
         try {
             const command = new UpdateCommand({
                 TableName: this.tableName,
@@ -91,7 +91,7 @@ export class DynamoRepository {
     }
 
 
-    async deleteItem(key: Record<string, any>): Promise<boolean> {
+    public async deleteItem(key: Record<string, any>): Promise<boolean> {
         try {
             const command = new DeleteCommand({
                 TableName: this.tableName,
@@ -107,7 +107,7 @@ export class DynamoRepository {
     }
 
 
-    async scanItems(): Promise<Record<string, any>[]> {
+    public async scanItems(): Promise<Record<string, any>[]> {
         const command = new ScanCommand({
             TableName: this.tableName,
         });
