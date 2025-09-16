@@ -9,8 +9,12 @@ import router from './web/routes/index.route';
 import swaggerUi from 'swagger-ui-express';
 import { specs } from './configs/swagger';
 import logger, { morganStream } from './libs/logger';
+import { initI18n } from './configs/i18n';
 
 const app = express();
+
+// Initialize i18n
+initI18n();
 
 app.use(helmet());
 app.use(cors({

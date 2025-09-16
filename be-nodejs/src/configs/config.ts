@@ -6,11 +6,13 @@ export const config = {
 
     NODE_ENV: process.env.NODE_ENV || 'dev',
     PORT: parseInt(process.env.PORT || '5000', 10),
+    SYSTEM_SECRET: process.env.SYSTEM_SECRET || '',
 
     JWT_SECRET: process.env.JWT_SECRET,
     JWT_ACCESS_TOKEN_EXPIRATION: process.env.JWT_ACCESS_TOKEN_EXPIRATION,
     JWT_REFRESH_TOKEN_EXPIRATION: process.env.JWT_REFRESH_TOKEN_EXPIRATION,
     BCRYPT_SALT_ROUNDS: parseInt(process.env.BCRYPT_SALT_ROUNDS || '12', 10),
+    HASHING_SECRET_KEY: process.env.HASHING_SECRET_KEY || '',
 
     RATE_LIMIT_WINDOW_MS: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10),
     RATE_LIMIT_MAX_REQUESTS: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10),
@@ -27,5 +29,9 @@ export const config = {
     LOG_LEVEL: process.env.LOG_LEVEL || 'debug',
     LOG_FILE_MAX_SIZE: process.env.LOG_FILE_MAX_SIZE || '20m',
     LOG_FILE_MAX_FILES: process.env.LOG_FILE_MAX_FILES || '14d',
+
+    // tables
+    USER_TABLE: process.env.USER_TABLE || '',
+
 
 } as const;

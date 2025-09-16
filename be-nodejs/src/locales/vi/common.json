@@ -1,0 +1,28 @@
+{
+  "success": {
+    "login": "Đăng nhập thành công",
+    "register": "Đăng ký tài khoản thành công",
+    "profile": "Lấy thông tin cá nhân thành công",
+    "refresh_token": "Làm mới token thành công",
+    "create_account": "Tạo tài khoản thành công"
+  },
+  "error": {
+    "invalid_credentials": "Email hoặc mật khẩu không đúng",
+    "user_not_found": "Người dùng không tồn tại hoặc đã bị vô hiệu hóa",
+    "email_exists": "Email đã được sử dụng",
+    "access_token_required": "Cần access token",
+    "invalid_token": "Token không hợp lệ hoặc đã hết hạn",
+    "insufficient_permissions": "Không có quyền truy cập",
+    "refresh_token_required": "Cần refresh token",
+    "user_not_authenticated": "Người dùng chưa được xác thực",
+    "account_creation_failed": "Có lỗi xảy ra khi tạo tài khoản",
+    "internal_server_error": "Lỗi máy chủ nội bộ",
+    "validation_error": "Lỗi xác thực dữ liệu"
+  },
+  "validation": {
+    "required": "Trường này là bắt buộc",
+    "email_invalid": "Định dạng email không hợp lệ",
+    "password_min_length": "Mật khẩu phải có ít nhất 8 ký tự",
+    "password_weak": "Mật khẩu quá yếu"
+  }
+}

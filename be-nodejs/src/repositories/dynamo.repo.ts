@@ -18,6 +18,10 @@ export class DynamoRepository {
         logger.info(`DynamoRepository initialized for table: ${this.tableName}`);
     }
 
+    public getTableName(): string {
+        return this.tableName;
+    }
+
     public async tableExists(): Promise<boolean> {
         try {
             const command = new DescribeTableCommand({
@@ -63,12 +67,31 @@ export class DynamoRepository {
 
 
     public async getItem(key: Record<string, any>): Promise<Record<string, any> | null> {
+        if (!(await this.isExistKey(key))) {
+            return null;
+        }
         const command = new GetCommand({
             TableName: this.tableName,
             Key: key,
         });
         const result = await dynamoDB.send(command);
+        // console.log(`Result: ${result}`);
         return result.Item || null;
+    }
+
+
+    public async isExistKey(key: Record<string, any>): Promise<boolean> {
+        try {
+            const command = new GetCommand({
+                TableName: this.tableName,
+                Key: key,
+            });
+            const result = await dynamoDB.send(command);
+            return !!result.Item;
+        } catch (error: any) {
+            logger.error("Error checking if key exists:", error);
+            return false;
+        }
     }
 
 

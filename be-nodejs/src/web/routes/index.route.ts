@@ -1,35 +1,12 @@
 import { Router } from "express";
 import { testCreateItem } from "./test.route";
-import { s3ApiInstance } from "../api/s3.api";
-import { validateImageFile } from "../middlewares/s3.middleware";
+import authRouter from "./auth.route";
+import s3Router from "./s3.route";
 
 const router = Router();
 
-
-/**
- * @swagger
- * /s3/upload/single:
- *   post:
- *     summary: Upload single image file to S3
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               file:
- *                 type: string
- *               fileName:
- *                 type: string
- *     responses:
- *       200:
- *         description: Image file uploaded successfully
- *       400:
- *         description: Bad request - Invalid file type or missing file
- */
-router.post('/s3/upload/single', validateImageFile, s3ApiInstance.uploadSingleFile);
-
+router.use('/auth', authRouter);
+router.use('/s3', s3Router);
 
 /**
  * @swagger
