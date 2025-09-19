@@ -1,10 +1,9 @@
-import {heroui} from '@heroui/theme';
+
 
 module.exports = {
   content: [
     "./app/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",
-    "./node_modules/@heroui/theme/dist/components/(toast|spinner).js"
   ],
     theme: {
         extend: {
@@ -14,5 +13,5 @@ module.exports = {
             },
         },
     },
-  plugins: [heroui()],
+  plugins: [],
 }

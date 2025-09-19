@@ -70,6 +70,23 @@ const translations = {
     'chatSession.messages': 'messages',
     'chatSession.noMessages': 'No messages yet',
     'chatSession.loading': 'Loading...',
+    
+    // Login Page
+    'login.title': 'Welcome to X-Ray AI',
+    'login.subtitle': "Don't have an account?",
+    'login.signUp': 'Sign Up',
+    'login.googleSignIn': 'Sign in with Google',
+    'login.or': 'OR',
+    'login.email': 'Email',
+    'login.emailPlaceholder': 'Enter your email',
+    'login.emailRequired': 'Please input your email!',
+    'login.emailInvalid': 'Please enter a valid email!',
+    'login.password': 'Password',
+    'login.passwordPlaceholder': 'Enter your password',
+    'login.passwordRequired': 'Please input your password!',
+    'login.rememberMe': 'Remember me',
+    'login.forgotPassword': 'Forgot Password?',
+    'login.loginButton': 'Login',
   },
   vi: {
     // General
@@ -127,6 +144,23 @@ const translations = {
     'chatSession.messages': 'tin nhắn',
     'chatSession.noMessages': 'Chưa có tin nhắn nào',
     'chatSession.loading': 'Đang tải...',
+    
+    // Login Page
+    'login.title': 'Chào mừng đến với X-Ray AI',
+    'login.subtitle': 'Chưa có tài khoản?',
+    'login.signUp': 'Đăng ký',
+    'login.googleSignIn': 'Đăng nhập bằng Google',
+    'login.or': 'HOẶC',
+    'login.email': 'Email',
+    'login.emailPlaceholder': 'Nhập email của bạn',
+    'login.emailRequired': 'Vui lòng nhập email!',
+    'login.emailInvalid': 'Vui lòng nhập email hợp lệ!',
+    'login.password': 'Mật khẩu',
+    'login.passwordPlaceholder': 'Nhập mật khẩu của bạn',
+    'login.passwordRequired': 'Vui lòng nhập mật khẩu!',
+    'login.rememberMe': 'Ghi nhớ đăng nhập',
+    'login.forgotPassword': 'Quên mật khẩu?',
+    'login.loginButton': 'Đăng nhập',
   }
 };
 

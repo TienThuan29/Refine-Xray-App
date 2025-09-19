@@ -6,6 +6,8 @@ import { AntdRegistry } from '@ant-design/nextjs-registry';
 import { ConfigProvider } from 'antd';
 import { LanguageProvider } from '../contexts/LanguageContext';
 import { Toaster } from "@/components/ui/sonner";
+import { UserProvider } from "@/contexts/AuthContext";
+import SessionExpiredWrapper from "@/components/combination/session-expired-wrapper";
 
 const sans = Inter({
   subsets: ['latin'],
@@ -44,7 +46,10 @@ export default function RootLayout({
             }}
           >
             <LanguageProvider>
+              <UserProvider>
                 {children}
+                <SessionExpiredWrapper />
+              </UserProvider>
             </LanguageProvider>
           </ConfigProvider>
         </AntdRegistry>

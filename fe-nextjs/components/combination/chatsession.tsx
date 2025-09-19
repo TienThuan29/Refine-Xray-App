@@ -16,6 +16,7 @@ interface ChatSessionProps {
 }
 
 const ChatSessionComponent: React.FC<ChatSessionProps> = ({ selectedSession, onItemClick }) => {
+  
   const { t } = useLanguage();
   const [searchText, setSearchText] = useState('');
   const [selectedItem, setSelectedItem] = useState<ChatSession | null>(null);
