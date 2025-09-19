@@ -22,11 +22,11 @@ export class AuthApi {
         try {
             const credentials = request.body;
             const authResponse = await this.authService.authenticate(credentials);
-            await ResponseUtil.success(response, authResponse, 'success.login', 200, request);
+            ResponseUtil.success(response, authResponse, 'Login successful', 200);
         }
         catch (error) {
             if (error instanceof Error) {
-                await ResponseUtil.error(response, 'error.invalid_credentials', 400, undefined, undefined, request);
+                ResponseUtil.error(response, 'Invalid email or password', 400);
             }
             else {
                 next(error);
@@ -39,15 +39,15 @@ export class AuthApi {
         try {
             const { refreshToken } = request.body;
             if (!refreshToken) {
-                await ResponseUtil.error(response, 'error.refresh_token_required', 400, undefined, undefined, request);
+                ResponseUtil.error(response, 'Refresh token required', 400);
                 return;
             }
             const newAccessToken = await this.authService.refreshToken(refreshToken);
-            await ResponseUtil.success(response, newAccessToken, 'success.refresh_token', 200, request);
+            ResponseUtil.success(response, newAccessToken, 'Token refreshed successfully', 200);
         }
         catch (error) {
             if (error instanceof Error) {
-                await ResponseUtil.error(response, 'error.invalid_token', 400, undefined, undefined, request);
+                ResponseUtil.error(response, 'Invalid or expired token', 400);
             }
             else {
                 next(error);
@@ -59,15 +59,14 @@ export class AuthApi {
     public async getProfile(request: Request, response: Response): Promise<void> {
         const accessToken = this.getAccessToken(request);
         if (!accessToken) {
-            await ResponseUtil.error(response, 'error.user_not_authenticated', 401, undefined, undefined, request);
+            ResponseUtil.error(response, 'User not authenticated', 401);
             return;
         }
-        await ResponseUtil.success(
+        ResponseUtil.success(
             response,
             await this.authService.getProfile(accessToken),
-            'success.profile',
-            200,
-            request
+            'Profile retrieved successfully',
+            200
         );
     }
 
@@ -77,16 +76,16 @@ export class AuthApi {
             const registerData: RegisterData = request.body;
             const registerResponse = await this.authService.createAccount(registerData);
             logger.info(`Register response: ${registerResponse}`);
-            await ResponseUtil.success(response, registerResponse, 'success.create_account', 201, request);
+            ResponseUtil.success(response, registerResponse, 'Account created successfully', 201);
         }
         catch (error) {
             if (error instanceof Error) {
                 if (error.message.includes('Email already exists')) {
-                    await ResponseUtil.error(response, 'error.email_exists', 400, undefined, undefined, request);
+                    ResponseUtil.error(response, 'Email already exists', 400);
                 } else if (error.message.includes('error occurred while creating')) {
-                    await ResponseUtil.error(response, 'error.account_creation_failed', 400, undefined, undefined, request);
+                    ResponseUtil.error(response, 'An error occurred while creating the account', 400);
                 } else {
-                    await ResponseUtil.error(response, 'error.internal_server_error', 400, undefined, undefined, request);
+                    ResponseUtil.error(response, 'Internal Server Error', 400);
                 }
             }
             else {

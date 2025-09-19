@@ -12,7 +12,7 @@ export const authenticate = async (request: Request, response: Response, next: N
             const authHeader = request.headers.authorization;
 
             if (!authHeader || !authHeader.startsWith('Bearer ')) {
-                  await ResponseUtil.error(response, 'error.access_token_required', 401, undefined, undefined, request);
+                  ResponseUtil.error(response, 'Access token required', 401);
                   return;
             }
 
@@ -21,14 +21,14 @@ export const authenticate = async (request: Request, response: Response, next: N
 
             const user = await userRepository.findById(decoded.id);
             if (!user || !user.isEnable) {
-                  await ResponseUtil.error(response, 'error.user_not_found', 401, undefined, undefined, request);
+                  ResponseUtil.error(response, 'User not found or inactive', 401);
                   return;
             }
             next();
       }
       catch(error) {
             console.error('Authentication error:', error);
-            await ResponseUtil.error(response, 'error.invalid_token', 401, undefined, undefined, request);
+            ResponseUtil.error(response, 'Invalid or expired token', 401);
       }
 }
 
@@ -40,7 +40,7 @@ export const authorize = (allowedRoles: string[]) => {
             const authHeader = request.headers.authorization;
 
             if (!authHeader || !authHeader.startsWith('Bearer ')) {
-                await ResponseUtil.error(response, 'error.access_token_required', 401, undefined, undefined, request);
+                ResponseUtil.error(response, 'Access token required', 401);
                 return;
             }
 
@@ -49,12 +49,12 @@ export const authorize = (allowedRoles: string[]) => {
 
             const user = await userRepository.findById(decoded.id);
             if (!user || !user.isEnable) {
-                await ResponseUtil.error(response, 'error.user_not_found', 401, undefined, undefined, request);
+                ResponseUtil.error(response, 'User not found or inactive', 401);
                 return;
             }
 
             if (!allowedRoles.includes(user.role)) {
-                await ResponseUtil.error(response, 'error.insufficient_permissions', 403, undefined, undefined, request);
+                ResponseUtil.error(response, 'Insufficient permissions', 403);
                 return;
             }
 
@@ -62,7 +62,7 @@ export const authorize = (allowedRoles: string[]) => {
         }
         catch(error) {
             console.error('Authorization error:', error);
-            await ResponseUtil.error(response, 'error.invalid_token', 401, undefined, undefined, request);
+            ResponseUtil.error(response, 'Invalid or expired token', 401);
         }
     }
 }
@@ -72,7 +72,7 @@ export const validateSystemSecret = async (request: Request, response: Response,
     // logger.info(`System secret: ${systemSecret}`);
     if (systemSecret !== config.SYSTEM_SECRET) {
         // logger.error(`Invalid system secret: ${systemSecret}`);
-        await ResponseUtil.error(response, 'error.invalid_system_secret', 401, undefined, undefined, request);
+        ResponseUtil.error(response, 'Invalid system secret', 401);
         return;
     }
     //logger.info(`Valid system secret: ${systemSecret}`);

@@ -85,7 +85,7 @@ const authApi = new AuthApi();
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('/create-account', validateSystemSecret, authApi.createAccount);
+router.post('/create-account', validateSystemSecret, (req, res, next) => authApi.createAccount(req, res, next));
 
 // , authenticate, authorize([Role.ADMIN])
 
@@ -115,7 +115,7 @@ router.post('/create-account', validateSystemSecret, authApi.createAccount);
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('/authenticate', authApi.authenticate);
+router.post('/authenticate', (req, res, next) => authApi.authenticate(req, res, next));
 
 /**
  * @swagger

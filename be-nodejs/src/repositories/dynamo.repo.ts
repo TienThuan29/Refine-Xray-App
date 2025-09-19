@@ -138,4 +138,15 @@ export class DynamoRepository {
         return result.Items || [];
     }
 
+
+    protected convertDateToISOString(date?: Date): string | undefined {
+        if (!date) return undefined;
+        return date.toISOString();
+    }
+
+    protected convertISOStringToDate(date?: string): Date | undefined {
+        if (!date) return undefined;
+        return new Date(date);
+    }
+
 }

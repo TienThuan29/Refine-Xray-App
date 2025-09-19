@@ -1,6 +1,5 @@
 import { Response, Request } from 'express';
 import { config } from '@/configs/config';
-import { t, changeLanguage } from '@/configs/i18n';
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -11,33 +10,29 @@ export interface ApiResponse<T = any> {
 }
 
 export class ResponseUtil {
-  static async success<T>(
+  static success<T>(
     res: Response, 
     dataResponse: T, 
     message: string = 'Success', 
-    statusCode: number = 200,
-    req?: Request
-  ): Promise<Response<ApiResponse<T>>> {
-    const localizedMessage = req ? await this.getLocalizedMessage(req, message) : message;
+    statusCode: number = 200
+  ): Response<ApiResponse<T>> {
     return res.status(statusCode).json({
       success: true,
-      message: localizedMessage,
+      message,
       dataResponse,
     });
   }
 
-  static async error(
+  static error(
     res: Response, 
     message: string = 'Internal Server Error', 
     statusCode: number = 500,
     error?: string,
-    stack?: string,
-    req?: Request
-  ): Promise<Response<ApiResponse>> {
-    const localizedMessage = req ? await this.getLocalizedMessage(req, message) : message;
+    stack?: string
+  ): Response<ApiResponse> {
     const response: ApiResponse = {
       success: false,
-      message: localizedMessage,
+      message,
     };
 
     if (error) response.error = error;
@@ -48,40 +43,15 @@ export class ResponseUtil {
     return res.status(statusCode).json(response);
   }
 
-  static async validation(
+  static validation(
     res: Response, 
     message: string = 'Validation Error', 
-    errors?: any,
-    req?: Request
-  ): Promise<Response<ApiResponse>> {
-    const localizedMessage = req ? await this.getLocalizedMessage(req, message) : message;
+    errors?: any
+  ): Response<ApiResponse> {
     return res.status(400).json({
       success: false,
-      message: localizedMessage,
+      message,
       error: errors,
     });
-  }
-
-  private static async getLocalizedMessage(req: Request, message: string): Promise<string> {
-    try {
-      // Get language from Accept-Language header or query parameter
-      const lang = req.query.lang as string || 
-                   req.headers['accept-language']?.split(',')[0]?.split('-')[0] || 
-                   'en';
-      
-      // Set lang
-      if (lang === 'vi' || lang === 'en') {
-        await changeLanguage(lang);
-      }
-      
-      if (message.includes('.')) {
-        return t(message);
-      }
-      
-      return message;
-    } 
-    catch (error) {
-      return message;
-    }
   }
 }

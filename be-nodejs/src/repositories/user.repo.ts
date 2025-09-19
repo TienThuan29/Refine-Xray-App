@@ -18,51 +18,43 @@ export class UserRepository extends DynamoRepository {
         user.password = hashString(user.password);
         user.isEnable = true;
         user.createdDate = new Date();
-        
-        // Convert Date objects to ISO strings for DynamoDB
-        // console.log('Before converting to ISO strings: ', user);
+
         const userForDynamo = {
             ...user,
-            createdDate: user.createdDate?.toISOString(),
-            updatedDate: user.updatedDate?.toISOString(),
-            lastLoginDate: user.lastLoginDate?.toISOString(),
-            dateOfBirth: user.dateOfBirth ? (user.dateOfBirth instanceof Date ? user.dateOfBirth.toISOString() : user.dateOfBirth) : undefined
+            createdDate: this.convertDateToISOString(user.createdDate),
+            updatedDate: this.convertDateToISOString(user.updatedDate),
+            lastLoginDate: this.convertDateToISOString(user.lastLoginDate),
+            dateOfBirth: this.convertDateToISOString(user.dateOfBirth)
         };
-        // console.log(`After converting to ISO strings: ${JSON.stringify(userForDynamo, null, 2)}`);
         
         const savingResult = await this.putItem(userForDynamo);
         if (!savingResult) {
-            // console.log(`Failed to save user for Dynamo: ${userForDynamo}`);
             return null;
         }
-        // console.log(`Saved user for Dynamo: ${userForDynamo}`);
         return await this.findById(user.id);
     }
     
 
     public async findById(userId: string): Promise<User | null> {
-        const user = await this.getItem({ id: userId });
+        let user = await this.getItem({ id: userId });
         if (!user) {
             return null;
         }
         
-        // Convert ISO strings back to Date objects
-        const userWithDates = {
+        user = {
             ...user,
-            createdDate: user.createdDate ? new Date(user.createdDate) : undefined,
-            updatedDate: user.updatedDate ? new Date(user.updatedDate) : undefined,
-            lastLoginDate: user.lastLoginDate ? new Date(user.lastLoginDate) : undefined,
-            dateOfBirth: user.dateOfBirth ? (user.dateOfBirth instanceof Date ? user.dateOfBirth : new Date(user.dateOfBirth)) : undefined
+            createdDate: this.convertISOStringToDate(user.createdDate),
+            updatedDate: this.convertISOStringToDate(user.updatedDate),
+            lastLoginDate: this.convertISOStringToDate(user.lastLoginDate),
+            dateOfBirth: this.convertISOStringToDate(user.dateOfBirth)
         };
         
-        return userWithDates as User;
+        return user as User;
     }
 
 
     public async findByEmail(email: string): Promise<User | null> {
-        console.log(`Finding user by email: ${email}`);
-        
-        // Use scan to find user by email since email is not the primary key
+
         const command = new ScanCommand({
             TableName: this.getTableName(),
             FilterExpression: 'email = :email',
@@ -75,22 +67,18 @@ export class UserRepository extends DynamoRepository {
         const users = result.Items || [];
         
         if (users.length === 0) {
-            console.log(`User not found for email: ${email}`);
             return null;
         }
         
-        const user = users[0];
-        console.log(`User found: ${user}`);
-        
-        // Convert ISO strings back to Date objects
-        const userWithDates = {
+        let user = users[0];
+        user = {
             ...user,
-            createdDate: user.createdDate ? new Date(user.createdDate) : undefined,
-            updatedDate: user.updatedDate ? new Date(user.updatedDate) : undefined,
-            lastLoginDate: user.lastLoginDate ? new Date(user.lastLoginDate) : undefined,
-            dateOfBirth: user.dateOfBirth ? (user.dateOfBirth instanceof Date ? user.dateOfBirth : new Date(user.dateOfBirth)) : undefined
+            createdDate: this.convertISOStringToDate(user.createdDate),
+            updatedDate: this.convertISOStringToDate(user.updatedDate),
+            lastLoginDate: this.convertISOStringToDate(user.lastLoginDate),
+            dateOfBirth: this.convertISOStringToDate(user.dateOfBirth)
         };
         
-        return userWithDates as User;
+        return user as User;
     }
 }
