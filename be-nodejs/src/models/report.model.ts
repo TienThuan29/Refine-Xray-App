@@ -5,8 +5,8 @@ export type ReportTemplate = {
     fileLink: string;
     createBy: string;
     isDeleted: boolean;
-    createdDate?: string;
-    updatedDate?: string;
+    createdDate?: Date;
+    updatedDate?: Date;
 }
 
 export type Report = {
@@ -15,6 +15,6 @@ export type Report = {
     templateId?: string;
     template?: string; // markdown content
     chatSessionId?: string;
-    createdDate?: string;
-    updatedDate?: string;
+    createdDate?: Date;
+    updatedDate?: Date;
 }

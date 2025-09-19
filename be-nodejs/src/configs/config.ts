@@ -32,6 +32,6 @@ export const config = {
 
     // tables
     USER_TABLE: process.env.USER_TABLE || '',
-
+    REPORT_TEMPLATE_TABLE: process.env.REPORT_TEMPLATE_TABLE || '',
 
 } as const;
