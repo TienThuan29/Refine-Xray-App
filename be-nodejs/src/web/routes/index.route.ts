@@ -2,11 +2,13 @@ import { Router } from "express";
 import { testCreateItem } from "./test.route";
 import authRouter from "./auth.route";
 import s3Router from "./s3.route";
+import reportTemplateFileRouter from "./reporttemplate.route";
 
 const router = Router();
 
 router.use('/auth', authRouter);
 router.use('/s3', s3Router);
+router.use('/report-template', reportTemplateFileRouter);
 
 /**
  * @swagger
