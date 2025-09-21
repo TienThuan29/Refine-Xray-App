@@ -31,10 +31,12 @@ import { useAuth } from '../contexts/AuthContext';
 import { CiLogin } from "react-icons/ci";
 import NewChatModal from '../components/combination/newchat';
 import SettingsModal from '../components/combination/setting';
+import SessionExpiredWrapper from '../components/combination/session-expired-wrapper';
 import { useRouter } from 'next/navigation';
 const { Sider, Content } = Layout;
 const { Title, Text } = Typography;
 import { FaRegQuestionCircle } from "react-icons/fa";
+import Footer from '@/components/single/footer';
 
 
 
@@ -513,7 +515,7 @@ export default function Page() {
                       <div className="w-12 h-12 bg-white rounded-lg"></div>
                     </div>
                     <Title level={2} className="text-center text-gray-900 mb-8">
-                      Let's start a smart conversation
+                      Let's start a analysis with Clini AI
                     </Title>
                   </div>
 
@@ -536,28 +538,10 @@ export default function Page() {
                         >
                           Search base knowledge
                         </Button>
-                        {/* <Button type="text" icon={<PictureOutlined />} cla  ssName="text-gray-500 hover:text-gray-700" /> */}
-                        {/* <Button type="text" icon={<BulbOutlined />} className="text-gray-500 hover:text-gray-700" /> */}
                       </div>
                     </div>
                   </div>
 
-                  {/* Tools Integration Banner */}
-                  {/* <div className="w-full max-w-3xl mb-8">
-                    <div className="bg-gray-50 rounded-xl p-4 flex items-center justify-between">
-                      <Text className="text-gray-600">Diagnose X-ray with AI</Text>
-                      <div className="flex items-center space-x-2">
-                        <div className="flex space-x-1">
-                          {['C', 'E', 'C', 'C', 'O'].map((letter, index) => (
-                            <div key={index} className="w-6 h-6 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                              {letter}
-                            </div>
-                          ))}
-                        </div>
-                        <Button type="text" icon={<ArrowLeftOutlined />} className="text-gray-500" />
-                      </div>
-                    </div>
-                  </div> */}
 
                   {/* Suggested Actions */}
                   <div className="w-full max-w-4xl">
@@ -567,7 +551,7 @@ export default function Page() {
                           key={index}
                           hoverable
                           className={`border-2 ${action.color} transition-all duration-200`}
-                          bodyStyle={{ padding: '20px' }}
+                          styles={{ body: { padding: '20px' } }}
                         >
                           <div className="flex flex-col items-center text-center">
                             <div className="text-3xl mb-3 text-gray-600">
@@ -588,20 +572,7 @@ export default function Page() {
               )}
 
               {/* Footer */}
-              <div className="border-t border-gray-100 p-4">
-                <div className="flex items-center justify-between">
-                  <Text className="text-xs text-gray-500">
-                    Clini AI can make mistakes. Check important info. 
-                    <Button type="link" size="small" className="p-0 h-auto text-xs">
-                      See Cookie Preferences
-                    </Button>
-                  </Text>
-                  <div className="flex items-center space-x-3">
-                    <Button type="text" icon={<GlobalOutlined />} size="small" className="text-gray-500" />
-                    <Button type="text" icon={<QuestionCircleOutlined />} size="small" className="text-gray-500" />
-                  </div>
-                </div>
-              </div>
+              <Footer/>
 
 
             </div>
@@ -619,6 +590,8 @@ export default function Page() {
         visible={settingsVisible} 
         onClose={() => setSettingsVisible(false)}
       />
+      
+      <SessionExpiredWrapper />
     </div>
   );
 }

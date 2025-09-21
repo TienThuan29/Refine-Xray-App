@@ -10,5 +10,12 @@ export const Api = {
 
     System: {
         CREATE_ACCOUNT: '/api/v1/auth/create-account'
+    },
+
+    ThirdParty: {
+        VietnamAddress: {
+            GET_PROVINCES: 'https://production.cas.so/address-kit/2025-07-01/provinces',
+            GET_COMMUNES_FROM_PROVINCE: 'https://production.cas.so/address-kit/2025-07-01/provinces/{province_id}/communes',
+        }
     }
 }

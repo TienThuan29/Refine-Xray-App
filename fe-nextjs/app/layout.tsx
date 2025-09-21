@@ -24,7 +24,7 @@ const mono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "X-ray Diagnose",
+  title: "Medical Clini AI",
   description: "",
 };
 

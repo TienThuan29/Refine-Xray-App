@@ -92,7 +92,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             return response.data.dataResponse;
         } 
         catch (error) {
-            // console.log('Failed to fetch user:', error);
             if (axios.isAxiosError(error) && error.response?.status === HttpStatus.UNAUTHORIZED) {
                 // Check if it's due to token expiration
                 if (checkTokenExpiration()) {
@@ -108,27 +107,23 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             const authTokensString = localStorage.getItem(AUTH_TOKENS_KEY);
             const tokens = authTokensString ? JSON.parse(authTokensString) : null;
             
-            // Check if tokens are expired before proceeding
-            if (tokens && isRefreshTokenExpired(tokens.refreshToken)) {
+            // Check if tokens are missing or expired
+            if (!tokens || (tokens && isRefreshTokenExpired(tokens.refreshToken))) {
                 setSessionExpired(true);
                 setIsReady(true);
                 return;
             }
             
-            // Try to load cached user profile first
             const cachedUserString = localStorage.getItem(USER_PROFILE_KEY);
             const cachedUser = cachedUserString ? JSON.parse(cachedUserString) : null;
             
             if (tokens) { 
                 setAuthTokens(tokens);
-                
                 if (cachedUser) {
-                    // Use cached user profile for immediate UI update
                     setUser(cachedUser);
-                    // Still fetch fresh data in background to ensure it's up to date
                     await fetchUser(tokens);
-                } else {
-                    // No cached profile, fetch from server
+                } 
+                else {
                     await fetchUser(tokens);
                 }
             }

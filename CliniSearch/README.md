@@ -208,5 +208,3 @@ Your browser will automatically open with the **Spectra AI** application running
 Spectra AI is a powerful assistant, but **not a substitute for professional medical judgment**. All analyses and outputs are intended for **informational and research purposes only** and should not be used to make final clinical decisions. Always consult and verify results with a qualified medical professional.
 
 ---
-
-

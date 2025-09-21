@@ -75,7 +75,6 @@ export class DynamoRepository {
             Key: key,
         });
         const result = await dynamoDB.send(command);
-        // console.log(`Result: ${result}`);
         return result.Item || null;
     }
 

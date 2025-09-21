@@ -3,7 +3,6 @@ import { UserProfile } from '@/types/user';
 import { Constant } from '@/configs/constant';
 import { hashString } from '@/lib/hashing';
 
-// Utility function for role validation (can be used outside of React components)
 export const validateUserRole = (user: UserProfile | null) => {
     if (!user) {
         return {
@@ -35,7 +34,7 @@ export const validateUserRole = (user: UserProfile | null) => {
     };
 };
 
-// Hook for use in React components
+
 export const useRoleValidator = (user: UserProfile | null) => {
     return useMemo(() => validateUserRole(user), [user]);
 };
