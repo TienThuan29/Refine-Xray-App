@@ -12,6 +12,7 @@ export class ChatSessionApi {
     constructor() {
         this.chatsessionService = new ChatSessionService();
         this.createChatSession = this.createChatSession.bind(this);
+        this.getChatSessionById = this.getChatSessionById.bind(this);
     }
 
 
@@ -30,6 +31,7 @@ export class ChatSessionApi {
 
             // Get form data from request
             const chatSessionRequest: ChatSessionRequest = {
+                folderId: request.body.folderId,
                 title: request.body.title,
                 xrayImage: request.file.buffer // This comes from multer middleware
             };
@@ -42,5 +44,19 @@ export class ChatSessionApi {
             ResponseUtil.error(response, 'Internal Server Error', 500, error as string);
         }
     }
+
+
+    public async getChatSessionById(request: Request, response: Response): Promise<void> {
+        try {
+            const chatSessionId = request.params.chatSessionId;
+            const chatSession = await this.chatsessionService.getChatSessionById(chatSessionId);
+            ResponseUtil.success(response, chatSession, 'Chat session found successfully');
+        }
+        catch(error) {
+            logger.error('Error getting chat session by id:', error);
+            ResponseUtil.error(response, 'Internal Server Error', 500, error as string);
+        }
+    }
+
 
 }

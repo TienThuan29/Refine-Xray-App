@@ -5,38 +5,55 @@ import { Modal, Form, Input, Button } from 'antd';
 import { FolderOutlined } from '@ant-design/icons';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { toast } from "sonner";
+import useFolderManager from '../../hooks/useFolderManager';
 
 interface FolderModalProps {
   visible: boolean;
   onClose: () => void;
-  onFolderCreated: (data: { title: string; description?: string }) => void;
+  onFolderCreated: (data: { id: string; title: string; description?: string }) => void;
 }
 
 const FolderModal: React.FC<FolderModalProps> = ({ visible, onClose, onFolderCreated }) => {
+  
   const { t } = useLanguage();
   const [form] = Form.useForm();
-  const [loading, setLoading] = useState(false);
   const [formValues, setFormValues] = useState({ title: '', description: '' });
+  const { createFolder, isCreating, error, clearError } = useFolderManager();
 
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      setLoading(true);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      onFolderCreated({
+      clearError(); // Clear any previous errors
+
+      console.log('Creating folder with data:', {
         title: values.title,
         description: values.description
       });
-      
-      toast.success(t('newChat.folderCreateSuccess'));
-      // Don't call handleClose() here - let the parent handle the transition
-    } catch (error) {
+
+      const newFolder = await createFolder({
+        title: values.title,
+        description: values.description
+      });
+
+      console.log('newFolder result:', newFolder);
+
+      if (newFolder) {
+        onFolderCreated({
+          id: newFolder.id,
+          title: values.title,
+          description: values.description
+        });
+
+        toast.success(t('newChat.folderCreateSuccess'));
+        // Don't call handleClose() here - let the parent handle the transition
+      } else {
+        toast.error(t('newChat.folderCreateError') || 'Failed to create folder');
+      }
+    } catch (error: any) {
       console.error('Validation failed:', error);
-    } finally {
-      setLoading(false);
+      if (error) {
+        toast.error('Failed to create folder');
+      }
     }
   };
 
@@ -65,13 +82,13 @@ const FolderModal: React.FC<FolderModalProps> = ({ visible, onClose, onFolderCre
         <Button key="cancel" onClick={handleClose}>
           {t('newChat.cancel')}
         </Button>,
-        <Button 
-          key="create" 
-          type="primary" 
-          loading={loading}
+        <Button
+          key="create"
+          type="primary"
+          loading={isCreating}
           onClick={handleSubmit}
           disabled={
-            !formValues.title?.trim()
+            !formValues.title?.trim() || isCreating
           }
         >
           {t('newChat.next')}
@@ -93,7 +110,7 @@ const FolderModal: React.FC<FolderModalProps> = ({ visible, onClose, onFolderCre
             // { max: 50, message: t('newChat.titleMaxLength') }
           ]}
         >
-          <Input 
+          <Input
             placeholder={t('newChat.titlePlaceholder')}
             size="middle"
           />
@@ -106,7 +123,7 @@ const FolderModal: React.FC<FolderModalProps> = ({ visible, onClose, onFolderCre
             { max: 200, message: t('newChat.descriptionMaxLength') }
           ]}
         >
-          <Input.TextArea 
+          <Input.TextArea
             placeholder={t('newChat.descriptionPlaceholder')}
             rows={3}
             showCount

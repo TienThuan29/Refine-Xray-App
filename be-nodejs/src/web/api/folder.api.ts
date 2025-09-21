@@ -16,6 +16,7 @@ export class FolderApi {
         this.createFolder = this.createFolder.bind(this);
         this.updatePatientProfileId = this.updatePatientProfileId.bind(this);
         this.findFolderById = this.findFolderById.bind(this);
+        this.getFolderOfUser = this.getFolderOfUser.bind(this);
     }
 
 
@@ -63,4 +64,18 @@ export class FolderApi {
             ResponseUtil.error(response, 'Internal Server Error', 500, error as string);
         }
     }
+
+    public async getFolderOfUser(request: Request, response: Response): Promise<void> {
+        try {
+            const user = await this.authService.getUserByToken(request.headers.authorization?.substring(7) ?? '');
+            // console.log(user?.id);
+            const folders = await this.folderService.getFolderOfUser(user!.id);
+            ResponseUtil.success(response, folders, 'Folders found successfully');
+        }
+        catch(error) {
+            logger.error('Error getting folder of user:', error);
+            ResponseUtil.error(response, 'Internal Server Error', 500, error as string);
+        }
+    }
+
 }

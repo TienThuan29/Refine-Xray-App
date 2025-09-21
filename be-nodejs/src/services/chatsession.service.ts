@@ -5,17 +5,26 @@ import { CliniAIResponse } from "@/types/res/clini.res";
 import { S3Service } from "./s3.service";
 import { ChatSession, Result } from "@/models/chatsession.model";
 import { v4 as uuidv4 } from 'uuid';
+import { FolderRepository } from "@/repositories/folder.repo";
 
 export class ChatSessionService {
 
     private chatSessionRepository: ChatSessionRepository;
+    private folderRepository: FolderRepository;
     private s3Service: S3Service;
 
     constructor() {
         this.chatSessionRepository = new ChatSessionRepository();
+        this.folderRepository = new FolderRepository();
         this.s3Service = new S3Service();
     }
 
+
+    public async getChatSessionById(chatSessionId: string): Promise<ChatSession | null> {
+        return await this.chatSessionRepository.findById(chatSessionId);
+    }
+
+    
     public async analyzeAndCreateChatSession(chatSessionRequest: ChatSessionRequest): Promise<ChatSession> {
         const cliniAIService = new CliniAIService();
         // Get analyze result from CliniAI
@@ -43,6 +52,9 @@ export class ChatSessionService {
             xrayImageUrl: xrayImageUrl,
             result: result
         } as ChatSession) as ChatSession;
+
+        // Update chatsession into folder
+        await this.folderRepository.addChatSessionId(chatSessionRequest.folderId, savedChatSession.id);
         
         return savedChatSession;
     }
@@ -56,8 +68,6 @@ export class ChatSessionService {
         sessionId: string,
         cliniAIResponse: CliniAIResponse
     ): Promise<Result> {
-        const timestamp = Date.now();
-
         // Convert gradcam analyses base64 images to S3 URLs
         const gradcamAnalyses: { [key: string]: string } = {};
         for (const [key, base64Image] of Object.entries(cliniAIResponse.gradcam_analyses)) {

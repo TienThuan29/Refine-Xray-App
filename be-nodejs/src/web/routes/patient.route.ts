@@ -7,6 +7,11 @@ const router = Router();
 
 const patientApi = new PatientApi();
 
-router.post('/create-profile', authenticate, authorize([Role.DOCTOR]), patientApi.createPatientProfile);
+router.post(
+    '/create-profile/:folderId', 
+    authenticate, 
+    authorize([Role.DOCTOR]), 
+    patientApi.createPatientProfile
+);
 
 export default router;

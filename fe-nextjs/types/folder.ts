@@ -1,3 +1,4 @@
+import { ChatSession } from "./chatsession";
 
 export interface MenuItem {
     key: string;
@@ -12,28 +13,43 @@ export interface MenuItem {
 }
 
 
+// export type Folder = {
+//     id: string;
+//     title: string;
+//     chatSessions: ChatSession[];
+//     createdDate: string;
+//     updatedDate: string;
+// }
+
+// export type Folder = {
+//     id: string;
+//     title: string;
+//     description?: string;
+//     patientProfileId: string | null;
+//     chatSessionIds?: string[];
+//     createdBy: string;
+//     isDeleted: boolean;
+//     createdDate?: string;
+//     updatedDate?: string;
+// }
+
 export type Folder = {
     id: string;
     title: string;
-    chatSessions: ChatSession[];
-    createdDate: string;
-    updatedDate: string;
+    description?: string;
+    patientProfileId: string | null;
+    chatSessionIds?: string[];
+    chatSessionsInfo?: ChatSessionInfo[];
+    createdBy: string;
+    isDeleted: boolean;
+    createdDate?: Date;
+    updatedDate?: Date;
 }
 
-export type ChatSession = {
+export type ChatSessionInfo = {
     id: string;
     title: string;
-    chatItems: ChatItem[];
-    createdDate?: string;
-    updatedDate?: string;
-}
-
-export type ChatItem = {
-    id: string;
-    title: string;
-    content: string;
-    imageUrls?: string[];
-    isBot: boolean;
-    createdDate?: string;
-    updatedDate?: string;
+    isDeleted: boolean;
+    createdDate?: Date;
+    updatedDate?: Date;
 }

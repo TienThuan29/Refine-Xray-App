@@ -15,8 +15,9 @@ export class PatientApi {
 
     public async createPatientProfile(request: Request, response: Response): Promise<void> {
         try {
+            const folderId = request.params.folderId;
             const patientProfile = request.body as PatientProfileRequest;
-            const createdPatientProfile = await this.patientService.createPatientProfile(patientProfile);
+            const createdPatientProfile = await this.patientService.createPatientProfile(folderId, patientProfile);
             ResponseUtil.success(response, createdPatientProfile, 'Patient profile created successfully');
         }
         catch (error) {

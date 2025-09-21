@@ -1,35 +1,32 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Input, Upload, Button, Select, Row, Col } from 'antd';
-import { UploadOutlined, InboxOutlined, UserOutlined } from '@ant-design/icons';
-import type { UploadFile } from 'antd';
+import { Modal, Form, Input, Button, Select, Row, Col } from 'antd';
+import { UserOutlined } from '@ant-design/icons';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { toast } from "sonner";
 import { useVietnamAddress } from '../../hooks/useVietnamAddress';
 import { PatientProfileRequest } from '../../types/patient';
-const { Dragger } = Upload;
+import usePatientProfileManager from '../../hooks/usePatientProfileManager';
 
 interface PatientModalProps {
   visible: boolean;
   onClose: () => void;
-  onComplete: (data: { title: string; files: File[]; patientProfile: PatientProfileRequest }) => void;
-  folderData: { title: string; description?: string };
+  onComplete: (data: { patientProfile: PatientProfileRequest }) => void;
+  folderData: { id: string; title: string; description?: string };
 }
 
 const PatientModal: React.FC<PatientModalProps> = ({ visible, onClose, onComplete, folderData }) => {
   const { t, language } = useLanguage();
   const [form] = Form.useForm();
-  const [fileList, setFileList] = useState<File[]>([]);
-  const [loading, setLoading] = useState(false);
   const [formValues, setFormValues] = useState({ 
-    title: '',
     fullname: '', 
     gender: '', 
     province: '', 
     commune: '' 
   });
   const { provinces, communesOfProvince, loadingProvinces, loadingCommunes, getProvinces, getCommunesOfProvince } = useVietnamAddress();
+  const { createPatientProfile, isCreating, error, clearError } = usePatientProfileManager();
 
   useEffect(() => {
     if (visible) {
@@ -40,12 +37,9 @@ const PatientModal: React.FC<PatientModalProps> = ({ visible, onClose, onComplet
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      setLoading(true);
+      clearError(); // Clear any previous errors
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const patientProfile: PatientProfileRequest = {
+      const patientProfileData = {
         fullname: values.fullname,
         gender: values.gender,
         phone: values.phone,
@@ -55,25 +49,41 @@ const PatientModal: React.FC<PatientModalProps> = ({ visible, onClose, onComplet
         nation: values.nation || (language === 'vi' ? 'Việt Nam' : 'Vietnam')
       };
       
-      onComplete({
-        title: values.title,
-        files: fileList,
-        patientProfile
-      });
+      const createdPatientProfile = await createPatientProfile(patientProfileData, folderData.id);
       
-      toast.success(t('newChat.createSuccess'));
-      handleClose();
-    } catch (error) {
+      if (createdPatientProfile) {
+        console.log('Patient profile created successfully:', createdPatientProfile);
+        const patientProfile: PatientProfileRequest = {
+          fullname: createdPatientProfile.fullname,
+          gender: createdPatientProfile.gender,
+          phone: createdPatientProfile.phone,
+          houseNumber: createdPatientProfile.houseNumber,
+          commune: createdPatientProfile.commune,
+          province: createdPatientProfile.province,
+          nation: createdPatientProfile.nation
+        };
+        
+        console.log('Calling onComplete with patient profile:', patientProfile);
+        onComplete({
+          patientProfile
+        });
+        
+        toast.success(t('newChat.createSuccess'));
+        // Don't call handleClose() here - let the parent handle the transition
+      } else {
+        toast.error(t('newChat.createError') || 'Failed to create patient profile');
+      }
+    } catch (error: any) {
       console.error('Validation failed:', error);
-    } finally {
-      setLoading(false);
+      if (error) {
+        toast.error('Failed to create patient profile');
+      }
     }
   };
 
   const handleClose = () => {
     form.resetFields();
-    setFileList([]);
-    setFormValues({ title: '', fullname: '', gender: '', province: '', commune: '' });
+    setFormValues({ fullname: '', gender: '', province: '', commune: '' });
     onClose();
   };
 
@@ -81,40 +91,6 @@ const PatientModal: React.FC<PatientModalProps> = ({ visible, onClose, onComplet
     setFormValues(allValues);
   };
 
-  const uploadProps = {
-    name: 'file',
-    multiple: false,
-    maxCount: 1,
-    fileList: fileList.map((file, index) => ({
-      uid: index.toString(),
-      name: file.name,
-      status: 'done' as UploadFile['status'],
-    })),
-    beforeUpload: (file: File) => {
-      // Validate file type
-      const isValidType = file.type.startsWith('image/') || 
-                         file.type === 'application/pdf' ||
-                         file.type.startsWith('text/');
-      
-      if (!isValidType) {
-        toast.error(t('newChat.invalidFileType'));
-        return false;
-      }
-
-      // Validate file size (max 10MB)
-      const isValidSize = file.size / 1024 / 1024 < 10;
-      if (!isValidSize) {
-        toast.error(t('newChat.fileTooLarge'));
-        return false;
-      }
-
-      setFileList([file]);
-      return false; 
-    },
-    onRemove: (file: UploadFile) => {
-      setFileList([]);
-    },
-  };
 
   return (
     <Modal
@@ -132,19 +108,19 @@ const PatientModal: React.FC<PatientModalProps> = ({ visible, onClose, onComplet
           {t('newChat.back')}
         </Button>,
         <Button 
-          key="create" 
+          key="next" 
           type="primary" 
-          loading={loading}
+          loading={isCreating}
           onClick={handleSubmit}
           disabled={
-            !formValues.title?.trim() ||
             !formValues.fullname?.trim() ||
             !formValues.gender ||
             !formValues.province ||
-            !formValues.commune
+            !formValues.commune ||
+            isCreating
           }
         >
-          {t('newChat.create')}
+          {t('newChat.next')}
         </Button>,
       ]}
     >
@@ -279,73 +255,6 @@ const PatientModal: React.FC<PatientModalProps> = ({ visible, onClose, onComplet
           </Row>
         </div>
 
-        {/* Title input */}
-        <Form.Item
-          name="title"
-          label={t('newChat.chatSessionTitle')}
-          rules={[
-            { required: true, message: t('newChat.titleRequired') },
-            { min: 3, message: t('newChat.titleMinLength') },
-            { max: 50, message: t('newChat.titleMaxLength') }
-          ]}
-        >
-          <Input 
-            placeholder={t('newChat.chatSessionTitlePlaceholder')}
-            size="middle"
-          />
-        </Form.Item>
-
-        <Form.Item
-          label={t('newChat.uploadFiles')}
-          help={t('newChat.uploadHelp')}
-        >
-          <Dragger {...uploadProps} style={{ padding: '20px' }}>
-            <p className="ant-upload-drag-icon">
-              <InboxOutlined style={{ fontSize: '48px', color: '#1890ff' }} />
-            </p>
-            <p className="ant-upload-text" style={{ fontSize: '16px', marginBottom: '8px' }}>
-              {t('newChat.dragText')}
-            </p>
-            <p className="ant-upload-hint" style={{ color: '#666' }}>
-              {t('newChat.supportedFormats')}
-            </p>
-            <Button 
-              icon={<UploadOutlined />} 
-              style={{ marginTop: '16px' }}
-            >
-              {t('newChat.selectFiles')}
-            </Button>
-          </Dragger>
-        </Form.Item>
-
-        {fileList.length > 0 && (
-          <div style={{ marginTop: '16px' }}>
-            <h4 style={{ marginBottom: '8px', color: '#333' }}>
-              {t('newChat.selectedFile')}
-            </h4>
-            <div style={{ maxHeight: '120px', overflowY: 'auto' }}>
-              {fileList.map((file, index) => (
-                <div 
-                  key={index}
-                  style={{ 
-                    padding: '8px 12px', 
-                    background: '#f5f5f5', 
-                    borderRadius: '4px',
-                    marginBottom: '4px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}
-                >
-                  <span style={{ fontSize: '14px' }}>{file.name}</span>
-                  <span style={{ fontSize: '12px', color: '#666' }}>
-                    {(file.size / 1024 / 1024).toFixed(2)} MB
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </Form>
     </Modal>
   );

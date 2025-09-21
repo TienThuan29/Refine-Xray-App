@@ -59,8 +59,11 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ visible, onClose, onCreateC
       <PatientModal
         visible={showPatientModal}
         onClose={handleClose}
-        onComplete={handlePatientComplete}
-        folderData={folderData || { title: '', description: '' }}
+        onComplete={(data) => handlePatientComplete({
+          files: [],
+          patientProfile: data.patientProfile
+        })}
+        folderData={folderData || { title: '', description: '', id: '' }}
       />
     </>
   );

@@ -28,4 +28,11 @@ router.get(
     folderApi.findFolderById
 );
 
+router.get(
+    '/get-all-created-by', 
+    authenticate, 
+    authorize([Role.DOCTOR]), 
+    folderApi.getFolderOfUser
+);
+
 export default router;

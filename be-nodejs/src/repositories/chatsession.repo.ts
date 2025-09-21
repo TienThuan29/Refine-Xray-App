@@ -12,7 +12,6 @@ export class ChatSessionRepository extends DynamoRepository {
 
 
     public async createChatSession(chatSession: ChatSession): Promise<ChatSession | null> {
-        chatSession.id = uuidv4();
         chatSession.createdDate = new Date();
         chatSession.updatedDate = new Date();
         chatSession.isDeleted = false;
