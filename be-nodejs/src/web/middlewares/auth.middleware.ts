@@ -1,10 +1,8 @@
 import { UserRepository } from "@/repositories/user.repo";
 import { JwtUtil } from "@/utils/jwt.util";
 import { ResponseUtil } from "@/libs/response";
-import { Role } from "@/models/user.model";
 import { Request, Response, NextFunction } from "express";
 import { config } from "@/configs/config";
-import logger from "@/libs/logger";
 
 export const authenticate = async (request: Request, response: Response, next: NextFunction): Promise<void> => {
       const userRepository = new UserRepository();
@@ -69,12 +67,9 @@ export const authorize = (allowedRoles: string[]) => {
 
 export const validateSystemSecret = async (request: Request, response: Response, next: NextFunction): Promise<void> => {
     const systemSecret = request.headers['x-system-secret'];
-    // logger.info(`System secret: ${systemSecret}`);
     if (systemSecret !== config.SYSTEM_SECRET) {
-        // logger.error(`Invalid system secret: ${systemSecret}`);
         ResponseUtil.error(response, 'Invalid system secret', 401);
         return;
     }
-    //logger.info(`Valid system secret: ${systemSecret}`);
     next();
 }

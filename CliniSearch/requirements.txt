@@ -12,3 +12,10 @@ sentence-transformers
 faiss-cpu # For local vector search simulation
 numpy
 pymupdf # For PDF parsing (replaces Document AI for local demo)
+# Additional dependencies for API
+python-multipart # For file uploads
+pillow # For image processing
+torch # For model inference
+torchvision # For model inference
+matplotlib # For visualization
+opencv-python # For image processing

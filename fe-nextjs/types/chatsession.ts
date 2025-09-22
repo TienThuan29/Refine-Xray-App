@@ -1,4 +1,9 @@
-import { Report } from "./report.model";
+
+export type ChatSessionRequest = {
+    title: string;
+    xrayImage: Buffer;
+}
+
 
 export type ChatSession = {
     id: string;
@@ -8,8 +13,8 @@ export type ChatSession = {
     chatItems?: ChatItem[];
     reports?: Report[];
     isDeleted: boolean;
-    createdDate?: Date;
-    updatedDate?: Date;
+    createdDate?: string;
+    updatedDate?: string;
 }
 
 export type Result = {
@@ -43,6 +48,5 @@ export type ChatItem = {
     content: string;
     imageUrls?: string[];
     isBot?: boolean;
-    createdDate?: Date;
+    createdDate?: string;
 }
-

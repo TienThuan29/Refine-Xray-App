@@ -30,8 +30,16 @@ export const config = {
     LOG_FILE_MAX_SIZE: process.env.LOG_FILE_MAX_SIZE || '20m',
     LOG_FILE_MAX_FILES: process.env.LOG_FILE_MAX_FILES || '14d',
 
+    // CLINIAI
+    CLINI_BASE_URL: process.env.CLINI_BASE_URL || '',
+
     // tables
     USER_TABLE: process.env.USER_TABLE || '',
     REPORT_TEMPLATE_TABLE: process.env.REPORT_TEMPLATE_TABLE || '',
+    PATIENT_PROFILE_TABLE: process.env.PATIENT_PROFILE_TABLE || '',
+    FOLDER_TABLE: process.env.FOLDER_TABLE || '',
+    CHAT_SESSION_TABLE: process.env.CHAT_SESSION_TABLE || '',
+    REPORT_TABLE: process.env.REPORT_TABLE || '',
+    SYSTEM_VAR_TABLE: process.env.SYSTEM_VAR_TABLE || '',
 
 } as const;

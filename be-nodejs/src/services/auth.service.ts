@@ -84,12 +84,9 @@ export class AuthService {
       public async createAccount(registerData: RegisterData): Promise<AuthResponse> {
             console.log(registerData);
             const existingUser = await this.userRepository.findByEmail(registerData.email);
-            // console.log(`Existing user: ${existingUser}`);
             if (existingUser) {
                   throw new Error("Email already exists");
             }
-
-            // console.log(`Register data: ${registerData}`);
 
             const user = await this.userRepository.create({
                   email: registerData.email,
@@ -99,8 +96,6 @@ export class AuthService {
                   dateOfBirth: registerData.dateOfBirth instanceof Date ? registerData.dateOfBirth : new Date(registerData.dateOfBirth),
                   role: registerData.role
             } as User);
-
-            // console.log(`User: ${user}`);
 
             if (user != null) {
                   const tokenPayload = {
@@ -125,5 +120,10 @@ export class AuthService {
             }
 
             throw new Error("An error occurred while creating the account");
+      }
+
+      public async getUserByToken(accessToken: string): Promise<User | null> {
+            const decoded = await JwtUtil.verify(accessToken);
+            return this.userRepository.findById(decoded.id);
       }
 }

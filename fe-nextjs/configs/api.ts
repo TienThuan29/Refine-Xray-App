@@ -10,5 +10,32 @@ export const Api = {
 
     System: {
         CREATE_ACCOUNT: '/api/v1/auth/create-account'
+    },
+
+    Folder: {
+        CREATE_FOLDER: '/api/v1/folder/create-folder',
+        GET_FOLDER: '/api/v1/folder/get',
+        UPDATE_PATIENT_PROFILE: '/api/v1/folder/update-patient-profile-id',
+        GET_FOLDER_OF_USER: '/api/v1/folder/get-all-created-by'
+    },
+
+    Patient: {
+        CREATE_PATIENT_PROFILE: '/api/v1/patient/create-profile',
+        GET_PATIENT_PROFILE: '',
+        UPDATE_PATIENT_PROFILE: '',
+        DELETE_PATIENT_PROFILE: '',
+        LIST_PATIENT_PROFILES: ''
+    },
+
+    ChatSession: {
+        CREATE_CHAT_SESSION: '/api/v1/chatsession/analyze-and-create-chatsession',
+        GET_CHAT_SESSION: '/api/v1/chatsession/get',
+    },
+
+    ThirdParty: {
+        VietnamAddress: {
+            GET_PROVINCES: 'https://production.cas.so/address-kit/2025-07-01/provinces',
+            GET_COMMUNES_FROM_PROVINCE: 'https://production.cas.so/address-kit/2025-07-01/provinces/{province_id}/communes',
+        }
     }
 }

@@ -1,4 +1,7 @@
-import { Folder, ChatSession, ChatItem } from '../types/folder';
+import { Folder } from '../types/folder';
+import { ChatSession } from '../types/chatsession';
+import { ChatItem } from '../types/chatsession';
+
 
 export const mockChatItems: ChatItem[] = [
   {
