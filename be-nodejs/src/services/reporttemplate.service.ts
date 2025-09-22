@@ -2,8 +2,11 @@ import { ReportTemplate } from "@/models/report.model";
 import { ReportTemplateRepository } from "@/repositories/reporttemplate.repo";
 import { S3Service } from "./s3.service";
 import mammoth from "mammoth";
-import PdfParse from "pdf-parse";
 import TurndownService from "turndown";
+import { spawn } from 'child_process';
+import * as path from 'path';
+import * as fs from 'fs';
+import * as os from 'os';
 import logger from "@/libs/logger";
 
 export class ReportTemplateService {
@@ -33,22 +36,57 @@ export class ReportTemplateService {
         createBy: string
     ): Promise<ReportTemplate | null> {
         try {
-            // Upload file to S3
+            // Validate input parameters
+            if (!file || file.length === 0) {
+                throw new Error('File buffer is empty or invalid');
+            }
+
+            if (!fileName || fileName.trim().length === 0) {
+                throw new Error('File name is required');
+            }
+
+            if (!createBy || createBy.trim().length === 0) {
+                throw new Error('Creator ID is required');
+            }
+
+            // Check file size (limit to 100MB for PDFs with Docling)
+            const maxSize = 100 * 1024 * 1024; // 100MB
+            if (file.length > maxSize) {
+                throw new Error(`File size too large. Maximum size is ${maxSize / (1024 * 1024)}MB`);
+            }
+
+            // Log file size for monitoring
+            const fileSizeMB = (file.length / (1024 * 1024)).toFixed(2);
+            logger.info(`Processing file: ${fileName} (${fileSizeMB} MB)`);
+
+            // Validate file type
+            if (!this.isFileTypeSupported(contentType, fileName)) {
+                throw new Error(`Unsupported file type: ${contentType}. Supported types: ${this.getSupportedFileTypes().join(', ')}`);
+            }
+
+            logger.info(`Starting file processing: ${fileName}, size: ${file.length} bytes, type: ${contentType}`);
+
+            // Upload file to S3 first
             const fileLink = await this.s3Service.uploadFile(file, fileName, contentType);
             logger.info(`File uploaded to S3: ${fileLink}`);
 
             // Convert file to markdown based on content type
             let markdownContent: string;
             
-            if (contentType.includes('pdf')) {
-                markdownContent = await this.convertPdfToMarkdown(file);
-            } else if (contentType.includes('document') || 
-                      contentType.includes('wordprocessingml') ||
-                      fileName.toLowerCase().endsWith('.doc') ||
-                      fileName.toLowerCase().endsWith('.docx')) {
-                markdownContent = await this.convertDocToMarkdown(file);
-            } else {
-                throw new Error(`Unsupported file type: ${contentType}`);
+            try {
+                if (contentType.includes('pdf') || fileName.toLowerCase().endsWith('.pdf')) {
+                    markdownContent = await this.convertPdfToMarkdown(file, fileName);
+                } else if (contentType.includes('document') || 
+                          contentType.includes('wordprocessingml') ||
+                          fileName.toLowerCase().endsWith('.doc') ||
+                          fileName.toLowerCase().endsWith('.docx')) {
+                    markdownContent = await this.convertDocToMarkdown(file);
+                } else {
+                    throw new Error(`Unsupported file type: ${contentType}`);
+                }
+            } catch (conversionError) {
+                logger.error(`File conversion failed for ${fileName}: ${conversionError}`);
+                throw new Error(`Failed to convert file to markdown: ${conversionError instanceof Error ? conversionError.message : 'Unknown error'}`);
             }
 
             logger.info(`File converted to markdown, content length: ${markdownContent.length}`);
@@ -64,75 +102,247 @@ export class ReportTemplateService {
             // Save to database
             const createdTemplate = await this.reportTemplateRepository.create(reportTemplate as ReportTemplate);
             
-            if (createdTemplate) {
-                logger.info(`ReportTemplate created successfully with ID: ${createdTemplate.id}`);
+            if (!createdTemplate) {
+                throw new Error('Failed to save template to database');
             }
 
+            logger.info(`ReportTemplate created successfully with ID: ${createdTemplate.id}`);
             return createdTemplate;
 
         } catch (error) {
-            logger.error(`Error in uploadAndConvertToMarkdown: ${error}`);
-            return null;
+            logger.error(`Error in uploadAndConvertToMarkdown for file ${fileName}: ${error}`);
+            throw error; // Re-throw to let API layer handle it
         }
     }
 
     /**
-     * Convert PDF file to markdown
+     * Convert PDF file to markdown using Docling Python script
      * @param fileBuffer - PDF file buffer
+     * @param fileName - Original file name
      * @returns Markdown content
      */
-    private async convertPdfToMarkdown(fileBuffer: Buffer): Promise<string> {
+    private async convertPdfToMarkdown(fileBuffer: Buffer, fileName: string): Promise<string> {
         try {
-            const data = await PdfParse(fileBuffer);
-            
-            // Basic markdown formatting
-            let markdown = data.text;
-            
-            // Clean up the text
-            markdown = markdown
-                .replace(/\n\s*\n\s*\n/g, '\n\n') // Remove excessive line breaks
-                .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-                .trim();
-
-            // Add title if first line looks like a title
-            const lines = markdown.split('\n');
-            if (lines.length > 0 && lines[0].length > 0 && lines[0].length < 100) {
-                markdown = `# ${lines[0]}\n\n${lines.slice(1).join('\n')}`;
+            // Validate buffer
+            if (!fileBuffer || fileBuffer.length === 0) {
+                throw new Error('PDF buffer is empty or invalid');
             }
 
-            return markdown;
+            // Check if buffer contains PDF header
+            const bufferStart = fileBuffer.subarray(0, 8).toString();
+            if (!bufferStart.startsWith('%PDF-')) {
+                throw new Error('Invalid PDF file format');
+            }
+
+            logger.info(`Converting PDF to markdown using Docling, buffer size: ${fileBuffer.length} bytes`);
+
+            // Create temporary file
+            const tempDir = os.tmpdir();
+            const tempFilePath = path.join(tempDir, `temp_${Date.now()}_${fileName}`);
+            
+            try {
+                // Write buffer to temporary file
+                fs.writeFileSync(tempFilePath, fileBuffer);
+
+                // Get the path to the Python script
+                const scriptPath = path.join(__dirname, '..', '..', 'scripts', 'docling_converter.py');
+
+                // Execute Python script
+                const result = await this.executeDoclingScript(scriptPath, tempFilePath);
+
+                if (!result.success) {
+                    throw new Error(result.error || 'Unknown error occurred during conversion');
+                }
+
+                let markdown = result.markdown;
+
+                // Ensure we have meaningful content
+                if (!markdown || markdown.length < 10) {
+                    throw new Error('PDF conversion resulted in minimal text content');
+                }
+
+                logger.info(`PDF conversion completed using Docling, markdown length: ${markdown.length}`);
+                return markdown;
+
+            } finally {
+                // Clean up temporary file
+                if (fs.existsSync(tempFilePath)) {
+                    fs.unlinkSync(tempFilePath);
+                }
+            }
         } catch (error) {
-            logger.error(`Error converting PDF to markdown: ${error}`);
+            logger.error(`Error converting PDF to markdown with Docling: ${error}`);
+            if (error instanceof Error) {
+                throw new Error(`Failed to convert PDF to markdown: ${error.message}`);
+            }
             throw new Error('Failed to convert PDF to markdown');
         }
     }
 
     /**
-     * Convert DOC/DOCX file to markdown
+     * Execute Docling Python script
+     * @param scriptPath - Path to Python script
+     * @param pdfFilePath - Path to PDF file
+     * @returns Promise with conversion result
+     */
+    private async executeDoclingScript(scriptPath: string, pdfFilePath: string): Promise<{success: boolean, markdown?: string, error?: string}> {
+        return new Promise((resolve) => {
+            try {
+                // Spawn Python process
+                const pythonProcess = spawn('python', [scriptPath, pdfFilePath], {
+                    stdio: ['pipe', 'pipe', 'pipe']
+                });
+
+                let stdout = '';
+                let stderr = '';
+
+                // Collect stdout
+                pythonProcess.stdout.on('data', (data) => {
+                    stdout += data.toString();
+                });
+
+                // Collect stderr and log progress
+                pythonProcess.stderr.on('data', (data) => {
+                    const message = data.toString();
+                    stderr += message;
+                    // Log progress messages to help with debugging
+                    if (message.includes('Processing PDF file') || 
+                        message.includes('Starting PDF conversion') ||
+                        message.includes('PDF conversion completed') ||
+                        message.includes('Markdown export completed')) {
+                        logger.info(`Docling progress: ${message.trim()}`);
+                    }
+                });
+
+                // Handle process completion
+                pythonProcess.on('close', (code) => {
+                    if (code === 0) {
+                        try {
+                            const result = JSON.parse(stdout);
+                            resolve(result);
+                        } catch (parseError) {
+                            logger.error(`Failed to parse Python script output: ${parseError}`);
+                            resolve({
+                                success: false,
+                                error: `Failed to parse script output: ${stdout}`
+                            });
+                        }
+                    } else {
+                        logger.error(`Python script failed with code ${code}, stderr: ${stderr}`);
+                        resolve({
+                            success: false,
+                            error: `Python script failed: ${stderr || 'Unknown error'}`
+                        });
+                    }
+                });
+
+                // Handle process error
+                pythonProcess.on('error', (error) => {
+                    logger.error(`Failed to spawn Python process: ${error}`);
+                    resolve({
+                        success: false,
+                        error: `Failed to execute Python script: ${error.message}`
+                    });
+                });
+
+                // Set timeout - increased for large files
+                const timeoutDuration = 300000; // 5 minutes timeout
+                const timeoutId = setTimeout(() => {
+                    pythonProcess.kill();
+                    resolve({
+                        success: false,
+                        error: `Python script execution timeout after ${timeoutDuration / 1000} seconds`
+                    });
+                }, timeoutDuration);
+
+                // Clear timeout if process completes normally
+                pythonProcess.on('close', () => {
+                    clearTimeout(timeoutId);
+                });
+
+            } catch (error) {
+                logger.error(`Error executing Docling script: ${error}`);
+                resolve({
+                    success: false,
+                    error: `Script execution error: ${error instanceof Error ? error.message : 'Unknown error'}`
+                });
+            }
+        });
+    }
+
+
+
+    /**
+     * Convert DOC/DOCX file to markdown using mammoth and turndown
      * @param fileBuffer - DOC/DOCX file buffer
      * @returns Markdown content
      */
     private async convertDocToMarkdown(fileBuffer: Buffer): Promise<string> {
         try {
-            const result = await mammoth.convertToHtml({ buffer: fileBuffer });
+            // Validate buffer
+            if (!fileBuffer || fileBuffer.length === 0) {
+                throw new Error('Document buffer is empty or invalid');
+            }
+
+            logger.info(`Converting DOC/DOCX to markdown using mammoth, buffer size: ${fileBuffer.length} bytes`);
+
+            // Configure turndown service with better options
+            const turndownService = new TurndownService({
+                headingStyle: 'atx',
+                bulletListMarker: '-',
+                codeBlockStyle: 'fenced',
+                fence: '```',
+                emDelimiter: '*',
+                strongDelimiter: '**',
+                linkStyle: 'inlined',
+                linkReferenceStyle: 'full'
+            });
+
+            // Convert to HTML using mammoth with options
+            const mammothOptions = {
+                buffer: fileBuffer
+            };
+
+            const result = await mammoth.convertToHtml(mammothOptions);
+            
+            if (!result.value || result.value.trim().length === 0) {
+                throw new Error('Document contains no extractable content');
+            }
+            
+            logger.info(`Document HTML converted, length: ${result.value.length} characters`);
             
             // Convert HTML to Markdown using turndown
-            let markdown = this.turndownService.turndown(result.value);
+            let markdown = turndownService.turndown(result.value);
             
             // Clean up the markdown
-            markdown = markdown
+            let cleanedMarkdown = markdown
+                .replace(/\r\n/g, '\n') // Normalize line endings
+                .replace(/\r/g, '\n') // Normalize line endings
                 .replace(/\n\s*\n\s*\n/g, '\n\n') // Remove excessive line breaks
-                .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+                .replace(/[ \t]+/g, ' ') // Replace multiple spaces/tabs with single space
+                .replace(/\n /g, '\n') // Remove leading spaces from lines
+                .replace(/ \n/g, '\n') // Remove trailing spaces from lines
+                .replace(/^#+\s*$/gm, '') // Remove empty headers
+                .replace(/^\s*[-*+]\s*$/gm, '') // Remove empty list items
                 .trim();
+
+            // Ensure we have meaningful content
+            if (cleanedMarkdown.length < 10) {
+                throw new Error('Document conversion resulted in minimal text content');
+            }
 
             // Log any conversion warnings
             if (result.messages && result.messages.length > 0) {
                 logger.warn(`Mammoth conversion warnings: ${JSON.stringify(result.messages)}`);
             }
 
-            return markdown;
+            logger.info(`Document conversion completed using mammoth, markdown length: ${cleanedMarkdown.length}`);
+            return cleanedMarkdown;
         } catch (error) {
-            logger.error(`Error converting DOC to markdown: ${error}`);
+            logger.error(`Error converting DOC to markdown with @adobe/helix-docx2md: ${error}`);
+            if (error instanceof Error) {
+                throw new Error(`Failed to convert DOC/DOCX to markdown: ${error.message}`);
+            }
             throw new Error('Failed to convert DOC/DOCX to markdown');
         }
     }
