@@ -1,5 +1,4 @@
 import { verifyHash } from "@/libs/hashing";
-import logger from "@/libs/logger";
 import { mapUserToUserProfileResponse } from "@/libs/mappers/user.mapper";
 import { User } from "@/models/user.model";
 import { UserRepository } from "@/repositories/user.repo";
@@ -13,7 +12,7 @@ import { JwtUtil } from "@/utils/jwt.util";
 
 export class AuthService {
 
-      private userRepository: UserRepository;
+      private readonly userRepository: UserRepository;
 
 
       constructor() {
@@ -125,5 +124,58 @@ export class AuthService {
       public async getUserByToken(accessToken: string): Promise<User | null> {
             const decoded = await JwtUtil.verify(accessToken);
             return this.userRepository.findById(decoded.id);
+      }
+
+      public async getAllUsers(): Promise<UserProfileResponse[]> {
+            const users = await this.userRepository.findAll();
+            return Promise.all(users.map(user => mapUserToUserProfileResponse(user)));
+      }
+
+      public async updateUser(userId: string, updateData: Partial<User>): Promise<UserProfileResponse | null> {
+            const updatedUser = await this.userRepository.update(userId, updateData);
+            if (!updatedUser) {
+                  return null;
+            }
+            return mapUserToUserProfileResponse(updatedUser);
+      }
+
+      public async getUserByEmail(email: string): Promise<UserProfileResponse | null> {
+            const user = await this.userRepository.findByEmail(email);
+            if (!user) {
+                  return null;
+            }
+            return mapUserToUserProfileResponse(user);
+      }
+
+      public async updateUserByEmail(email: string, updateData: Partial<User>): Promise<UserProfileResponse | null> {
+            const user = await this.userRepository.findByEmail(email);
+            if (!user) {
+                  return null;
+            }
+            const updatedUser = await this.userRepository.update(user.id, updateData);
+            if (!updatedUser) {
+                  return null;
+            }
+            return mapUserToUserProfileResponse(updatedUser);
+      }
+
+      public async deleteUserByEmail(email: string): Promise<boolean> {
+            const user = await this.userRepository.findByEmail(email);
+            if (!user) {
+                  return false;
+            }
+            return await this.userRepository.delete(user.id);
+      }
+
+      public async updateUserStatusByEmail(email: string, isEnable: boolean): Promise<UserProfileResponse | null> {
+            const user = await this.userRepository.findByEmail(email);
+            if (!user) {
+                  return null;
+            }
+            const updatedUser = await this.userRepository.updateStatus(user.id, isEnable);
+            if (!updatedUser) {
+                  return null;
+            }
+            return mapUserToUserProfileResponse(updatedUser);
       }
 }

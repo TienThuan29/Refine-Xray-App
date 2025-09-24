@@ -168,7 +168,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                     router.push(PageUrl.SYSTEM_DASHBOARD_PAGE);
                 }
                 else if (roleValidator.isAdmin) {
-                    router.push(PageUrl.ADMIN_DASHBOARD_PAGE);
+                    router.push(PageUrl.SYSTEM_DASHBOARD_PAGE);
                 }
                 else if (roleValidator.isDoctor) {
                     router.push(PageUrl.HOME_PAGE);
