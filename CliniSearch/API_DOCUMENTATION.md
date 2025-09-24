@@ -19,6 +19,10 @@ The CliniSearch API is a serverless FastAPI application that provides advanced m
 # Install dependencies
 pip install -r requirements.txt
 
+
+# Activate env
+source /home/tienthuan29/workspaces/projects/AiResearch/Diffusion-based-IAD/.venv/bin/activate
+
 # Run the API server
 python deploy_api.py --mode local
 

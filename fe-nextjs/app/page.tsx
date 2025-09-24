@@ -10,21 +10,17 @@ import {
   BookOutlined,
   FileTextOutlined,
   SettingOutlined,
-  MoreOutlined,
   LinkOutlined,
   BulbOutlined,
-  PictureOutlined,
   StarOutlined,
   UserOutlined,
   DownOutlined,
-  QuestionCircleOutlined,
-  GlobalOutlined,
   StarFilled,
   FolderOutlined,
   FolderOpenOutlined
 } from '@ant-design/icons';
 import { MenuProps } from 'antd';
-import { Folder } from '../types/folder';
+import { formatDate } from '../lib/date';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { CiLogin } from "react-icons/ci";
@@ -41,29 +37,7 @@ const { Sider, Content } = Layout;
 const { Title, Text } = Typography;
 import { FaRegQuestionCircle } from "react-icons/fa";
 import Footer from '@/components/single/footer';
-
-
-
-const suggestedActions = [
-  {
-    title: "Diagnose X-ray Image",
-    description: "Diagnose X-ray image with Medical Clini AI",
-    icon: <FileTextOutlined className="text-xl" />,
-    color: "bg-blue-50 border-blue-200 hover:bg-blue-100"
-  },
-  {
-    title: "Recommend from PubMed's Knowledge",
-    description: "Recommend from PubMed's Knowledge",
-    icon: <StarOutlined className="text-xl" />,
-    color: "bg-purple-50 border-purple-200 hover:bg-purple-100"
-  },
-  {
-    title: "Support Report Template",
-    description: "Support Report Template",
-    icon: <BulbOutlined className="text-xl" />,
-    color: "bg-green-50 border-green-200 hover:bg-green-100"
-  }
-];
+import { PageUrl } from '@/configs/page.url';
 
 
 const getUserMenuItems = (onLogout: () => void): MenuProps['items'] => [
@@ -104,13 +78,13 @@ export default function Page() {
   const [inputValue, setInputValue] = useState('');
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [selectedKey, setSelectedKey] = useState('');
-  
+
   // Pipeline modal states
   const [folderModalVisible, setFolderModalVisible] = useState(false);
   const [patientModalVisible, setPatientModalVisible] = useState(false);
   const [chatSessionModalVisible, setChatSessionModalVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
-  
+
   // Pipeline data
   const [folderData, setFolderData] = useState<{ id: string; title: string; description?: string } | null>(null);
   const [patientData, setPatientData] = useState<{ fullname: string; gender: string } | null>(null);
@@ -169,13 +143,13 @@ export default function Page() {
       setSettingsVisible(true);
       return;
     }
-    
+
     if (key === 'logout') {
       clearAllChatSessions();
       logout();
       return;
     }
-    
+
     const folder = folders.find(f => f.id === key);
     if (folder) {
       // Toggle folder expansion
@@ -186,14 +160,14 @@ export default function Page() {
       console.log('Looking for chat session with key:', key);
       console.log('Current folderChatSessions:', folderChatSessions);
       console.log('Current folders:', folders);
-      
+
       let chatSession = null;
-      
+
       // First check local state
       chatSession = Object.values(folderChatSessions)
         .flat()
         .find(session => session.id === key);
-      
+
       // If not found in local state, check backend data
       if (!chatSession) {
         for (const folder of folders) {
@@ -202,38 +176,28 @@ export default function Page() {
           if (chatSession) break;
         }
       }
-      
+
       if (chatSession) {
-        console.log('Chat session clicked:', chatSession);
+        // console.log('Chat session clicked:', chatSession);
         setSelectedKey(key);
-        
+
         // Fetch the full chat session data
         try {
-          console.log('Fetching chat session:', chatSession.id);
+          // console.log('Fetching chat session:', chatSession.id);
           await getChatSession(chatSession.id);
-        } 
+        }
         catch (error) {
           console.error('Error fetching chat session:', error);
         }
-      } else {
+      }
+      else {
         console.log('No chat session found with key:', key);
       }
     }
-    
+
   };
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - date.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 1) return 'Today';
-    if (diffDays === 2) return 'Yesterday';
-    if (diffDays <= 7) return `${diffDays} days ago`;
-    return date.toLocaleDateString('en-US', { month: 'long' }).toUpperCase();
-  };
+
 
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -273,7 +237,7 @@ export default function Page() {
     console.log('Folder data:', folderData);
     console.log('Patient data:', patientData);
     console.log('Created chat session:', data.chatSession);
-    
+
     // Use the actual chat session from the API response
     if (folderData && data.chatSession) {
       const newChatSession = {
@@ -286,18 +250,18 @@ export default function Page() {
         chatItems: data.chatSession.chatItems || [],
         reports: data.chatSession.reports || []
       };
-      
+
       console.log('Adding chat session to folder:', newChatSession);
       console.log('Folder ID:', folderData.id);
-      
+
       // Add the chat session to the folder
       addChatSessionToFolder(folderData.id, newChatSession);
-      
+
       console.log('Chat session added to local state');
     }
-    
+
     setChatSessionModalVisible(false);
-    
+
     // Reset pipeline data
     setFolderData(null);
     setPatientData(null);
@@ -311,7 +275,7 @@ export default function Page() {
     setPatientData(null);
   };
 
-  
+
 
   return (
     <div className="h-screen bg-white chat-interface">
@@ -334,15 +298,15 @@ export default function Page() {
                   </div>
                   <span className="font-semibold text-lg text-gray-900">Clini AI Medical</span>
                 </div>
-                <Button 
-                  type="text" 
-                  icon={<ArrowLeftOutlined />} 
+                <Button
+                  type="text"
+                  icon={<ArrowLeftOutlined />}
                   className="text-gray-500 hover:text-gray-700"
                 />
               </div>
-              
-              <Button 
-                type="primary" 
+
+              <Button
+                type="primary"
                 icon={<PlusOutlined />}
                 className="w-full bg-orange-500 hover:bg-orange-600 border-orange-500 hover:border-orange-600 font-medium"
                 size="large"
@@ -369,7 +333,7 @@ export default function Page() {
                 </div>
               </div>
             </div>
-            
+
 
 
             {/* Folders List */}
@@ -388,24 +352,22 @@ export default function Page() {
                   // Get chat sessions from both backend (chatSessionsInfo) and local state
                   const backendChatSessions = folder.chatSessionsInfo || [];
                   const localChatSessions = folderChatSessions[folder.id] || [];
-                  
                   // Combine both sources, avoiding duplicates
                   const allChatSessions = [...backendChatSessions, ...localChatSessions];
-                  const uniqueChatSessions = allChatSessions.filter((session, index, self) => 
+                  const uniqueChatSessions = allChatSessions.filter((session, index, self) =>
                     index === self.findIndex(s => s.id === session.id)
                   );
-                  
+
                   const totalChatSessions = uniqueChatSessions.length;
-                  
+
                   return (
                     <div key={folder.id} className="mb-4">
                       {/* Folder Header */}
-                      <div 
-                        className={`flex items-center space-x-2 px-3 py-2 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${
-                          selectedKey === folder.id 
-                            ? 'bg-orange-50 border border-orange-200' 
-                            : ''
-                        }`}
+                      <div
+                        className={`flex items-center space-x-2 px-3 py-2 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${selectedKey === folder.id
+                          ? 'bg-orange-50 border border-orange-200'
+                          : ''
+                          }`}
                         onClick={() => handleMenuClick({ key: folder.id })}
                       >
                         <div className={`transition-transform duration-200 ${expandedFolders.has(folder.id) ? 'rotate-90' : ''}`}>
@@ -416,48 +378,45 @@ export default function Page() {
                         ) : (
                           <FolderOutlined className="text-gray-500" />
                         )}
-                        <Text className={`text-sm font-medium flex-1 ${
-                          selectedKey === folder.id ? 'text-orange-800' : 'text-gray-700'
-                        }`}>
+                        <Text className={`text-sm font-medium flex-1 ${selectedKey === folder.id ? 'text-orange-800' : 'text-gray-700'
+                          }`}>
                           {folder.title}
                         </Text>
                         {totalChatSessions > 0 && (
                           <Badge count={totalChatSessions} size="small" className="bg-gray-300 text-gray-700" />
                         )}
                       </div>
-                      
+
                       {/* Folder Description */}
                       {expandedFolders.has(folder.id) && folder.description && (
                         <div className="ml-6 mt-1 px-3 py-2 text-xs text-gray-500">
                           {folder.description}
                         </div>
                       )}
-                      
+
                       {/* Chat Sessions */}
                       {expandedFolders.has(folder.id) && uniqueChatSessions.length > 0 && (
                         <div className="ml-6 mt-1 space-y-1">
                           {uniqueChatSessions.map((session) => (
-                            <div 
-                              key={session.id} 
-                              className={`flex items-start space-x-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-                                selectedKey === session.id 
-                                  ? 'bg-orange-50 border border-orange-200' 
-                                  : 'hover:bg-gray-50'
-                              }`}
+                            <div
+                              key={session.id}
+                              className={`flex items-start space-x-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${selectedKey === session.id
+                                ? 'bg-orange-50 border border-orange-200'
+                                : 'hover:bg-gray-50'
+                                }`}
                               onClick={() => handleMenuClick({ key: session.id })}
                             >
                               <MessageOutlined className="text-xs text-gray-400 mt-0.5 flex-shrink-0" />
                               <div className="flex-1 min-w-0">
-                                <Text className={`text-sm line-clamp-2 ${
-                                  selectedKey === session.id ? 'text-orange-800 font-medium' : 'text-gray-700'
-                                }`}>
+                                <Text className={`text-sm line-clamp-2 ${selectedKey === session.id ? 'text-orange-800 font-medium' : 'text-gray-700'
+                                  }`}>
                                   {session.title}
                                 </Text>
                                 <div className="text-xs text-gray-500 mt-1">
                                   {formatDate(
-                                    session.updatedDate 
+                                    session.updatedDate
                                       ? (typeof session.updatedDate === 'string' ? session.updatedDate : session.updatedDate.toISOString())
-                                      : session.createdDate 
+                                      : session.createdDate
                                         ? (typeof session.createdDate === 'string' ? session.createdDate : session.createdDate.toISOString())
                                         : ''
                                   )}
@@ -475,7 +434,7 @@ export default function Page() {
 
             {/* Settings */}
             <div className="px-4 py-2 border-t border-gray-100">
-              <div 
+              <div
                 className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-50 cursor-pointer"
                 onClick={() => handleMenuClick({ key: 'settings' })}
               >
@@ -483,51 +442,13 @@ export default function Page() {
                 <Text className="text-gray-700">Settings</Text>
               </div>
             </div>
-
             {/* User Profile */}
-            <div className="px-4 py-3 border-t border-gray-100">
-              {isLoggedIn() && user ? (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Avatar 
-                      icon={<UserOutlined />} 
-                      size="small" 
-                      className="bg-orange-100 text-orange-600"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{user.fullname}</div>
-                      <div className="text-xs text-gray-500">{user.email}</div>
-                    </div>
-                  </div>
-                  <Dropdown menu={{ items: getUserMenuItems(logout) }} trigger={['click']}>
-                    <Button type="text" icon={<DownOutlined />} size="small" className="text-gray-500" />
-                  </Dropdown>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Avatar 
-                      icon={<UserOutlined />} 
-                      size="small" 
-                      className="bg-gray-100 text-gray-500"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-gray-500">Guest User</div>
-                      <div className="text-xs text-gray-400">Not signed in</div>
-                    </div>
-                  </div>
-                  <Button 
-                    type="primary" 
-                    icon={<CiLogin />} 
-                    size="small"
-                    className="bg-orange-500 hover:bg-orange-600 border-orange-500 hover:border-orange-600"
-                    onClick={() => router.push('/login')}
-                  >
-                    Sign In
-                  </Button>
-                </div>
-              )}
-            </div>
+            <UserProfile 
+              user={user} 
+              isLoggedIn={isLoggedIn} 
+              logout={logout} 
+              router={router} 
+            />
 
           </div>
         </Sider>
@@ -545,15 +466,15 @@ export default function Page() {
                     </Button>
                   </Dropdown>
                 </div>
-                
+
                 <div className="flex items-center space-x-3">
                   <Button type="text" icon={<FaRegQuestionCircle />} className="text-gray-500" />
                   <Button type="text" icon={<LinkOutlined />} className="text-gray-500" />
                   {isLoggedIn() && user ? (
                     <div className="flex items-center space-x-2">
                       <span className="text-sm text-gray-600">Welcome, {user.fullname}</span>
-                      <Button 
-                        type="text" 
+                      <Button
+                        type="text"
                         className="text-gray-500 hover:text-gray-700 "
                         onClick={logout}
                       >
@@ -561,12 +482,12 @@ export default function Page() {
                       </Button>
                     </div>
                   ) : (
-                    <Button 
-                      type="primary" 
-                      icon={<CiLogin />} 
+                    <Button
+                      type="primary"
+                      icon={<CiLogin />}
                       className="bg-orange-500 hover:bg-orange-600 border-orange-500 hover:border-orange-600"
                       onClick={() => {
-                        router.push('/login');
+                        router.push(PageUrl.LOGIN_PAGE);
                       }}
                     >
                       Sign In
@@ -576,7 +497,7 @@ export default function Page() {
               </div>
 
               {/* Upgrade Banner */}
-                {/* <div className="bg-orange-50 border-l-4 border-orange-400 p-4">
+              {/* <div className="bg-orange-50 border-l-4 border-orange-400 p-4">
                   <div className="flex items-center space-x-2">
                     <StarFilled className="text-orange-500" />
                     <Text className="text-orange-800 font-medium">Upgrade free plan to full access</Text>
@@ -597,15 +518,16 @@ export default function Page() {
                       <Text className="text-gray-600 mb-4">
                         {folders.find(f => f.id === selectedKey)?.description || 'Folder details will be displayed here'}
                       </Text>
-                      {folders.find(f => f.id === selectedKey)?.chatSessionIds && 
-                       folders.find(f => f.id === selectedKey)!.chatSessionIds!.length > 0 && (
-                        <Text className="text-sm text-gray-500">
-                          {folders.find(f => f.id === selectedKey)!.chatSessionIds!.length} chat sessions available
-                        </Text>
-                      )}
+                      {folders.find(f => f.id === selectedKey)?.chatSessionIds &&
+                        folders.find(f => f.id === selectedKey)!.chatSessionIds!.length > 0 && (
+                          <Text className="text-sm text-gray-500">
+                            {folders.find(f => f.id === selectedKey)!.chatSessionIds!.length} chat sessions available
+                          </Text>
+                        )}
                     </div>
                   </div>
                 ) : (
+                  
                   // Display chat session content
                   <div className="flex-1 flex flex-col p-8">
                     {isFetchingChatSession ? (
@@ -626,9 +548,9 @@ export default function Page() {
                           </div>
                           {currentChatSession.xrayImageUrl && (
                             <div className="mt-4">
-                              <img 
-                                src={currentChatSession.xrayImageUrl} 
-                                alt="X-ray Image" 
+                              <img
+                                src={currentChatSession.xrayImageUrl}
+                                alt="X-ray Image"
                                 className="max-w-full h-auto rounded-lg shadow-sm"
                                 style={{ maxHeight: '300px' }}
                               />
@@ -639,6 +561,27 @@ export default function Page() {
                         {/* Analysis Results */}
                         {currentChatSession.result && (
                           <div className="space-y-6">
+
+                            {/* GradCAM Analyses */}
+                            {currentChatSession.result.gradcam_analyses && (
+                              <Card title="GradCAM Analysis" className="mb-4">
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                  {Object.entries(currentChatSession.result.gradcam_analyses).map(([key, url]) => (
+                                    <div key={key} className="text-center">
+                                      <img
+                                        src={url}
+                                        alt={key}
+                                        className="w-full h-32 object-cover rounded-lg shadow-sm"
+                                      />
+                                      <Text className="text-xs text-gray-600 mt-1 block">
+                                        {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                      </Text>
+                                    </div>
+                                  ))}
+                                </div>
+                              </Card>
+                            )}
+
                             {/* Disease Predictions */}
                             {currentChatSession.result.predicted_diseases && (
                               <Card title="Disease Predictions" className="mb-4">
@@ -654,6 +597,8 @@ export default function Page() {
                                 </div>
                               </Card>
                             )}
+
+                            
 
                             {/* Concise Conclusion */}
                             {currentChatSession.result.concise_conclusion && (
@@ -673,25 +618,7 @@ export default function Page() {
                               </Card>
                             )}
 
-                            {/* GradCAM Analyses */}
-                            {currentChatSession.result.gradcam_analyses && (
-                              <Card title="GradCAM Analysis" className="mb-4">
-                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                  {Object.entries(currentChatSession.result.gradcam_analyses).map(([key, url]) => (
-                                    <div key={key} className="text-center">
-                                      <img 
-                                        src={url} 
-                                        alt={key} 
-                                        className="w-full h-32 object-cover rounded-lg shadow-sm"
-                                      />
-                                      <Text className="text-xs text-gray-600 mt-1 block">
-                                        {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                      </Text>
-                                    </div>
-                                  ))}
-                                </div>
-                              </Card>
-                            )}
+                            
                           </div>
                         )}
 
@@ -700,19 +627,18 @@ export default function Page() {
                           <Card title="Chat History" className="mt-6">
                             <div className="space-y-4">
                               {currentChatSession.chatItems.map((item, index) => (
-                                <div 
-                                  key={index} 
-                                  className={`p-3 rounded-lg ${
-                                    item.isBot ? 'bg-blue-50 ml-8' : 'bg-gray-50 mr-8'
-                                  }`}
+                                <div
+                                  key={index}
+                                  className={`p-3 rounded-lg ${item.isBot ? 'bg-blue-50 ml-8' : 'bg-gray-50 mr-8'
+                                    }`}
                                 >
                                   <Text className="text-gray-700">{item.content}</Text>
                                   {item.imageUrls && item.imageUrls.length > 0 && (
                                     <div className="mt-2 space-y-2">
                                       {item.imageUrls.map((url, imgIndex) => (
-                                        <img 
+                                        <img
                                           key={imgIndex}
-                                          src={url} 
+                                          src={url}
                                           alt={`Chat image ${imgIndex + 1}`}
                                           className="max-w-full h-auto rounded"
                                         />
@@ -762,8 +688,8 @@ export default function Page() {
                         size="large"
                       />
                       <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center space-x-2">
-                        <Button 
-                          type="primary" 
+                        <Button
+                          type="primary"
                           icon={<StarFilled />}
                           className="bg-orange-500 hover:bg-orange-600 border-orange-500 hover:border-orange-600 rounded-xl"
                         >
@@ -775,61 +701,39 @@ export default function Page() {
 
 
                   {/* Suggested Actions */}
-                  <div className="w-full max-w-4xl">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {suggestedActions.map((action, index) => (
-                        <Card
-                          key={index}
-                          hoverable
-                          className={`border-2 ${action.color} transition-all duration-200`}
-                          styles={{ body: { padding: '20px' } }}
-                        >
-                          <div className="flex flex-col items-center text-center">
-                            <div className="text-3xl mb-3 text-gray-600">
-                              {action.icon}
-                            </div>
-                            <Title level={4} className="mb-2 text-gray-900">
-                              {action.title}
-                            </Title>
-                            <Text className="text-gray-600 text-sm">
-                              {action.description}
-                            </Text>
-                          </div>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
+                  <SuggestedActions />
+
                 </div>
               )}
 
               {/* Footer */}
-              <Footer/>
+              <Footer />
 
 
             </div>
           </Content>
         </Layout>
       </Layout>
-      
+
       {/* Pipeline Modals */}
-      <FolderModal 
-        visible={folderModalVisible} 
+      <FolderModal
+        visible={folderModalVisible}
         onClose={handlePipelineCancel}
         onFolderCreated={handleFolderCreated}
       />
-      
+
       {folderData && (
-        <PatientModal 
-          visible={patientModalVisible} 
+        <PatientModal
+          visible={patientModalVisible}
           onClose={handlePipelineCancel}
           onComplete={handlePatientCreated}
           folderData={folderData}
         />
       )}
-      
+
       {folderData && patientData && (
-        <ChatSessionModal 
-          visible={chatSessionModalVisible} 
+        <ChatSessionModal
+          visible={chatSessionModalVisible}
           onClose={handlePipelineCancel}
           onComplete={handleChatSessionCreated}
           folderData={folderData}
@@ -837,13 +741,115 @@ export default function Page() {
           onRefreshFolders={getFoldersOfUser}
         />
       )}
-      
-      <SettingsModal 
-        visible={settingsVisible} 
+
+      <SettingsModal
+        visible={settingsVisible}
         onClose={() => setSettingsVisible(false)}
       />
-      
+
       <SessionExpiredWrapper />
     </div>
   );
+}
+
+
+const suggestedActions = [
+  {
+    title: "Diagnose X-ray Image",
+    description: "Diagnose X-ray image with Medical Clini AI",
+    icon: <FileTextOutlined className="text-xl" />,
+    color: "bg-blue-50 border-blue-200 hover:bg-blue-100"
+  },
+  {
+    title: "Recommend from PubMed's Knowledge",
+    description: "Recommend from PubMed's Knowledge",
+    icon: <StarOutlined className="text-xl" />,
+    color: "bg-purple-50 border-purple-200 hover:bg-purple-100"
+  },
+  {
+    title: "Support Report Template",
+    description: "Support Report Template",
+    icon: <BulbOutlined className="text-xl" />,
+    color: "bg-green-50 border-green-200 hover:bg-green-100"
+  }
+];
+
+
+function SuggestedActions() {
+  return (
+    <div className="w-full max-w-4xl">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {suggestedActions.map((action, index) => (
+          <Card
+            key={index}
+            hoverable
+            className={`border-2 ${action.color} transition-all duration-200`}
+            styles={{ body: { padding: '20px' } }}
+          >
+            <div className="flex flex-col items-center text-center">
+              <div className="text-3xl mb-3 text-gray-600">
+                {action.icon}
+              </div>
+              <Title level={4} className="mb-2 text-gray-900">
+                {action.title}
+              </Title>
+              <Text className="text-gray-600 text-sm">
+                {action.description}
+              </Text>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+
+function UserProfile({ user, isLoggedIn, logout, router }: { user: any; isLoggedIn: any; logout: any; router: any }) {
+  return (
+    <div className="px-4 py-3 border-t border-gray-100">
+      {isLoggedIn() && user ? (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Avatar
+              icon={<UserOutlined />}
+              size="small"
+              className="bg-orange-100 text-orange-600"
+            />
+            <div>
+              <div className="text-sm font-medium text-gray-900">{user.fullname}</div>
+              <div className="text-xs text-gray-500">{user.email}</div>
+            </div>
+          </div>
+          <Dropdown menu={{ items: getUserMenuItems(logout) }} trigger={['click']}>
+            <Button type="text" icon={<DownOutlined />} size="small" className="text-gray-500" />
+          </Dropdown>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Avatar
+              icon={<UserOutlined />}
+              size="small"
+              className="bg-gray-100 text-gray-500"
+            />
+            <div>
+              <div className="text-sm font-medium text-gray-500">Guest User</div>
+              <div className="text-xs text-gray-400">Not signed in</div>
+            </div>
+          </div>
+          <Button
+            type="primary"
+            icon={<CiLogin />}
+            size="small"
+            className="bg-orange-500 hover:bg-orange-600 border-orange-500 hover:border-orange-600"
+            onClick={() => router.push('/login')}
+          >
+            Sign In
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+
 }

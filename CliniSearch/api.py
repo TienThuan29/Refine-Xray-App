@@ -17,6 +17,8 @@ from fastapi.responses import JSONResponse, FileResponse
 from pydantic import BaseModel
 from PIL import Image
 import numpy as np
+import torch
+from open_clip import create_model_from_pretrained, get_tokenizer
 
 # Import our utility modules
 from utils.api_clients import gemini_client
@@ -47,6 +49,20 @@ app.add_middleware(
 embedding_dim = EMBEDDING_MODEL.get_sentence_embedding_dimension()
 research_vector_store = VectorStore(dimension=embedding_dim)
 radiology_vector_store = VectorStore(dimension=embedding_dim)
+
+# Initialize BiomedCLIP model for X-ray detection
+try:
+    model_id = "hf-hub:microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224"
+    xray_model, xray_preprocess = create_model_from_pretrained(model_id)
+    xray_tokenizer = get_tokenizer(model_id)
+    xray_model.eval()
+    BIOMEDCLIP_AVAILABLE = True
+except Exception as e:
+    print(f"Warning: BiomedCLIP model not available: {e}")
+    xray_model = None
+    xray_preprocess = None
+    xray_tokenizer = None
+    BIOMEDCLIP_AVAILABLE = False
 
 # Pydantic models for request/response
 class ResearchQuery(BaseModel):
@@ -94,6 +110,12 @@ class TestAnalysisResponse(BaseModel):
     false_positives: List[str]
     accuracy_metrics: Dict[str, float]
 
+class XrayDetectionResponse(BaseModel):
+    is_xray: bool
+    xray_probability: float
+    confidence_level: str
+    model_available: bool
+
 # Helper functions
 def format_output_as_html(source_name: str, answer: str, sources: list) -> str:
     """Creates an HTML string with a custom-styled box for the output."""
@@ -127,6 +149,33 @@ def image_to_base64(image_path: str) -> str:
     with open(image_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode('utf-8')
 
+def xray_probability(image: Image.Image) -> float:
+    """Calculate the probability that an image is an X-ray using BiomedCLIP."""
+    if not BIOMEDCLIP_AVAILABLE:
+        raise HTTPException(status_code=503, detail="BiomedCLIP model not available")
+    
+    # Preprocess the image
+    img = xray_preprocess(image.convert("RGB")).unsqueeze(0)
+    
+    # Define positive and negative labels
+    labels_pos = ["a chest X-ray radiograph", "a bone X-ray radiograph", "a dental X-ray radiograph"]
+    labels_neg = [
+        "a CT scan", "an MRI scan", "an ultrasound image",
+        "a natural photograph", "a document scan", "a drawing or illustration"
+    ]
+    labels = labels_pos + labels_neg
+    
+    with torch.no_grad():
+        image_features, text_features, logit_scale = xray_model(
+            img, xray_tokenizer(labels, context_length=256)
+        )
+        probs = (logit_scale * image_features @ text_features.T).softmax(dim=-1)[0]
+    
+    # Calculate X-ray probability as sum of positive label probabilities
+    p_xray = probs[:len(labels_pos)].sum().item()
+    return p_xray
+
+
 # API Endpoints
 
 @app.get("/")
@@ -138,6 +187,7 @@ async def root():
         "endpoints": {
             "research": "/research/query",
             "radiology": "/radiology/analyze",
+            "xray_detection": "/xray/detect",
             "test": "/test/analyze",
             "upload_docs": "/research/upload-documents",
             "health": "/health"
@@ -147,7 +197,58 @@ async def root():
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
-    return {"status": "healthy", "gemini_available": gemini_client is not None}
+    return {
+        "status": "healthy", 
+        "gemini_available": gemini_client is not None,
+        "biomedclip_available": BIOMEDCLIP_AVAILABLE
+    }
+
+@app.post("/xray/detect", response_model=XrayDetectionResponse)
+async def detect_xray_image(image: UploadFile = File(...)):
+    """Detect if an uploaded image is an X-ray image using BiomedCLIP."""
+    try:
+        # Validate image file
+        if not image.content_type.startswith("image/"):
+            raise HTTPException(status_code=400, detail="File must be an image")
+        
+        # Check if BiomedCLIP model is available
+        if not BIOMEDCLIP_AVAILABLE:
+            return XrayDetectionResponse(
+                is_xray=False,
+                xray_probability=0.0,
+                confidence_level="unavailable",
+                model_available=False
+            )
+        
+        # Convert uploaded image to PIL
+        image_bytes = await image.read()
+        image_pil = Image.open(BytesIO(image_bytes))
+        
+        # Calculate X-ray probability
+        probability = xray_probability(image_pil)
+        
+        # Determine if it's an X-ray (threshold = 0.5)
+        is_xray = probability >= 0.5
+        
+        # Determine confidence level
+        if probability >= 0.8:
+            confidence_level = "high"
+        elif probability >= 0.6:
+            confidence_level = "medium"
+        elif probability >= 0.4:
+            confidence_level = "low"
+        else:
+            confidence_level = "very_low"
+        
+        return XrayDetectionResponse(
+            is_xray=is_xray,
+            xray_probability=round(probability, 4),
+            confidence_level=confidence_level,
+            model_available=True
+        )
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error during X-ray detection: {str(e)}")
 
 
 # Research & Q&A Endpoints

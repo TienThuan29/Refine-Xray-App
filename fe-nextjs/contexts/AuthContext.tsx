@@ -4,7 +4,7 @@ import { AuthTokens, UserProfile } from '@/types/user';
 import axios from 'axios';
 import { Api } from '@/configs/api';
 import { toast } from 'sonner';
-import { permanentRedirect, useRouter } from 'next/navigation'
+import { permanentRedirect,useRouter } from 'next/navigation'
 import HttpStatus from '@/configs/http';
 import { Constant } from '@/configs/constant';
 import { PageUrl } from '@/configs/page.url';
@@ -199,6 +199,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(null);
         setAuthTokens(null);
         permanentRedirect(PageUrl.LOGIN_PAGE);
+        // window.location.href = PageUrl.LOGIN_PAGE;
     }
 
     const isLoggedIn = (): boolean => {
