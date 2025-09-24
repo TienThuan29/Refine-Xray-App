@@ -181,4 +181,185 @@ router.post('/refresh-token', authApi.refreshToken);
  */
 router.get('/profile', authenticate, (req, res) => authApi.getProfile(req, res));
 
+/**
+ * @swagger
+ * /api/v1/auth/users:
+ *   get:
+ *     summary: Get all users (Admin/System only)
+ *     tags: [User Management]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 message: { type: string }
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/UserProfile'
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ */
+router.get('/users', authenticate, authorize([Role.ADMIN, Role.SYSTEM]), (req, res, next) => authApi.getAllUsers(req, res, next));
+
+/**
+ * @swagger
+ * /api/v1/auth/users/by-email:
+ *   post:
+ *     summary: Get user by email
+ *     tags: [User Management]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 message: { type: string }
+ *                 data:
+ *                   $ref: '#/components/schemas/UserProfile'
+ *       404:
+ *         description: User not found
+ */
+router.post('/users/by-email', authenticate, (req, res, next) => authApi.getUserByEmail(req, res, next));
+
+/**
+ * @swagger
+ * /api/v1/auth/users/update:
+ *   put:
+ *     summary: Update user (Admin/System only)
+ *     tags: [User Management]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email: { type: string, format: email }
+ *               fullname: { type: string }
+ *               phone: { type: string }
+ *               dateOfBirth: { type: string, format: date }
+ *               role: { type: string, enum: [DOCTOR, ADMIN, SYSTEM] }
+ *               password: { type: string }
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 message: { type: string }
+ *                 data:
+ *                   $ref: '#/components/schemas/UserProfile'
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: User not found
+ */
+router.put('/users/update', authenticate, authorize([Role.ADMIN, Role.SYSTEM]), (req, res, next) => authApi.updateUser(req, res, next));
+
+/**
+ * @swagger
+ * /api/v1/auth/users/delete:
+ *   delete:
+ *     summary: Delete user (Admin/System only)
+ *     tags: [User Management]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 message: { type: string }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     deleted: { type: boolean }
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: User not found
+ */
+router.delete('/users/delete', authenticate, authorize([Role.ADMIN, Role.SYSTEM]), (req, res, next) => authApi.deleteUser(req, res, next));
+
+/**
+ * @swagger
+ * /api/v1/auth/users/status:
+ *   patch:
+ *     summary: Update user status (Admin/System only)
+ *     tags: [User Management]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               isEnable: { type: boolean }
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 message: { type: string }
+ *                 data:
+ *                   $ref: '#/components/schemas/UserProfile'
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: User not found
+ */
+router.patch('/users/status', authenticate, authorize([Role.ADMIN, Role.SYSTEM]), (req, res, next) => authApi.updateUserStatus(req, res, next));
+
 export default router;
