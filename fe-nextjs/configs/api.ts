@@ -9,7 +9,12 @@ export const Api = {
     },
 
     System: {
-        CREATE_ACCOUNT: '/api/v1/auth/create-account'
+        CREATE_ACCOUNT: '/api/v1/auth/create-account',
+        GET_ALL_USERS: '/api/v1/auth/users',
+        GET_USER_BY_EMAIL: '/api/v1/auth/users/by-email',
+        UPDATE_USER: '/api/v1/auth/users/update',
+        DELETE_USER: '/api/v1/auth/users/delete',
+        UPDATE_USER_STATUS: '/api/v1/auth/users/status'
     },
 
     Folder: {

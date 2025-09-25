@@ -32,6 +32,9 @@ import {
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { UserProfile } from '@/types/user';
+import { useUserService, CreateUserData, UpdateUserData } from '@/hooks/useUserService';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRoleValidator, validateUserRole } from '@/hooks/useRoleValidator';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
@@ -41,6 +44,7 @@ interface UserManagementProps {
 }
 
 const UserManagement: React.FC<UserManagementProps> = () => {
+  const { authTokens } = useAuth();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -49,70 +53,55 @@ const UserManagement: React.FC<UserManagementProps> = () => {
   const [searchText, setSearchText] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const { isSystem, isAdmin, isDoctor } = useRoleValidator(useAuth().user);
+  const { getAllUsers, createUser, updateUser, deleteUser, updateUserStatus } = useUserService();
 
-  // Mock data - thay thế bằng API call thực tế
-  const mockUsers: UserProfile[] = [
-    {
-      email: 'admin@example.com',
-      fullname: 'John Admin',
-      phone: '0123456789',
-      dateOfBirth: new Date('1990-01-01'),
-      role: 'admin',
-      isEnable: true,
-      lastLoginDate: new Date('2024-01-15'),
-      createdDate: new Date('2023-01-01'),
-      updatedDate: new Date('2024-01-15'),
-    },
-    {
-      email: 'doctor@example.com',
-      fullname: 'Dr. Sarah Johnson',
-      phone: '0987654321',
-      dateOfBirth: new Date('1985-05-15'),
-      role: 'doctor',
-      isEnable: true,
-      lastLoginDate: new Date('2024-01-14'),
-      createdDate: new Date('2023-02-01'),
-      updatedDate: new Date('2024-01-14'),
-    },
-    {
-      email: 'technician@example.com',
-      fullname: 'Mike Technician',
-      phone: '0369258147',
-      dateOfBirth: new Date('1992-08-20'),
-      role: 'technician',
-      isEnable: false,
-      lastLoginDate: new Date('2024-01-10'),
-      createdDate: new Date('2023-03-01'),
-      updatedDate: new Date('2024-01-10'),
-    },
-  ];
+  // Removed mock data - now using real API calls
 
   useEffect(() => {
-    loadUsers();
-  }, []);
+    if (authTokens) {
+      loadUsers();
+    }
+  }, [authTokens, getAllUsers]);
 
   const loadUsers = async () => {
     setLoading(true);
     try {
-      // TODO: Thay thế bằng API call thực tế
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-      setUsers(mockUsers);
+      const usersData = await getAllUsers(authTokens);
+      setUsers(usersData);
     } catch (error) {
       console.error('Error loading users:', error);
-      toast.error('Error loading user list');
+      if (error instanceof Error && error.message === 'Authentication required') {
+        toast.error('Session expired. Please login again.');
+      } else {
+        toast.error('Error loading user list');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const handleAdd = () => {
+    // Check if user has permission to add users
+    if (!isSystem && !isAdmin) {
+      toast.error('You do not have permission to add users');
+      return;
+    }
+    
     setEditingUser(null);
     form.resetFields();
     setIsModalVisible(true);
   };
 
   const handleEdit = (user: UserProfile) => {
+    // Check if user has permission to edit users
+    if (!isSystem && !isAdmin) {
+      toast.error('You do not have permission to edit users');
+      return;
+    }
+    
     setEditingUser(user);
+    
     form.setFieldsValue({
       ...user,
       dateOfBirth: user.dateOfBirth ? dayjs(user.dateOfBirth) : null,
@@ -120,10 +109,16 @@ const UserManagement: React.FC<UserManagementProps> = () => {
     setIsModalVisible(true);
   };
 
-  const handleDelete = async (email: string) => {
+  const handleDelete = async (user: UserProfile) => {
+    // Check if user has permission to delete users
+    if (!isSystem && !isAdmin) {
+      toast.error('You do not have permission to delete users');
+      return;
+    }
+    
     try {
-      // TODO: Thay thế bằng API call thực tế
-      setUsers(users.filter(user => user.email !== email));
+      await deleteUser(user.email, authTokens);
+      setUsers(users.filter(u => u.email !== user.email));
       toast.success('User deleted successfully');
     } catch (error) {
       console.error('Error deleting user:', error);
@@ -131,13 +126,17 @@ const UserManagement: React.FC<UserManagementProps> = () => {
     }
   };
 
-  const handleToggleStatus = async (email: string) => {
+  const handleToggleStatus = async (user: UserProfile, currentStatus: boolean) => {
+    // Check if user has permission to toggle user status
+    if (!isSystem && !isAdmin) {
+      toast.error('You do not have permission to change user status');
+      return;
+    }
+    
     try {
-      // TODO: Thay thế bằng API call thực tế
-      setUsers(users.map(user => 
-        user.email === email 
-          ? { ...user, isEnable: !user.isEnable }
-          : user
+      const updatedUser = await updateUserStatus(user.email, { isEnable: !currentStatus }, authTokens);
+      setUsers(users.map(u => 
+        u.email === user.email ? updatedUser : u
       ));
       toast.success('Status updated successfully');
     } catch (error) {
@@ -149,24 +148,36 @@ const UserManagement: React.FC<UserManagementProps> = () => {
   const handleModalOk = async () => {
     try {
       const values = await form.validateFields();
-      const userData: UserProfile = {
-        ...values,
-        dateOfBirth: values.dateOfBirth ? values.dateOfBirth.toDate() : undefined,
-        role: values.role || 'user',
-        isEnable: values.isEnable !== undefined ? values.isEnable : true,
-        createdDate: editingUser ? editingUser.createdDate : new Date(),
-        updatedDate: new Date(),
-      };
-
+      
       if (editingUser) {
         // Update user
+        const updateData: UpdateUserData = {
+          fullname: values.fullname,
+          email: values.email,
+          phone: values.phone,
+          dateOfBirth: values.dateOfBirth ? values.dateOfBirth.format('YYYY-MM-DD') : undefined,
+          password: values.password,
+        };
+        
+        
+        const updatedUser = await updateUser(editingUser.email, updateData, authTokens);
         setUsers(users.map(user => 
-          user.email === editingUser.email ? userData : user
+          user.email === editingUser.email ? updatedUser : user
         ));
         toast.success('User updated successfully');
       } else {
         // Add new user
-        setUsers([...users, userData]);
+        const createData: CreateUserData = {
+          fullname: values.fullname,
+          email: values.email,
+          password: values.password,
+          phone: values.phone,
+          dateOfBirth: values.dateOfBirth ? values.dateOfBirth.format('YYYY-MM-DD') : undefined,
+          role: 'user', // Default role for new users
+        };
+        
+        const newUser = await createUser(createData, authTokens);
+        setUsers([...users, newUser]);
         toast.success('User added successfully');
       }
 
@@ -184,32 +195,75 @@ const UserManagement: React.FC<UserManagementProps> = () => {
   };
 
   const getRoleColor = (role: string) => {
-    const colors: { [key: string]: string } = {
-      admin: 'red',
-      doctor: 'blue',
-      technician: 'green',
-      user: 'default',
+    // Create a mock user object to use with validateUserRole
+    const mockUser: UserProfile = {
+      email: '',
+      fullname: '',
+      role: role,
+      isEnable: true,
+      createdDate: new Date(),
+      lastLoginDate: undefined,
+      phone: '',
+      dateOfBirth: undefined
     };
-    return colors[role] || 'default';
+    
+    const roleValidator = validateUserRole(mockUser);
+    
+    if (roleValidator.isSystem) return 'purple';
+    if (roleValidator.isAdmin) return 'red';
+    if (roleValidator.isDoctor) return 'blue';
+    
+    return 'default'; // Fallback color
   };
 
   const getRoleText = (role: string) => {
-    const texts: { [key: string]: string } = {
-      admin: 'Administrator',
-      doctor: 'Doctor',
-      technician: 'Technician',
-      user: 'User',
+    // Create a mock user object to use with validateUserRole
+    const mockUser: UserProfile = {
+      email: '',
+      fullname: '',
+      role: role,
+      isEnable: true,
+      createdDate: new Date(),
+      lastLoginDate: undefined,
+      phone: '',
+      dateOfBirth: undefined
     };
-    return texts[role] || role;
+    
+    const roleValidator = validateUserRole(mockUser);
+    
+    if (roleValidator.isSystem) return 'System';
+    if (roleValidator.isAdmin) return 'Administrator';
+    if (roleValidator.isDoctor) return 'Doctor';
+    
+    return 'User'; // Fallback to User if not found
   };
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = 
       user.fullname.toLowerCase().includes(searchText.toLowerCase()) ||
       user.email.toLowerCase().includes(searchText.toLowerCase()) ||
-      (user.phone && user.phone.includes(searchText));
+      user.phone?.includes(searchText);
     
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+    const matchesRole = roleFilter === 'all' || (() => {
+      const mockUser: UserProfile = {
+        email: '',
+        fullname: '',
+        role: user.role,
+        isEnable: true,
+        createdDate: new Date(),
+        lastLoginDate: undefined,
+        phone: '',
+        dateOfBirth: undefined
+      };
+      const roleValidator = validateUserRole(mockUser);
+      
+      if (roleFilter === 'ADMIN') return roleValidator.isAdmin;
+      if (roleFilter === 'DOCTOR') return roleValidator.isDoctor;
+      if (roleFilter === 'SYSTEM') return roleValidator.isSystem;
+      if (roleFilter === 'user') return !roleValidator.isAdmin && !roleValidator.isDoctor && !roleValidator.isSystem;
+      
+      return false;
+    })();
     const matchesStatus = statusFilter === 'all' || 
       (statusFilter === 'active' && user.isEnable) ||
       (statusFilter === 'inactive' && !user.isEnable);
@@ -272,9 +326,10 @@ const UserManagement: React.FC<UserManagementProps> = () => {
       render: (isEnable: boolean, record) => (
         <Switch
           checked={isEnable}
-          onChange={() => handleToggleStatus(record.email)}
+          onChange={() => handleToggleStatus(record, isEnable)}
           checkedChildren="Active"
           unCheckedChildren="Inactive"
+          disabled={!isSystem && !isAdmin}
         />
       ),
     },
@@ -306,29 +361,33 @@ const UserManagement: React.FC<UserManagementProps> = () => {
       width: 120,
       render: (_, record) => (
         <Space>
-          <Tooltip title="Edit">
-            <Button
-              type="primary"
-              icon={<EditOutlined />}
-              size="small"
-              onClick={() => handleEdit(record)}
-            />
-          </Tooltip>
-          <Popconfirm
-            title="Confirm Delete"
-            description="Are you sure you want to delete this user?"
-            onConfirm={() => handleDelete(record.email)}
-            okText="Delete"
-            cancelText="Cancel"
-          >
-            <Tooltip title="Delete">
+          {(isSystem || isAdmin) && (
+            <Tooltip title="Edit">
               <Button
-                danger
-                icon={<DeleteOutlined />}
+                type="primary"
+                icon={<EditOutlined />}
                 size="small"
+                onClick={() => handleEdit(record)}
               />
             </Tooltip>
-          </Popconfirm>
+          )}
+          {(isSystem || isAdmin) && (
+            <Popconfirm
+              title="Confirm Delete"
+              description="Are you sure you want to delete this user?"
+              onConfirm={() => handleDelete(record)}
+              okText="Delete"
+              cancelText="Cancel"
+            >
+              <Tooltip title="Delete">
+                <Button
+                  danger
+                  icon={<DeleteOutlined />}
+                  size="small"
+                />
+              </Tooltip>
+            </Popconfirm>
+          )}
         </Space>
       ),
     },
@@ -337,6 +396,14 @@ const UserManagement: React.FC<UserManagementProps> = () => {
   return (
     <div style={{ padding: '24px' }}>
       <Card title="User Management" style={{ marginBottom: 16 }}>
+        {/* Display current user role info */}
+        <div style={{ marginBottom: 16, padding: '8px 12px', backgroundColor: '#f0f2f5', borderRadius: '6px' }}>
+          <span style={{ fontWeight: 'bold' }}>Your Role: </span>
+          {isSystem && <Tag color="purple">System</Tag>}
+          {isAdmin && <Tag color="red">Admin</Tag>}
+          {isDoctor && <Tag color="blue">Doctor</Tag>}
+          {!isSystem && !isAdmin && !isDoctor && <Tag color="default">User</Tag>}
+        </div>
         <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
           <Col xs={24} sm={12} md={8}>
             <Input
@@ -355,9 +422,9 @@ const UserManagement: React.FC<UserManagementProps> = () => {
               style={{ width: '100%' }}
             >
               <Option value="all">All Roles</Option>
-              <Option value="admin">Administrator</Option>
-              <Option value="doctor">Doctor</Option>
-              <Option value="technician">Technician</Option>
+              <Option value="ADMIN">Admin</Option>
+              <Option value="DOCTOR">Doctor</Option>
+              <Option value="SYSTEM">System</Option>
               <Option value="user">User</Option>
             </Select>
           </Col>
@@ -375,13 +442,15 @@ const UserManagement: React.FC<UserManagementProps> = () => {
           </Col>
           <Col xs={24} sm={12} md={8}>
             <Space>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={handleAdd}
-              >
-                Add User
-              </Button>
+              {(isSystem || isAdmin) && (
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={handleAdd}
+                >
+                  Add User
+                </Button>
+              )}
               <Button
                 icon={<ReloadOutlined />}
                 onClick={loadUsers}
@@ -421,7 +490,7 @@ const UserManagement: React.FC<UserManagementProps> = () => {
         <Form
           form={form}
           layout="vertical"
-          initialValues={{ isEnable: true }}
+          initialValues={{}}
         >
           <Row gutter={16}>
             <Col span={12}>
@@ -476,34 +545,6 @@ const UserManagement: React.FC<UserManagementProps> = () => {
             </Col>
           </Row>
 
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                label="Role"
-                name="role"
-                rules={[{ required: true, message: 'Please select a role' }]}
-              >
-                <Select placeholder="Select role">
-                  <Option value="admin">Administrator</Option>
-                  <Option value="doctor">Doctor</Option>
-                  <Option value="technician">Technician</Option>
-                  <Option value="user">User</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                label="Status"
-                name="isEnable"
-                valuePropName="checked"
-              >
-                <Switch
-                  checkedChildren="Active"
-                  unCheckedChildren="Inactive"
-                />
-              </Form.Item>
-            </Col>
-          </Row>
         </Form>
       </Modal>
     </div>
