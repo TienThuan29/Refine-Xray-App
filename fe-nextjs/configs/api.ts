@@ -28,8 +28,9 @@ export const Api = {
     },
 
     ChatSession: {
-        CREATE_CHAT_SESSION: '/api/v1/chatsession/analyze-and-create-chatsession',
-        GET_CHAT_SESSION: '/api/v1/chatsession/get',
+        CREATE_CHAT_SESSION: '/api/v1/chatsessions/analyze-and-create-chatsession',
+        GET_CHAT_SESSION: '/api/v1/chatsessions/get',
+        SEND_CHAT_MESSAGE: '/api/v1/chatsessions', // Base path for chat messages
     },
 
     ThirdParty: {

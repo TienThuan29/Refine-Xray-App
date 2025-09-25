@@ -6,6 +6,7 @@ import { SearchOutlined, UserOutlined, RobotOutlined, CalendarOutlined, FileImag
 import { useLanguage } from '../../contexts/LanguageContext';
 import { ChatSession, ChatItem } from '../../types/folder';
 import { mockItems } from '../../mocks/folderData';
+import MarkdownRenderer from '../ui/markdown-renderer';
 
 const { Search } = Input;
 const { Text, Title } = Typography;
@@ -77,7 +78,16 @@ const ChatSessionComponent: React.FC<ChatSessionProps> = ({ selectedSession, onI
                           style={{ backgroundColor: chatItem.isBot ? undefined : 'var(--main-color)' }}
                         >
                           <div className={chatItem.isBot ? 'text-gray-800' : 'text-white'}>
-                            {chatItem.content}
+                            {chatItem.isBot ? (
+                              <MarkdownRenderer 
+                                content={chatItem.content} 
+                                className="text-sm"
+                              />
+                            ) : (
+                              <div className="whitespace-pre-wrap break-words">
+                                {chatItem.content}
+                              </div>
+                            )}
                           </div>
                         </div>
                         
@@ -210,7 +220,16 @@ const ChatSessionComponent: React.FC<ChatSessionProps> = ({ selectedSession, onI
                               : 'bg-blue-500 text-white'
                           }`}>
                             <div className={chatItem.isBot ? 'text-gray-800' : 'text-white'}>
-                              {chatItem.content}
+                              {chatItem.isBot ? (
+                                <MarkdownRenderer 
+                                  content={chatItem.content} 
+                                  className="text-sm"
+                                />
+                              ) : (
+                                <div className="whitespace-pre-wrap break-words">
+                                  {chatItem.content}
+                                </div>
+                              )}
                             </div>
                           </div>
                           

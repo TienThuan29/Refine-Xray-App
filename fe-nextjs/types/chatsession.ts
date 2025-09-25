@@ -49,4 +49,8 @@ export type ChatItem = {
     imageUrls?: string[];
     isBot?: boolean;
     createdDate?: string;
+    metaData?: {
+        pubmedQueryUrl?: string;
+        pubmedFetchUrl?: string[];
+    };
 }

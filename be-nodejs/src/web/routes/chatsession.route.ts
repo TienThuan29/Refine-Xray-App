@@ -24,4 +24,11 @@ router.get(
     chatsessionApi.getChatSessionById
 );
 
+router.post(
+    '/:chatSessionId/chat',
+    authenticate,
+    authorize([Role.DOCTOR]),
+    chatsessionApi.sendChatMessage
+);
+
 export default router;

@@ -96,14 +96,29 @@ export class DynamoRepository {
 
     public async updateItem(key: Record<string, any>, updates: Record<string, any>): Promise<boolean> {
         try {
+            // Filter out undefined values and empty objects
+            const filteredUpdates = Object.entries(updates).reduce((acc, [k, v]) => {
+                if (v !== undefined && v !== null && !(typeof v === 'object' && Object.keys(v).length === 0)) {
+                    acc[k] = v;
+                }
+                return acc;
+            }, {} as Record<string, any>);
+
+            // If no valid updates, return true (no-op)
+            if (Object.keys(filteredUpdates).length === 0) {
+                logger.info('No valid updates to process, skipping update operation');
+                return true;
+            }
+
             const command = new UpdateCommand({
                 TableName: this.tableName,
                 Key: key,
-                UpdateExpression: `SET ${Object.keys(updates).map(k => `#${k} = :${k}`).join(', ')}`,
-                ExpressionAttributeNames: Object.keys(updates).reduce((acc, k) => ({ ...acc, [`#${k}`]: k }), {}),
-                ExpressionAttributeValues: Object.keys(updates).reduce((acc, k) => ({ ...acc, [`:${k}`]: updates[k] }), {}),
+                UpdateExpression: `SET ${Object.keys(filteredUpdates).map(k => `#${k} = :${k}`).join(', ')}`,
+                ExpressionAttributeNames: Object.keys(filteredUpdates).reduce((acc, k) => ({ ...acc, [`#${k}`]: k }), {}),
+                ExpressionAttributeValues: Object.keys(filteredUpdates).reduce((acc, k) => ({ ...acc, [`:${k}`]: filteredUpdates[k] }), {}),
             });
             await dynamoDB.send(command);
+            logger.info(`Successfully updated item in table: ${this.tableName}`);
             return true;
         }
         catch(error) {

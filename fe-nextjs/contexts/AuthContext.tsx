@@ -22,7 +22,8 @@ type UserContextType = {
     setUser: (user: UserProfile) => void,
     setAuthTokens: (authTokens: AuthTokens) => void,
     sessionExpired: boolean,
-    handleSessionExpired: () => void
+    handleSessionExpired: () => void,
+    isLoggingOut: boolean
 }
 
 const UserContext = createContext<UserContextType>({} as UserContextType);
@@ -33,6 +34,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<UserProfile | null>(null);
     const [isReady, setIsReady] = useState<boolean>(false);
     const [sessionExpired, setSessionExpired] = useState<boolean>(false);
+    const [isLoggingOut, setIsLoggingOut] = useState<boolean>(false);
     
     // Check if refresh token is expired
     const isRefreshTokenExpired = (refreshToken: string): boolean => {
@@ -168,7 +170,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                     router.push(PageUrl.SYSTEM_DASHBOARD_PAGE);
                 }
                 else if (roleValidator.isAdmin) {
-                    router.push(PageUrl.ADMIN_DASHBOARD_PAGE);
+                    router.push(PageUrl.HOME_PAGE);
                 }
                 else if (roleValidator.isDoctor) {
                     router.push(PageUrl.HOME_PAGE);
@@ -193,13 +195,29 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
 
-    const logout = () => {
-        localStorage.removeItem(AUTH_TOKENS_KEY);
-        localStorage.removeItem(USER_PROFILE_KEY);
-        setUser(null);
-        setAuthTokens(null);
-        permanentRedirect(PageUrl.LOGIN_PAGE);
-        // window.location.href = PageUrl.LOGIN_PAGE;
+    const logout = async () => {
+        setIsLoggingOut(true);
+        
+        try {
+            // Add a small delay to show the loading state
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            localStorage.removeItem(AUTH_TOKENS_KEY);
+            localStorage.removeItem(USER_PROFILE_KEY);
+            setUser(null);
+            setAuthTokens(null);
+            permanentRedirect(PageUrl.LOGIN_PAGE);
+        } catch (error) {
+            console.error('Error during logout:', error);
+            // Even if there's an error, still clear the session
+            localStorage.removeItem(AUTH_TOKENS_KEY);
+            localStorage.removeItem(USER_PROFILE_KEY);
+            setUser(null);
+            setAuthTokens(null);
+            permanentRedirect(PageUrl.LOGIN_PAGE);
+        } finally {
+            setIsLoggingOut(false);
+        }
     }
 
     const isLoggedIn = (): boolean => {
@@ -210,7 +228,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     return (
         <UserContext.Provider value={{
             login, user, authTokens, logout, isLoggedIn, setUser, setAuthTokens,
-            sessionExpired, handleSessionExpired
+            sessionExpired, handleSessionExpired, isLoggingOut
         }}>
             {isReady ? children : null}
         </UserContext.Provider>

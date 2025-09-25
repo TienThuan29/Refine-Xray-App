@@ -2,6 +2,7 @@ import { Report } from "./report.model";
 
 export type ChatSession = {
     id: string;
+    sessionId: string; // n8n session id
     title: string;
     result?: Result;
     xrayImageUrl?: string;
@@ -44,5 +45,9 @@ export type ChatItem = {
     imageUrls?: string[];
     isBot?: boolean;
     createdDate?: Date;
+    metaData?: {
+        pubmedQueryUrl?: string;
+        pubmedFetchUrl?: string[];
+    }
 }
 

@@ -2,6 +2,7 @@ import logger from "@/libs/logger";
 import { ResponseUtil } from "@/libs/response";
 import { ChatSessionService } from "@/services/chatsession.service";
 import { ChatSessionRequest } from "@/types/req/chatsession.type";
+import { ChatbotRequest } from "@/types/req/chatbot.type";
 import { Request, Response } from "express";
 
 export class ChatSessionApi {
@@ -13,6 +14,7 @@ export class ChatSessionApi {
         this.chatsessionService = new ChatSessionService();
         this.createChatSession = this.createChatSession.bind(this);
         this.getChatSessionById = this.getChatSessionById.bind(this);
+        this.sendChatMessage = this.sendChatMessage.bind(this);
     }
 
 
@@ -54,6 +56,39 @@ export class ChatSessionApi {
         }
         catch(error) {
             logger.error('Error getting chat session by id:', error);
+            ResponseUtil.error(response, 'Internal Server Error', 500, error as string);
+        }
+    }
+
+    /**
+     * Send a chat message to the N8N chatbot
+     * POST /api/chatsessions/:chatSessionId/chat
+     */
+    public async sendChatMessage(request: Request, response: Response): Promise<void> {
+        try {
+            const chatSessionId = request.params.chatSessionId;
+            
+            // Validate required fields
+            if (!request.body.message) {
+                ResponseUtil.error(response, 'Message is required', 400, 'Missing message field');
+                return;
+            }
+
+            // Create chatbot request
+            const chatbotRequest: ChatbotRequest = {
+                chatSessionId: chatSessionId,
+                message: request.body.message,
+                action: request.body.action,
+                context: request.body.context
+            };
+
+            // Process the chatbot request
+            const chatbotResponse = await this.chatsessionService.handleChatbotRequest(chatbotRequest);
+            
+            ResponseUtil.success(response, chatbotResponse, 'Chat message processed successfully');
+        }
+        catch(error) {
+            logger.error('Error processing chat message:', error);
             ResponseUtil.error(response, 'Internal Server Error', 500, error as string);
         }
     }

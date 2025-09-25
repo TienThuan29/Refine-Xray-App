@@ -32,6 +32,8 @@ export const config = {
 
     // CLINIAI
     CLINI_BASE_URL: process.env.CLINI_BASE_URL || '',
+    // N8N
+    N8N_CHAT_URL: process.env.N8N_CHAT_URL || '',
 
     // tables
     USER_TABLE: process.env.USER_TABLE || '',

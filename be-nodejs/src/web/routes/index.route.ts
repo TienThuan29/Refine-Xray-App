@@ -14,7 +14,7 @@ router.use('/s3', s3Router);
 router.use('/report-template', reportTemplateFileRouter);
 router.use('/patient', patientRouter);
 router.use('/folder', folderRouter);
-router.use('/chatsession', chatsessionRouter);
+router.use('/chatsessions', chatsessionRouter);
 /**
  * @swagger
  * /health:

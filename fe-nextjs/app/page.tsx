@@ -24,6 +24,8 @@ import { formatDate } from '../lib/date';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { CiLogin } from "react-icons/ci";
+import { IoSend } from "react-icons/io5";
+import { IoMdRefresh } from "react-icons/io";
 import FolderModal from '../components/combination/folder-modal';
 import PatientModal from '../components/combination/patient-modal';
 import ChatSessionModal from '../components/combination/chat-session-modal';
@@ -33,14 +35,16 @@ import { useRouter } from 'next/navigation';
 import useFolderManager from '../hooks/useFolderManager';
 import useFolderChatSessions from '../hooks/useFolderChatSessions';
 import useChatSessionManager from '../hooks/useChatSessionManager';
+import useChatbot from '../hooks/useChatbot';
 const { Sider, Content } = Layout;
 const { Title, Text } = Typography;
 import { FaRegQuestionCircle } from "react-icons/fa";
 import Footer from '@/components/single/footer';
 import { PageUrl } from '@/configs/page.url';
+import MarkdownRenderer from '@/components/ui/markdown-renderer';
 
 
-const getUserMenuItems = (onLogout: () => void): MenuProps['items'] => [
+const getUserMenuItems = (onLogout: () => void, isLoggingOut: boolean = false): MenuProps['items'] => [
   {
     key: 'profile',
     icon: <UserOutlined />,
@@ -56,8 +60,10 @@ const getUserMenuItems = (onLogout: () => void): MenuProps['items'] => [
   },
   {
     key: 'logout',
-    label: 'Logout',
-    onClick: onLogout,
+    label: isLoggingOut ? 'Logging out...' : 'Logout',
+    icon: isLoggingOut ? <Spin size="small" /> : undefined,
+    onClick: isLoggingOut ? undefined : onLogout,
+    disabled: isLoggingOut,
   },
 ];
 
@@ -73,11 +79,13 @@ const headerMenuItems: MenuProps['items'] = [
 export default function Page() {
 
   const router = useRouter();
-  const { user, isLoggedIn, logout } = useAuth();
+  const { user, isLoggedIn, logout, isLoggingOut } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const [inputValue, setInputValue] = useState('');
+  const [chatInputValue, setChatInputValue] = useState('');
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [selectedKey, setSelectedKey] = useState('');
+  const [showAllDiseases, setShowAllDiseases] = useState(false);
 
   // Pipeline modal states
   const [folderModalVisible, setFolderModalVisible] = useState(false);
@@ -110,6 +118,13 @@ export default function Page() {
     getChatSession,
     isFetching: isFetchingChatSession
   } = useChatSessionManager();
+
+  const {
+    sendMessage: sendChatMessage,
+    isSending: isSendingMessage,
+    error: chatbotError,
+    clearError: clearChatbotError
+  } = useChatbot();
 
   // Fetch folders when user is logged in
   useEffect(() => {
@@ -209,6 +224,36 @@ export default function Page() {
       // Handle sending message
       console.log('Sending message:', inputValue);
       setInputValue('');
+    }
+  };
+
+  const handleSendChatMessage = async () => {
+    if (chatInputValue.trim() && currentChatSession) {
+      try {
+        console.log('Sending chat message:', chatInputValue);
+        console.log('Current chat session before sending:', currentChatSession);
+        
+        const response = await sendChatMessage(currentChatSession.id, {
+          message: chatInputValue,
+          action: currentChatSession.chatItems && currentChatSession.chatItems.length > 0 ? 'continue_chat' : 'start_chat'
+        });
+
+        if (response) {
+          console.log('Chat message sent successfully:', response);
+          console.log('Response chat items:', response.userChatItem, response.botChatItem);
+          
+          // Clear input immediately for better UX
+          setChatInputValue('');
+          
+          // Refresh the chat session to get updated chat items
+          console.log('Refreshing chat session...');
+          const updatedChatSession = await getChatSession(currentChatSession.id);
+          console.log('Updated chat session after refresh:', updatedChatSession);
+          console.log('Updated chat items count:', updatedChatSession?.chatItems?.length || 0);
+        }
+      } catch (error) {
+        console.error('Error sending chat message:', error);
+      }
     }
   };
 
@@ -447,7 +492,8 @@ export default function Page() {
               user={user} 
               isLoggedIn={isLoggedIn} 
               logout={logout} 
-              router={router} 
+              router={router}
+              isLoggingOut={isLoggingOut}
             />
 
           </div>
@@ -475,10 +521,12 @@ export default function Page() {
                       <span className="text-sm text-gray-600">Welcome, {user.fullname}</span>
                       <Button
                         type="text"
-                        className="text-gray-500 hover:text-gray-700 "
+                        className="text-gray-500 hover:text-gray-700"
                         onClick={logout}
+                        loading={isLoggingOut}
+                        disabled={isLoggingOut}
                       >
-                        Logout
+                        {isLoggingOut ? 'Logging out...' : 'Logout'}
                       </Button>
                     </div>
                   ) : (
@@ -504,166 +552,283 @@ export default function Page() {
                   </div>
                 </div> */}
 
-              {/* Main Content Area */}
-              {selectedKey ? (
-                // Check if selected item is a folder or chat session
-                folders.find(f => f.id === selectedKey) ? (
-                  // Display folder content
-                  <div className="flex-1 flex flex-col items-center justify-center p-8">
-                    <div className="text-center">
-                      <FolderOpenOutlined className="text-6xl text-orange-500 mb-4" />
-                      <Title level={2} className="text-gray-900 mb-2">
-                        {folders.find(f => f.id === selectedKey)?.title || 'Selected Folder'}
-                      </Title>
-                      <Text className="text-gray-600 mb-4">
-                        {folders.find(f => f.id === selectedKey)?.description || 'Folder details will be displayed here'}
-                      </Text>
-                      {folders.find(f => f.id === selectedKey)?.chatSessionIds &&
-                        folders.find(f => f.id === selectedKey)!.chatSessionIds!.length > 0 && (
-                          <Text className="text-sm text-gray-500">
-                            {folders.find(f => f.id === selectedKey)!.chatSessionIds!.length} chat sessions available
-                          </Text>
-                        )}
-                    </div>
-                  </div>
-                ) : (
-                  
-                  // Display chat session content
-                  <div className="flex-1 flex flex-col p-8">
-                    {isFetchingChatSession ? (
-                      <div className="flex justify-center items-center h-full">
-                        <Spin size="large" />
-                      </div>
-                    ) : currentChatSession ? (
-                      <div className="max-w-4xl mx-auto">
-                        {/* Chat Session Header */}
-                        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                          <div className="flex items-center justify-between mb-2">
-                            <Title level={3} className="text-gray-900 mb-0">
-                              {currentChatSession.title}
-                            </Title>
+              {/* Main Content Area - Scrollable */}
+              <div className="flex-1 overflow-y-auto">
+                {selectedKey ? (
+                  // Check if selected item is a folder or chat session
+                  folders.find(f => f.id === selectedKey) ? (
+                    // Display folder content
+                    <div className="flex flex-col items-center justify-center p-8 h-full">
+                      <div className="text-center">
+                        <FolderOpenOutlined className="text-6xl text-orange-500 mb-4" />
+                        <Title level={2} className="text-gray-900 mb-2">
+                          {folders.find(f => f.id === selectedKey)?.title || 'Selected Folder'}
+                        </Title>
+                        <Text className="text-gray-600 mb-4">
+                          {folders.find(f => f.id === selectedKey)?.description || 'Folder details will be displayed here'}
+                        </Text>
+                        {folders.find(f => f.id === selectedKey)?.chatSessionIds &&
+                          folders.find(f => f.id === selectedKey)!.chatSessionIds!.length > 0 && (
                             <Text className="text-sm text-gray-500">
-                              {formatDate(currentChatSession.createdDate || '')}
+                              {folders.find(f => f.id === selectedKey)!.chatSessionIds!.length} chat sessions available
                             </Text>
-                          </div>
-                          {currentChatSession.xrayImageUrl && (
-                            <div className="mt-4">
-                              <img
-                                src={currentChatSession.xrayImageUrl}
-                                alt="X-ray Image"
-                                className="max-w-full h-auto rounded-lg shadow-sm"
-                                style={{ maxHeight: '300px' }}
-                              />
-                            </div>
                           )}
+                      </div>
+                    </div>
+                  ) : (
+                    
+                    // Display chat session content with integrated layout
+                    <div className="p-6">
+                      {isFetchingChatSession ? (
+                        <div className="flex justify-center items-center h-full">
+                          <Spin size="large" />
                         </div>
-
-                        {/* Analysis Results */}
-                        {currentChatSession.result && (
-                          <div className="space-y-6">
-
-                            {/* GradCAM Analyses */}
-                            {currentChatSession.result.gradcam_analyses && (
-                              <Card title="GradCAM Analysis" className="mb-4">
-                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                  {Object.entries(currentChatSession.result.gradcam_analyses).map(([key, url]) => (
-                                    <div key={key} className="text-center">
-                                      <img
-                                        src={url}
-                                        alt={key}
-                                        className="w-full h-32 object-cover rounded-lg shadow-sm"
-                                      />
-                                      <Text className="text-xs text-gray-600 mt-1 block">
-                                        {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                      </Text>
-                                    </div>
-                                  ))}
-                                </div>
-                              </Card>
+                      ) : currentChatSession ? (
+                        <div className="max-w-6xl mx-auto">
+                          {/* Chat Session Header */}
+                          <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <Title level={3} className="text-gray-900 mb-0">
+                                {currentChatSession.title}
+                              </Title>
+                              <Text className="text-sm text-gray-500">
+                                {formatDate(currentChatSession.createdDate || '')}
+                              </Text>
+                            </div>
+                            {currentChatSession.xrayImageUrl && (
+                              <div className="mt-4">
+                                <img
+                                  src={currentChatSession.xrayImageUrl}
+                                  alt="X-ray Image"
+                                  className="max-w-full h-auto rounded-lg shadow-sm"
+                                  style={{ maxHeight: '300px' }}
+                                />
+                              </div>
                             )}
-
-                            {/* Disease Predictions */}
-                            {currentChatSession.result.predicted_diseases && (
-                              <Card title="Disease Predictions" className="mb-4">
-                                <div className="space-y-2">
-                                  {currentChatSession.result.predicted_diseases.map((disease, index) => (
-                                    <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                                      <span className="font-medium">{disease.disease}</span>
-                                      <span className="text-orange-600 font-bold">
-                                        {(disease.confidence * 100).toFixed(1)}%
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </Card>
-                            )}
-
-                            
-
-                            {/* Concise Conclusion */}
-                            {currentChatSession.result.concise_conclusion && (
-                              <Card title="Concise Conclusion" className="mb-4">
-                                <Text className="text-gray-700">
-                                  {currentChatSession.result.concise_conclusion}
-                                </Text>
-                              </Card>
-                            )}
-
-                            {/* Comprehensive Analysis */}
-                            {currentChatSession.result.comprehensive_analysis && (
-                              <Card title="Comprehensive Analysis" className="mb-4">
-                                <Text className="text-gray-700 whitespace-pre-wrap">
-                                  {currentChatSession.result.comprehensive_analysis}
-                                </Text>
-                              </Card>
-                            )}
-
-                            
                           </div>
-                        )}
 
-                        {/* Chat Items */}
-                        {currentChatSession.chatItems && currentChatSession.chatItems.length > 0 && (
-                          <Card title="Chat History" className="mt-6">
-                            <div className="space-y-4">
-                              {currentChatSession.chatItems.map((item, index) => (
-                                <div
-                                  key={index}
-                                  className={`p-3 rounded-lg ${item.isBot ? 'bg-blue-50 ml-8' : 'bg-gray-50 mr-8'
-                                    }`}
-                                >
-                                  <Text className="text-gray-700">{item.content}</Text>
-                                  {item.imageUrls && item.imageUrls.length > 0 && (
-                                    <div className="mt-2 space-y-2">
-                                      {item.imageUrls.map((url, imgIndex) => (
-                                        <img
-                                          key={imgIndex}
-                                          src={url}
-                                          alt={`Chat image ${imgIndex + 1}`}
-                                          className="max-w-full h-auto rounded"
-                                        />
-                                      ))}
+                          {/* Main Content Grid - Analysis Results and Chat */}
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            
+                            {/* Left Column - Analysis Results */}
+                            <div className="space-y-6">
+                              <div className="sticky top-6">
+                                <Title level={4} className="text-gray-900 mb-4 flex items-center">
+                                  <FileTextOutlined className="mr-2 text-orange-500" />
+                                  Analysis Results
+                                </Title>
+                                
+                                {currentChatSession.result && (
+                                  <div className="space-y-4">
+
+                                    {/* GradCAM Analyses */}
+                                    {currentChatSession.result.gradcam_analyses && (
+                                      <Card title="GradCAM Analysis" size="small">
+                                        <div className="grid grid-cols-2 gap-2">
+                                          {Object.entries(currentChatSession.result.gradcam_analyses).map(([key, url]) => (
+                                            <div key={key} className="text-center">
+                                              <img
+                                                src={url}
+                                                alt={key}
+                                                className="w-full h-24 object-cover rounded shadow-sm"
+                                              />
+                                              <Text className="text-xs text-gray-600 mt-1 block">
+                                                {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                              </Text>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </Card>
+                                    )}
+
+                                    {/* Disease Predictions */}
+                                    {currentChatSession.result.predicted_diseases && (
+                                      <Card title="Disease Predictions" size="small">
+                                        <div className="space-y-2">
+                                          {(showAllDiseases 
+                                            ? currentChatSession.result.predicted_diseases 
+                                            : currentChatSession.result.predicted_diseases.slice(0, 5)
+                                          ).map((disease, index) => (
+                                            <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded text-sm">
+                                              <span className="font-medium">{disease.disease}</span>
+                                              <span className="text-orange-600 font-bold">
+                                                {(disease.confidence * 100).toFixed(1)}%
+                                              </span>
+                                            </div>
+                                          ))}
+                                          {currentChatSession.result.predicted_diseases.length > 5 && (
+                                            <div className="flex justify-center mt-2">
+                                              <Button 
+                                                type="link" 
+                                                size="small"
+                                                onClick={() => setShowAllDiseases(!showAllDiseases)}
+                                                className="text-blue-600 hover:text-blue-800 p-0 h-auto"
+                                              >
+                                                {showAllDiseases ? 'Show Less' : `Show More (${currentChatSession.result.predicted_diseases.length - 5} more)`}
+                                              </Button>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </Card>
+                                    )}
+
+                                    {/* Concise Conclusion */}
+                                    {currentChatSession.result.concise_conclusion && (
+                                      <Card title="Concise Conclusion" size="small">
+                                        <Text className="text-gray-700 text-sm">
+                                          {currentChatSession.result.concise_conclusion}
+                                        </Text>
+                                      </Card>
+                                    )}
+
+                                    {/* Comprehensive Analysis */}
+                                    {currentChatSession.result.comprehensive_analysis && (
+                                      <Card title="Comprehensive Analysis" size="small">
+                                        <Text className="text-gray-700 whitespace-pre-wrap text-sm">
+                                          {currentChatSession.result.comprehensive_analysis}
+                                        </Text>
+                                      </Card>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Right Column - Chat History and Input */}
+                            <div className="space-y-6">
+                              <Title level={4} className="text-gray-900 mb-4 flex items-center">
+                                <MessageOutlined className="mr-2 text-orange-500" />
+                                Chat with Clini AI
+                              </Title>
+
+                              {/* Chat Messages */}
+                              <div className="space-y-4 max-h-96 overflow-y-auto">
+                                {(() => {
+                                  console.log('Rendering chat items:', currentChatSession.chatItems);
+                                  console.log('Chat items length:', currentChatSession.chatItems?.length || 0);
+                                  return null;
+                                })()}
+                                {currentChatSession.chatItems && currentChatSession.chatItems.length > 0 ? (
+                                  currentChatSession.chatItems.map((item, index) => {
+                                    console.log(`Rendering chat item ${index}:`, item);
+                                    return (
+                                    <div
+                                      key={index}
+                                      className={`flex ${item.isBot ? 'justify-start' : 'justify-end'}`}
+                                    >
+                                      <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                                        item.isBot 
+                                          ? 'bg-blue-50 border border-blue-200' 
+                                          : 'bg-orange-50 border border-orange-200'
+                                      }`}>
+                                        <div className="flex items-start space-x-2">
+                                          <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0 ${
+                                            item.isBot ? 'bg-blue-500 text-white' : 'bg-orange-500 text-white'
+                                          }`}>
+                                            {item.isBot ? 'AI' : 'U'}
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            {item.isBot ? (
+                                              <MarkdownRenderer 
+                                                content={item.content} 
+                                                className="text-sm"
+                                              />
+                                            ) : (
+                                              <Text className="text-gray-700 text-sm whitespace-pre-wrap break-words">
+                                                {item.content}
+                                              </Text>
+                                            )}
+                                            {item.metaData?.pubmedQueryUrl && (
+                                              <div className="mt-2">
+                                                <a 
+                                                  href={item.metaData.pubmedQueryUrl} 
+                                                  target="_blank" 
+                                                  rel="noopener noreferrer" 
+                                                  className="text-blue-600 hover:underline text-xs"
+                                                >
+                                                  PubMed Reference
+                                                </a>
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    );
+                                  })
+                                ) : (
+                                  <div className="text-center py-8 text-gray-500">
+                                    <MessageOutlined className="text-2xl mb-2" />
+                                    <Text className="text-sm">No chat messages yet. Start a conversation below!</Text>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Chat Input */}
+                              <Card size="small">
+                                <div className="space-y-3">
+                                  {chatbotError && (
+                                    <div className="p-2 bg-red-50 border border-red-200 rounded">
+                                      <Text className="text-red-600 text-xs">{chatbotError}</Text>
+                                      <Button 
+                                        type="link" 
+                                        size="small" 
+                                        onClick={clearChatbotError}
+                                        className="text-red-600 p-0 h-auto text-xs"
+                                      >
+                                        Dismiss
+                                      </Button>
                                     </div>
                                   )}
+
+                                  <div className="flex space-x-2">
+                                    <Input
+                                      placeholder="Ask about the X-ray analysis..."
+                                      value={chatInputValue}
+                                      onChange={(e) => setChatInputValue(e.target.value)}
+                                      onPressEnter={handleSendChatMessage}
+                                      disabled={isSendingMessage}
+                                      className="flex-1 h-10 border-gray-200 focus:border-orange-400 focus:shadow-lg transition-all duration-200 hover:border-orange-300"
+                                      size="small"
+                                      style={{
+                                        boxShadow: '0 2px 4px 0 rgba(0, 0, 0, 0.1)'
+                                      }}
+                                    />
+                                    <Button
+                                      onClick={handleSendChatMessage}
+                                      disabled={!chatInputValue.trim()}
+                                      className="h-10 px-4 send-button-enhanced font-medium text-white min-w-[30px] ml-3 flex items-center justify-center"
+                                      size="large"
+                                    >
+                                      {isSendingMessage ? (
+                                        <IoMdRefresh className="text-lg animate-spin" />
+                                      ) : (
+                                        <IoSend className="text-lg" />
+                                      )}
+                                    </Button>
+                                  </div>
+                                  
+                                  <div className="text-xs text-gray-500">
+                                    Ask questions about the analysis, request recommendations, or get medical insights.
+                                  </div>
                                 </div>
-                              ))}
+                              </Card>
                             </div>
-                          </Card>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="flex-1 flex flex-col items-center justify-center">
-                        <MessageOutlined className="text-6xl text-gray-400 mb-4" />
-                        <Title level={3} className="text-gray-500 mb-2">
-                          Chat Session Not Found
-                        </Title>
-                        <Text className="text-gray-400">
-                          The selected chat session could not be loaded.
-                        </Text>
-                      </div>
-                    )}
-                  </div>
-                )
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center h-full">
+                          <MessageOutlined className="text-6xl text-gray-400 mb-4" />
+                          <Title level={3} className="text-gray-500 mb-2">
+                            Chat Session Not Found
+                          </Title>
+                          <Text className="text-gray-400">
+                            The selected chat session could not be loaded.
+                          </Text>
+                        </div>
+                      )}
+                    </div>
+                  )
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center p-8">
                   {/* Logo */}
@@ -705,6 +870,7 @@ export default function Page() {
 
                 </div>
               )}
+              </div>
 
               {/* Footer */}
               <Footer />
@@ -805,7 +971,7 @@ function SuggestedActions() {
 }
 
 
-function UserProfile({ user, isLoggedIn, logout, router }: { user: any; isLoggedIn: any; logout: any; router: any }) {
+function UserProfile({ user, isLoggedIn, logout, router, isLoggingOut }: { user: any; isLoggedIn: any; logout: any; router: any; isLoggingOut: boolean }) {
   return (
     <div className="px-4 py-3 border-t border-gray-100">
       {isLoggedIn() && user ? (
@@ -821,8 +987,18 @@ function UserProfile({ user, isLoggedIn, logout, router }: { user: any; isLogged
               <div className="text-xs text-gray-500">{user.email}</div>
             </div>
           </div>
-          <Dropdown menu={{ items: getUserMenuItems(logout) }} trigger={['click']}>
-            <Button type="text" icon={<DownOutlined />} size="small" className="text-gray-500" />
+          <Dropdown 
+            menu={{ items: getUserMenuItems(logout, isLoggingOut) }} 
+            trigger={['click']}
+            disabled={isLoggingOut}
+          >
+            <Button 
+              type="text" 
+              icon={<DownOutlined />} 
+              size="small" 
+              className="text-gray-500"
+              disabled={isLoggingOut}
+            />
           </Dropdown>
         </div>
       ) : (
