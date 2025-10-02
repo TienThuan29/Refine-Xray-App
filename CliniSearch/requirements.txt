@@ -19,3 +19,4 @@ torch # For model inference
 torchvision # For model inference
 matplotlib # For visualization
 opencv-python # For image processing
+open_clip_torch # For CLIP model inference

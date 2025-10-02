@@ -1,0 +1,34 @@
+services:
+  clinisearch-api:
+    image: tienthuan29/clinisearch-api:latest
+    container_name: clinisearch-api
+    ports:
+      - "8000:8000"
+    environment:
+      - GOOGLE_API_KEY=AIzaSyC1n8XH8_ZjVMSkc_ahslVukNMHb-uZVPk
+      - NCBI_EMAIL=tokenchanel@gmail.com
+      - ANTHROPIC_API_KEY=
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+    volumes:
+      - model_cache:/app/.cache
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - clinisearch-network
+
+volumes:
+  model_cache:
+  # redis_data:
+  # postgres_data:
+
+networks:
+  clinisearch-network:
+    driver: bridge

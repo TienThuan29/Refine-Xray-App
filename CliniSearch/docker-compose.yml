@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  clinisearch-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: clinisearch-api
+    ports:
+      - "8000:8000"
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - NCBI_EMAIL=${NCBI_EMAIL}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+    volumes:
+      # Mount a volume for model cache (optional)
+      - model_cache:/app/.cache
+      # Mount logs directory (optional)
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - clinisearch-network
+
+  # Optional: Add Redis for caching (uncomment if needed)
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: clinisearch-redis
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+  #   restart: unless-stopped
+  #   networks:
+  #     - clinisearch-network
+
+  # Optional: Add PostgreSQL for persistent storage (uncomment if needed)
+  # postgres:
+  #   image: postgres:15-alpine
+  #   container_name: clinisearch-postgres
+  #   environment:
+  #     - POSTGRES_DB=clinisearch
+  #     - POSTGRES_USER=clinisearch
+  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-clinisearch123}
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   restart: unless-stopped
+  #   networks:
+  #     - clinisearch-network
+
+volumes:
+  model_cache:
+  # redis_data:
+  # postgres_data:
+
+networks:
+  clinisearch-network:
+    driver: bridge

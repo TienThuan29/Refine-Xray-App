@@ -201,6 +201,88 @@ streamlit run app.py
 
 Your browser will automatically open with the **Spectra AI** application running.
 
+### Docker Deployment (Recommended)
+
+For easier deployment and consistency across environments, you can use Docker to run the CliniSearch API.
+
+#### Prerequisites
+- Docker and Docker Compose installed
+- API keys configured
+
+#### Quick Start with Docker
+
+1. **Configure Environment Variables:**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your actual API keys
+   ```
+
+2. **Build and Run with Docker Compose:**
+   ```bash
+   docker-compose up --build
+   ```
+
+3. **Access the API:**
+   - API Documentation: http://localhost:8000/docs
+   - Health Check: http://localhost:8000/health
+
+#### Alternative: Manual Docker Build
+
+1. **Build the Docker Image:**
+   ```bash
+   ./build-docker.sh --build-only
+   ```
+
+2. **Run the Container:**
+   ```bash
+   ./build-docker.sh --run
+   ```
+
+   Or manually:
+   ```bash
+   docker run -d \
+     --name clinisearch-api \
+     -p 8000:8000 \
+     --env-file .env \
+     clinisearch-api
+   ```
+
+#### Docker Commands Reference
+
+```bash
+# Build image only
+./build-docker.sh --build-only
+
+# Build and run container
+./build-docker.sh --run
+
+# Force rebuild without cache
+./build-docker.sh --force --run
+
+# View container logs
+docker logs clinisearch-api
+
+# Stop container
+docker stop clinisearch-api
+
+# Remove container
+docker rm clinisearch-api
+
+# Access container shell
+docker exec -it clinisearch-api /bin/bash
+```
+
+#### Environment Variables for Docker
+
+The following environment variables are required:
+
+- `GOOGLE_API_KEY`: Your Google API key for Gemini AI
+- `NCBI_EMAIL`: Your email for NCBI PubMed access
+
+Optional variables:
+- `ANTHROPIC_API_KEY`: Your Anthropic API key for Claude AI
+- `LOG_LEVEL`: Logging level (default: INFO)
+
 ---
 
 ## ⚖️ Ethical Considerations

@@ -205,3 +205,5 @@ vector_store/
 
 # PDF processing temp files
 pdf_temp/
+
+docker-compose-production.yml

@@ -1,0 +1,12 @@
+# Fix Dockerfile - extends the existing image to add missing dependencies
+FROM clinisearch-api-test
+
+# Install missing dependencies as root
+USER root
+RUN pip install open_clip_torch
+
+# Switch back to app user
+USER app
+
+# Default command
+CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
