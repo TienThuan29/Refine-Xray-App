@@ -5,8 +5,8 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - GOOGLE_API_KEY=AIzaSyC1n8XH8_ZjVMSkc_ahslVukNMHb-uZVPk
-      - NCBI_EMAIL=tokenchanel@gmail.com
+      - GOOGLE_API_KEY=
+      - NCBI_EMAIL=
       - ANTHROPIC_API_KEY=
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - API_HOST=0.0.0.0
