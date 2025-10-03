@@ -3,8 +3,10 @@ using Amazon.DynamoDBv2;
 using Amazon;
 using Amazon.Extensions.NETCore.Setup;
 using DotNetEnv;
-using MasterServices.Repositories;
+using MasterServices.Repositories.Folder;
+using MasterServices.Repositories.User;
 using MasterServices.Services.Auth;
+using MasterServices.Services.Folder;
 using MasterServices.Utils;
 using MasterServices.Web.Middlewares;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -22,22 +24,36 @@ builder.Configuration.AddEnvironmentVariables();
 
 // Add AWS DynamoDB services with proper configuration
 var awsRegion = builder.Configuration["AWS:Region"] ?? "us-east-1";
+var awsAccessKey = builder.Configuration["AWS:AccessKey"];
+var awsSecretKey = builder.Configuration["AWS:SecretKey"];
+
 if (string.IsNullOrEmpty(awsRegion) || awsRegion.Contains("${"))
 {
     awsRegion = "us-east-1"; // Default fallback
 }
 
-builder.Services.AddAWSService<IAmazonDynamoDB>(new AWSOptions
+// Configure AWS credentials from appsettings.json
+var awsOptions = new AWSOptions
 {
-    Region = Amazon.RegionEndpoint.GetBySystemName(awsRegion)
-});
+    Region = RegionEndpoint.GetBySystemName(awsRegion)
+};
+
+// Use BasicAWSCredentials if AccessKey and SecretKey are provided
+if (!string.IsNullOrEmpty(awsAccessKey) && !string.IsNullOrEmpty(awsSecretKey))
+{
+    awsOptions.Credentials = new Amazon.Runtime.BasicAWSCredentials(awsAccessKey, awsSecretKey);
+}
+
+builder.Services.AddAWSService<IAmazonDynamoDB>(awsOptions);
 
 // Add repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IFolderRepository, FolderRepository>();
 
 // Add services
 builder.Services.AddScoped<JwtUtil>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IFolderService, FolderService>();
 
 // Add JWT Authentication
 var jwtSecret = builder.Configuration["Jwt:JwtSecret"] ?? throw new InvalidOperationException("JWT_SECRET is not configured");
@@ -111,7 +127,8 @@ app.MapGet("/health", () => Results.Ok(new { message = "OK", timestamp = DateTim
 // Apply middleware
 app.MapWhen(context => 
     context.Request.Path.StartsWithSegments("/api/v1/auth/profile") ||
-    context.Request.Path.StartsWithSegments("/api/v1/auth/users"),
+    context.Request.Path.StartsWithSegments("/api/v1/auth/users") ||
+    context.Request.Path.StartsWithSegments("/api/v1/folder"),
     appBuilder => 
     {
         appBuilder.UseJwtValidationMiddleware();
