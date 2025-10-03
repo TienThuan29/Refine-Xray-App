@@ -1,0 +1,54 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\Fullsnack\\PRM392-RefineXrayApp\\servers\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{7DCA57D1-1E85-4280-B662-872FD62EA16B}|MasterServices\\MasterServices.csproj|d:\\fullsnack\\prm392-refinexrayapp\\servers\\masterservices\\web\\middlewares\\authmiddleware.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7DCA57D1-1E85-4280-B662-872FD62EA16B}|MasterServices\\MasterServices.csproj|solutionrelative:masterservices\\web\\middlewares\\authmiddleware.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{7DCA57D1-1E85-4280-B662-872FD62EA16B}|MasterServices\\MasterServices.csproj|d:\\fullsnack\\prm392-refinexrayapp\\servers\\masterservices\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7DCA57D1-1E85-4280-B662-872FD62EA16B}|MasterServices\\MasterServices.csproj|solutionrelative:masterservices\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "AuthMiddleware.cs",
+              "DocumentMoniker": "D:\\Fullsnack\\PRM392-RefineXrayApp\\servers\\MasterServices\\Web\\Middlewares\\AuthMiddleware.cs",
+              "RelativeDocumentMoniker": "MasterServices\\Web\\Middlewares\\AuthMiddleware.cs",
+              "ToolTip": "D:\\Fullsnack\\PRM392-RefineXrayApp\\servers\\MasterServices\\Web\\Middlewares\\AuthMiddleware.cs",
+              "RelativeToolTip": "MasterServices\\Web\\Middlewares\\AuthMiddleware.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAA5AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-03T01:24:28.741Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Program.cs",
+              "DocumentMoniker": "D:\\Fullsnack\\PRM392-RefineXrayApp\\servers\\MasterServices\\Program.cs",
+              "RelativeDocumentMoniker": "MasterServices\\Program.cs",
+              "ToolTip": "D:\\Fullsnack\\PRM392-RefineXrayApp\\servers\\MasterServices\\Program.cs",
+              "RelativeToolTip": "MasterServices\\Program.cs",
+              "ViewState": "AgIAACQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-03T01:24:34.212Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
