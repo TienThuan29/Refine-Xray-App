@@ -1,15 +1,15 @@
 using MasterServices.Models;
 
-namespace MasterServices.Repositories
+namespace MasterServices.Repositories.User
 {
     public interface IUserRepository
     {
-        Task<User?> CreateAsync(User user);
-        Task<User?> FindByIdAsync(string userId);
-        Task<User?> FindByEmailAsync(string email);
-        Task<List<User>> FindAllAsync();
-        Task<User?> UpdateAsync(string userId, User updateData);
+        Task<Models.User?> CreateAsync(Models.User user);
+        Task<Models.User?> FindByIdAsync(string userId);
+        Task<Models.User?> FindByEmailAsync(string email);
+        Task<List<Models.User>> FindAllAsync();
+        Task<Models.User?> UpdateAsync(string userId, Models.User updateData);
         Task<bool> DeleteAsync(string userId);
-        Task<User?> UpdateStatusAsync(string userId, bool isEnable);
+        Task<Models.User?> UpdateStatusAsync(string userId, bool isEnable);
     }
 }

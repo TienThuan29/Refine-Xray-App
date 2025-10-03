@@ -19,22 +19,18 @@ namespace MasterServices.Web.Middlewares
             try
             {
                 var authHeader = context.Request.Headers.Authorization.FirstOrDefault();
-
                 if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
                 {
                     await WriteErrorResponse(context, "Access token required", 401);
                     return;
                 }
-
                 var token = authHeader.Substring(7);
                 var decoded = await authService.GetUserByTokenAsync(token);
-
                 if (decoded == null || !decoded.IsEnable)
                 {
                     await WriteErrorResponse(context, "User not found or inactive", 401);
                     return;
                 }
-
                 // Add user info to context for use in controllers
                 context.Items["User"] = decoded;
                 await _next(context);
@@ -50,13 +46,11 @@ namespace MasterServices.Web.Middlewares
         {
             context.Response.StatusCode = statusCode;
             context.Response.ContentType = "application/json";
-
             var response = new ApiResponse<object>
             {
                 Success = false,
                 Message = message
             };
-
             await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(response));
         }
     }
@@ -87,28 +81,23 @@ namespace MasterServices.Web.Middlewares
             try
             {
                 var authHeader = context.Request.Headers.Authorization.FirstOrDefault();
-
                 if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
                 {
                     await WriteErrorResponse(context, "Access token required", 401);
                     return;
                 }
-
                 var token = authHeader.Substring(7);
                 var decoded = await authService.GetUserByTokenAsync(token);
-
                 if (decoded == null || !decoded.IsEnable)
                 {
                     await WriteErrorResponse(context, "User not found or inactive", 401);
                     return;
                 }
-
                 if (!_allowedRoles.Contains(decoded.Role.ToString()))
                 {
                     await WriteErrorResponse(context, "Insufficient permissions", 403);
                     return;
                 }
-
                 context.Items["User"] = decoded;
                 await _next(context);
             }
@@ -123,13 +112,11 @@ namespace MasterServices.Web.Middlewares
         {
             context.Response.StatusCode = statusCode;
             context.Response.ContentType = "application/json";
-
             var response = new ApiResponse<object>
             {
                 Success = false,
                 Message = message
             };
-
             await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(response));
         }
     }
@@ -153,13 +140,11 @@ namespace MasterServices.Web.Middlewares
             {
                 var systemSecret = context.Request.Headers["x-system-secret"].FirstOrDefault();
                 var expectedSecret = _configuration["SystemSecret"];
-
                 if (string.IsNullOrEmpty(systemSecret) || systemSecret != expectedSecret)
                 {
                     await WriteErrorResponse(context, "Invalid system secret", 401);
                     return;
                 }
-
                 await _next(context);
             }
             catch (Exception ex)
@@ -173,13 +158,11 @@ namespace MasterServices.Web.Middlewares
         {
             context.Response.StatusCode = statusCode;
             context.Response.ContentType = "application/json";
-
             var response = new ApiResponse<object>
             {
                 Success = false,
                 Message = message
             };
-
             await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(response));
         }
     }
@@ -200,26 +183,21 @@ namespace MasterServices.Web.Middlewares
             try
             {
                 var authHeader = context.Request.Headers.Authorization.FirstOrDefault();
-
                 if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
                 {
                     await WriteErrorResponse(context, "Access token required", 401);
                     return;
                 }
-
                 var token = authHeader.Substring(7);
                 var user = await authService.GetUserByTokenAsync(token);
-
                 if (user == null || !user.IsEnable)
                 {
                     await WriteErrorResponse(context, "User not found or inactive", 401);
                     return;
                 }
-
                 // Add user info to context for use in controllers
                 context.Items["User"] = user;
                 context.Items["AccessToken"] = token;
-                
                 await _next(context);
             }
             catch (Exception ex)
@@ -233,13 +211,11 @@ namespace MasterServices.Web.Middlewares
         {
             context.Response.StatusCode = statusCode;
             context.Response.ContentType = "application/json";
-
             var response = new ApiResponse<object>
             {
                 Success = false,
                 Message = message
             };
-
             await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(response));
         }
     }

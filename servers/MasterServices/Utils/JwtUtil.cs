@@ -1,21 +1,18 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 
 namespace MasterServices.Utils
 {
     public class JwtUtil
     {
-        private readonly IConfiguration _configuration;
         private readonly string _secret;
         private readonly string _accessTokenExpiration;
         private readonly string _refreshTokenExpiration;
-
+  
         public JwtUtil(IConfiguration configuration)
         {
-            _configuration = configuration;
             _secret = configuration["Jwt:JwtSecret"] ?? throw new InvalidOperationException("JWT_SECRET is not configured");
             _accessTokenExpiration = configuration["Jwt:JwtAccessTokenExpiration"] ?? "1d";
             _refreshTokenExpiration = configuration["Jwt:JwtRefreshTokenExpiration"] ?? "7d";

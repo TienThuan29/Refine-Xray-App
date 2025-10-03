@@ -1,7 +1,7 @@
 using MasterServices.Models;
 using MasterServices.Web.Requests;
 using MasterServices.Web.Responses;
-using MasterServices.Repositories;
+using MasterServices.Repositories.User;
 using MasterServices.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;

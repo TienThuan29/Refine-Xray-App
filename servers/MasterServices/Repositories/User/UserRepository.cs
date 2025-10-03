@@ -6,7 +6,7 @@ using MasterServices.Models;
 using MasterServices.Utils;
 using System.Globalization;
 
-namespace MasterServices.Repositories 
+namespace MasterServices.Repositories.User 
 {
     public class UserRepository : DynamoRepository, IUserRepository
     {
@@ -14,16 +14,16 @@ namespace MasterServices.Repositories
         private readonly IConfiguration _configuration;
 
         public UserRepository(
-            IAmazonDynamoDB dynamoDBClient, 
+            IAmazonDynamoDB dynamoDbClient, 
             IConfiguration configuration, 
             ILogger<UserRepository> logger
-        ) : base(dynamoDBClient, configuration, logger)
+        ) : base(dynamoDbClient, configuration, logger)
         {
             _configuration = configuration;
-            _userTableName = configuration["DynamoDB:UserTable"] ?? "UserTable";
+            _userTableName = configuration["DynamoDB:UserTable"] ?? "";
         }
 
-        public async Task<User?> CreateAsync(User user)
+        public async Task<Models.User?> CreateAsync(Models.User user)
         {
             try
             {
@@ -58,7 +58,7 @@ namespace MasterServices.Repositories
             }
         }
 
-        public async Task<User?> FindByIdAsync(string userId)
+        public async Task<Models.User?> FindByIdAsync(string userId)
         {
             try
             {
@@ -79,7 +79,7 @@ namespace MasterServices.Repositories
             }
         }
 
-        public async Task<User?> FindByEmailAsync(string email)
+        public async Task<Models.User?> FindByEmailAsync(string email)
         {
             try
             {
@@ -109,7 +109,7 @@ namespace MasterServices.Repositories
             }
         }
 
-        public async Task<List<User>> FindAllAsync()
+        public async Task<List<Models.User>> FindAllAsync()
         {
             try
             {
@@ -129,7 +129,7 @@ namespace MasterServices.Repositories
             }
         }
 
-        public async Task<User?> UpdateAsync(string userId, User updateData)
+        public async Task<Models.User?> UpdateAsync(string userId, Models.User updateData)
         {
             try
             {
@@ -195,7 +195,7 @@ namespace MasterServices.Repositories
             }
         }
 
-        public async Task<User?> UpdateStatusAsync(string userId, bool isEnable)
+        public async Task<Models.User?> UpdateStatusAsync(string userId, bool isEnable)
         {
             try
             {

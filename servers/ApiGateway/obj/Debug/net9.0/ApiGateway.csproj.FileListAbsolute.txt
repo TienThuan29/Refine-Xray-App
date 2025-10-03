@@ -45,3 +45,4 @@ D:\Fullsnack\PRM392-RefineXrayApp\servers\ApiGateway\obj\Debug\net9.0\refint\Api
 D:\Fullsnack\PRM392-RefineXrayApp\servers\ApiGateway\obj\Debug\net9.0\ApiGateway.pdb
 D:\Fullsnack\PRM392-RefineXrayApp\servers\ApiGateway\obj\Debug\net9.0\ApiGateway.genruntimeconfig.cache
 D:\Fullsnack\PRM392-RefineXrayApp\servers\ApiGateway\obj\Debug\net9.0\ref\ApiGateway.dll
+D:\Fullsnack\PRM392-RefineXrayApp\servers\ApiGateway\obj\Debug\net9.0\ApiGateway.sourcelink.json
