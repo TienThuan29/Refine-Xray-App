@@ -922,7 +922,7 @@ export default function Page() {
 const suggestedActions = [
   {
     title: "Diagnose X-ray Image",
-    description: "Diagnose X-ray image with Medical Clini AI",
+    description: "",
     icon: <FileTextOutlined className="text-xl" />,
     color: "bg-blue-50 border-blue-200 hover:bg-blue-100"
   },

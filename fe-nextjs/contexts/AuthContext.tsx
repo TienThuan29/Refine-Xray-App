@@ -164,7 +164,8 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                 localStorage.setItem(AUTH_TOKENS_KEY, JSON.stringify(tokens));
 
                 const userProfile = await fetchUser(tokens);
-                const roleValidator = validateUserRole(userProfile);
+                console.log(userProfile);
+                const roleValidator = await validateUserRole(userProfile);
 
                 if (roleValidator.isSystem) {
                     router.push(PageUrl.SYSTEM_DASHBOARD_PAGE);

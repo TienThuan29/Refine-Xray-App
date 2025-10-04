@@ -82,7 +82,7 @@ const LoginPage: React.FC = () => {
 
           {/* Main Heading */}
           <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
-            Clini AI Medical
+            Clini AI
           </h1>
 
           {/* Subtitle */}

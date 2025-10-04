@@ -16,7 +16,7 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 const translations = {
   en: {
     // General
-    'app.title': 'Medical Clini AI',
+    'app.title': 'Clini AI',
     'user.name': 'User',
     'welcome.title': 'Welcome to X-ray Diagnosis',
     'welcome.description': 'Welcome to the X-ray Diagnosis application. Select a project from the sidebar to get started.',
@@ -129,7 +129,7 @@ const translations = {
   },
   vi: {
     // General
-    'app.title': 'Medical Clini AI',
+    'app.title': 'Clini AI',
     'user.name': 'Người dùng',
     'welcome.title': 'Chào mừng đến với Chẩn đoán X-quang',
     'welcome.description': 'Chào mừng đến với ứng dụng Chẩn đoán X-quang. Chọn một dự án từ thanh bên để bắt đầu.',
