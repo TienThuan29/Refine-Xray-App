@@ -59,8 +59,8 @@ export class CliniAIService {
 
     private async getHyberParams(): Promise<HyperParams> {
         return {
-            confidence_threshold: 0.4,
-            model_path: '/home/tienthuan29/Downloads/model_m0.99_k5_t0.2.pth'
+            confidence_threshold: config.CONFIDENCE_THRESHOLD,
+            model_path: config.MODEL_PATH
         } as HyperParams;
     }
 

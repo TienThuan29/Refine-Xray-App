@@ -44,4 +44,8 @@ export const config = {
     REPORT_TABLE: process.env.REPORT_TABLE || '',
     SYSTEM_VAR_TABLE: process.env.SYSTEM_VAR_TABLE || '',
 
+    // model
+    CONFIDENCE_THRESHOLD: parseFloat(process.env.CONFIDENCE_THRESHOLD || '0.4'),
+    MODEL_PATH: process.env.MODEL_PATH || '',
+
 } as const;
