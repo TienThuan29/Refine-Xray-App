@@ -1,5 +1,5 @@
 import { User } from "@/models/user.model";
-import { hashString } from "../hashing";
+import { hmacSha256 } from "../hashing";
 import { UserProfileResponse } from "@/types/res/user.res";
 
 export const mapUserToUserProfileResponse = async (user: User) => {
@@ -8,7 +8,7 @@ export const mapUserToUserProfileResponse = async (user: User) => {
         fullname: user.fullname,
         phone: user.phone,
         dateOfBirth: user.dateOfBirth,
-        role: hashString(user.role),
+        role: await hmacSha256(user.role),
         isEnable: user.isEnable,
         lastLoginDate: user.lastLoginDate,
         createdDate: user.createdDate,

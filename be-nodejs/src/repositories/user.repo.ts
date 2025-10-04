@@ -2,7 +2,7 @@ import { config } from "@/configs/config";
 import { DynamoRepository } from "./dynamo.repo";
 import { User } from "@/models/user.model";
 import { v4 as uuidv4 } from 'uuid';
-import { hashString } from "@/libs/hashing";
+import { hmacSha256 } from "@/libs/hashing";
 import { ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { dynamoDB } from '@/configs/database';
 
@@ -15,7 +15,7 @@ export class UserRepository extends DynamoRepository {
 
     public async create(user: User): Promise<User | null> {
         user.id = uuidv4();
-        user.password = hashString(user.password);
+        user.password = await hmacSha256(user.password);
         // Role will be set to default 'user' and not hashed
         user.isEnable = true;
         user.createdDate = new Date();
@@ -125,7 +125,7 @@ export class UserRepository extends DynamoRepository {
 
         // Hash password if it's being updated
         if (updateData.password) {
-            updatedUser.password = hashString(updateData.password);
+            updatedUser.password = await hmacSha256(updateData.password);
         }
 
         const userForDynamo = {

@@ -1,4 +1,4 @@
-import { verifyHash } from "@/libs/hashing";
+import { verifyHmacSha256 } from "@/libs/hashing";
 import { mapUserToUserProfileResponse } from "@/libs/mappers/user.mapper";
 import { User } from "@/models/user.model";
 import { UserRepository } from "@/repositories/user.repo";
@@ -57,7 +57,7 @@ export class AuthService {
             if (!user || !user.isEnable) {
                   throw new Error("Invalid email or password");
             }
-            const isPasswordValid = await verifyHash(credentials.password, user.password);
+            const isPasswordValid = await verifyHmacSha256(credentials.password, user.password);
 
             if (!isPasswordValid) {
                   throw new Error("Invalid email or password");
