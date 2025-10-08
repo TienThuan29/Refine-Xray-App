@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'features/presentation/login_page.dart';
+import 'features/presentation/forgot_password.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,7 +34,10 @@ class MyApp extends StatelessWidget {
       ),
       home: const LoginPage(),
       debugShowCheckedModeBanner: false,
-      routes: {'/login': (context) => const LoginPage()},
+      routes: {
+        '/login': (context) => const LoginPage(),
+        '/forgot-password': (context) => const ForgotPasswordPage(),
+      },
     );
   }
 }
