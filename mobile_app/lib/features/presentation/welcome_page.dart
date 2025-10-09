@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../model/auth/user_profile.dart';
 import '../service/auth_service.dart';
+import 'chat_bot.dart';
+import 'chat_session_list.dart';
+import 'modals/new_chat_modal.dart';
 
 class WelcomePage extends StatefulWidget {
   final UserProfile userProfile;
@@ -249,6 +252,76 @@ class _WelcomePageState extends State<WelcomePage> {
                         ),
                       ),
                     ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Chat Actions
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildActionCard(
+                          icon: Icons.chat_bubble_outline,
+                          title: 'View Chat Sessions',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ChatSessionListPage(
+                                  accessToken: widget.accessToken,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildActionCard(
+                          icon: Icons.add_comment,
+                          title: 'New Chat',
+                          onTap: () {
+                            showNewChatModal(
+                              context: context,
+                              accessToken: widget.accessToken,
+                              onCreateChat: (chatData) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ChatBotPage(
+                                      accessToken: widget.accessToken,
+                                      chatSessionTitle: chatData['title'],
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Quick Chat Action
+                  SizedBox(
+                    width: double.infinity,
+                    child: _buildActionCard(
+                      icon: Icons.chat,
+                      title: 'Quick Chat with AI Doctor',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ChatBotPage(
+                              accessToken: widget.accessToken,
+                              chatSessionTitle: 'AI Doctor Assistant',
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   ),
 
                   const SizedBox(height: 32),
