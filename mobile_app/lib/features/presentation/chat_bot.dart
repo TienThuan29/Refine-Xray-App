@@ -3,6 +3,7 @@ import '../model/chat/chat_models.dart';
 import '../service/chat_session_manager.dart';
 import 'components/markdown_renderer.dart';
 import 'components/image_upload_widget.dart';
+import 'components/chat_session_sidebar.dart';
 
 class ChatBotPage extends StatefulWidget {
   final String? chatSessionTitle;
@@ -24,6 +25,7 @@ class _ChatBotPageState extends State<ChatBotPage> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final ChatSessionManager _chatSessionManager = ChatSessionManager();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   
   List<ChatItem> _messages = [];
   List<String> _imageUrls = [];
@@ -31,6 +33,11 @@ class _ChatBotPageState extends State<ChatBotPage> {
   bool _isLoading = false;
   bool _isTyping = false;
   String? _error;
+  
+  // Sidebar management
+  bool _showSidebar = true;
+  ChatSession? _currentSession;
+  String? _currentSessionTitle;
 
   @override
   void initState() {
@@ -133,6 +140,63 @@ class _ChatBotPageState extends State<ChatBotPage> {
     });
   }
 
+  void _onSessionSelected(ChatSession session) {
+    setState(() {
+      _currentSession = session;
+      _currentSessionTitle = session.title;
+      _messages = session.chatItems ?? [];
+    });
+    _scrollToBottom();
+    
+    // Close drawer on mobile after selection
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth <= 768) {
+      final scaffoldState = _scaffoldKey.currentState;
+      if (scaffoldState != null && scaffoldState.isDrawerOpen) {
+        Navigator.of(context).pop();
+      }
+    }
+  }
+
+  void _onNewChatCreated() {
+    setState(() {
+      _messages = [];
+      _currentSession = null;
+      _currentSessionTitle = null;
+    });
+    
+    // Close drawer on mobile after creation
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth <= 768) {
+      final scaffoldState = _scaffoldKey.currentState;
+      if (scaffoldState != null && scaffoldState.isDrawerOpen) {
+        Navigator.of(context).pop();
+      }
+    }
+  }
+
+  void _toggleSidebar() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final showSidebarOnMobile = screenWidth > 768;
+    
+    if (showSidebarOnMobile) {
+      // Desktop/tablet: toggle sidebar visibility
+      setState(() {
+        _showSidebar = !_showSidebar;
+      });
+    } else {
+      // Mobile: open/close drawer
+      final scaffoldState = _scaffoldKey.currentState;
+      if (scaffoldState != null) {
+        if (scaffoldState.isDrawerOpen) {
+          Navigator.of(context).pop();
+        } else {
+          scaffoldState.openDrawer();
+        }
+      }
+    }
+  }
+
   Future<void> _sendMessage() async {
     final message = _messageController.text.trim();
     if (message.isEmpty) return;
@@ -229,11 +293,15 @@ class _ChatBotPageState extends State<ChatBotPage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final showSidebarOnMobile = screenWidth > 768;
+    
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: Text(
-          widget.chatSessionTitle ?? 'Chat with AI Doctor',
+          _currentSessionTitle ?? widget.chatSessionTitle ?? 'Chat with AI Doctor',
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -242,7 +310,18 @@ class _ChatBotPageState extends State<ChatBotPage> {
         backgroundColor: Colors.white,
         elevation: 1,
         foregroundColor: Colors.black87,
+        leading: showSidebarOnMobile 
+            ? null 
+            : IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: _toggleSidebar,
+              ),
         actions: [
+          if (showSidebarOnMobile)
+            IconButton(
+              icon: Icon(_showSidebar ? Icons.close_fullscreen : Icons.open_in_full),
+              onPressed: _toggleSidebar,
+            ),
           IconButton(
             icon: const Icon(Icons.more_vert),
             onPressed: () {
@@ -251,141 +330,223 @@ class _ChatBotPageState extends State<ChatBotPage> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Error banner
-          if (_error != null)
-            Container(
-              width: double.infinity,
-              color: Colors.red[50],
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                children: [
-                  Icon(Icons.error_outline, color: Colors.red[600], size: 18),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _error!,
-                      style: TextStyle(color: Colors.red[600], fontSize: 14),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, size: 18),
-                    onPressed: () => setState(() => _error = null),
-                  ),
-                ],
+      drawer: !showSidebarOnMobile 
+          ? Drawer(
+              child: ChatSessionSidebar(
+                accessToken: widget.accessToken,
+                currentSessionId: _currentSession?.id,
+                onSessionSelected: _onSessionSelected,
+                onNewChatCreated: _onNewChatCreated,
               ),
+            )
+          : null,
+      body: Row(
+        children: [
+          // Sidebar for larger screens
+          if (showSidebarOnMobile && _showSidebar)
+            ChatSessionSidebar(
+              accessToken: widget.accessToken,
+              currentSessionId: _currentSession?.id,
+              onSessionSelected: _onSessionSelected,
+              onNewChatCreated: _onNewChatCreated,
             ),
           
-          // Loading indicator
-          if (_isLoading)
-            const LinearProgressIndicator(),
-          
-          // Chat Messages
+          // Main chat area
           Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(16),
-              itemCount: _messages.length + (_isTyping ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (index == _messages.length && _isTyping) {
-                  return _buildTypingIndicator();
-                }
-                return _buildMessageBubble(_messages[index]);
-              },
-            ),
+            child: _buildChatArea(),
           ),
+        ],
+      ),
+    );
+  }
 
-          // Input Area
+  Widget _buildChatArea() {
+    return Column(
+      children: [
+        // Error banner
+        if (_error != null)
           Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, -2),
+            width: double.infinity,
+            color: Colors.red[50],
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                Icon(Icons.error_outline, color: Colors.red[600], size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _error!,
+                    style: TextStyle(color: Colors.red[600], fontSize: 14),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 18),
+                  onPressed: () => setState(() => _error = null),
                 ),
               ],
             ),
-            child: SafeArea(
-              child: Column(
-                children: [
-                  // Image Upload Area
-                  if (_imageUrls.isNotEmpty || !_isSendingMessage)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: ImageUploadWidget(
-                        initialImages: _imageUrls,
-                        onImagesChanged: _updateImageUrls,
-                        enabled: !_isSendingMessage,
+          ),
+        
+        // Loading indicator
+        if (_isLoading)
+          const LinearProgressIndicator(),
+        
+        // Chat Messages
+        Expanded(
+          child: _messages.isEmpty && _currentSession == null
+              ? _buildWelcomeScreen()
+              : ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _messages.length + (_isTyping ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    if (index == _messages.length && _isTyping) {
+                      return _buildTypingIndicator();
+                    }
+                    return _buildMessageBubble(_messages[index]);
+                  },
+                ),
+        ),
+
+        // Input Area
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.1),
+                blurRadius: 4,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          child: SafeArea(
+            child: Column(
+              children: [
+                // Image Upload Area
+                if (_imageUrls.isNotEmpty || !_isSendingMessage)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: ImageUploadWidget(
+                      initialImages: _imageUrls,
+                      onImagesChanged: _updateImageUrls,
+                      enabled: !_isSendingMessage,
+                    ),
+                  ),
+                
+                // Message Input Row
+                Row(
+                  children: [
+                    // Text input
+                    Expanded(
+                      child: TextField(
+                        controller: _messageController,
+                        decoration: InputDecoration(
+                          hintText: 'Ask about the X-ray analysis...',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(24),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(24),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(24),
+                            borderSide: BorderSide(color: Colors.blue[600]!),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey[50],
+                        ),
+                        maxLines: null,
+                        onSubmitted: (_) => _sendMessage(),
                       ),
                     ),
-                  
-                  // Message Input Row
-                  Row(
-                    children: [
-                      // Text input
-                      Expanded(
-                        child: TextField(
-                          controller: _messageController,
-                          decoration: InputDecoration(
-                            hintText: 'Ask about the X-ray analysis...',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(24),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(24),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(24),
-                              borderSide: BorderSide(color: Colors.blue[600]!),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                            filled: true,
-                            fillColor: Colors.grey[50],
-                          ),
-                          maxLines: null,
-                          onSubmitted: (_) => _sendMessage(),
-                        ),
+                    
+                    const SizedBox(width: 8),
+                    
+                    // Send button
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.blue[600],
+                        shape: BoxShape.circle,
                       ),
-                      
-                      const SizedBox(width: 8),
-                      
-                      // Send button
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.blue[600],
-                          shape: BoxShape.circle,
-                        ),
-                        child: IconButton(
-                          onPressed: _isSendingMessage ? null : _sendMessage,
-                          icon: _isSendingMessage
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                  ),
-                                )
-                              : const Icon(
-                                  Icons.send,
-                                  color: Colors.white,
-                                  size: 20,
+                      child: IconButton(
+                        onPressed: _isSendingMessage ? null : _sendMessage,
+                        icon: _isSendingMessage
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                 ),
-                        ),
+                              )
+                            : const Icon(
+                                Icons.send,
+                                color: Colors.white,
+                                size: 20,
+                              ),
                       ),
-                    ],
-                  ),
-                ],
-              ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWelcomeScreen() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.chat_bubble_outline,
+            size: 80,
+            color: Colors.grey[400],
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Welcome to AI Doctor Assistant',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[700],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Select a chat session or start a new conversation\nto get AI-powered medical analysis',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 32),
+          ElevatedButton.icon(
+            onPressed: () {
+              // Show new chat modal or create quick chat
+              setState(() {
+                _currentSessionTitle = 'New Chat Session';
+                _messages = [];
+              });
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('Start New Chat'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue[600],
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
           ),
         ],

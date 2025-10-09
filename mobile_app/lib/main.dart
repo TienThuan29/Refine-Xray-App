@@ -3,7 +3,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'features/presentation/login_page.dart';
 import 'features/presentation/forgot_password.dart';
 import 'features/presentation/chat_bot.dart';
-import 'features/presentation/chat_session_list.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,13 +33,12 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      home: const LoginPage(),
+      home: const ChatBotPage(),
       debugShowCheckedModeBanner: false,
       routes: {
         '/login': (context) => const LoginPage(),
         '/forgot-password': (context) => const ForgotPasswordPage(),
         '/chat-bot': (context) => const ChatBotPage(),
-        '/chat-sessions': (context) => const ChatSessionListPage(),
       },
     );
   }
