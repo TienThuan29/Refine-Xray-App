@@ -3,8 +3,6 @@
 import React, { useState } from 'react';
 import { Modal, Form, Input, Upload, Button } from 'antd';
 import { UploadOutlined, InboxOutlined, MessageOutlined } from '@ant-design/icons';
-import type { UploadFile } from 'antd';
-import { useLanguage } from '../../contexts/LanguageContext';
 import { toast } from "sonner";
 import useChatSessionManager from '../../hooks/useChatSessionManager';
 
@@ -13,7 +11,7 @@ const { Dragger } = Upload;
 interface ChatSessionModalProps {
   visible: boolean;
   onClose: () => void;
-  onComplete: (data: { chatSession: any; title: string; files: File[] }) => void;
+  onComplete: (data: { chatSession: unknown; title: string; files: File[] }) => void;
   folderData: { id: string; title: string; description?: string };
   patientData: { fullname: string; gender: string };
   onRefreshFolders?: () => void;
@@ -27,11 +25,10 @@ const ChatSessionModal: React.FC<ChatSessionModalProps> = ({
   patientData,
   onRefreshFolders
 }) => {
-  const { t } = useLanguage();
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState<File[]>([]);
   const [formValues, setFormValues] = useState({ title: '' });
-  const { createChatSession, isCreating, error, clearError } = useChatSessionManager();
+  const { createChatSession, isCreating, clearError } = useChatSessionManager();
 
   const uploadProps = {
     name: 'file',
@@ -40,13 +37,13 @@ const ChatSessionModal: React.FC<ChatSessionModalProps> = ({
     beforeUpload: (file: File) => {
       const isValidType = ['image/png', 'image/jpeg', 'image/jpg', 'application/dicom'].includes(file.type);
       if (!isValidType) {
-        toast.error(t('newChat.invalidFileType'));
+        toast.error('Invalid file type. Please upload images, PDFs, or text files.');
         return false;
       }
       
       const isValidSize = file.size / 1024 / 1024 < 10; // 10MB limit
       if (!isValidSize) {
-        toast.error(t('newChat.fileSizeExceeded'));
+        toast.error('File size too large. Maximum size is 10MB.');
         return false;
       }
 
@@ -65,7 +62,7 @@ const ChatSessionModal: React.FC<ChatSessionModalProps> = ({
       clearError(); // Clear any previous errors
       
       if (fileList.length === 0) {
-        toast.error(t('newChat.fileRequired'));
+        toast.error('Please select a file to upload.');
         return;
       }
 
@@ -87,12 +84,12 @@ const ChatSessionModal: React.FC<ChatSessionModalProps> = ({
           onRefreshFolders();
         }
 
-        toast.success(t('newChat.chatSessionCreateSuccess'));
+        toast.success('Chat session created successfully!');
         handleClose();
       } else {
-        toast.error(t('newChat.chatSessionCreateError') || 'Failed to create chat session');
+        toast.error('Failed to create chat session');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Validation failed:', error);
       if (error) {
         toast.error('Failed to create chat session');
@@ -107,7 +104,7 @@ const ChatSessionModal: React.FC<ChatSessionModalProps> = ({
     onClose();
   };
 
-  const handleValuesChange = (changedValues: any, allValues: any) => {
+  const handleValuesChange = (changedValues: unknown, allValues: { title: string }) => {
     setFormValues(allValues);
   };
 
@@ -116,7 +113,7 @@ const ChatSessionModal: React.FC<ChatSessionModalProps> = ({
       title={
         <div className="flex items-center gap-2">
           <MessageOutlined />
-          <span className="text-lg font-semibold">{t('newChat.createChatSession')}</span>
+          <span className="text-lg font-semibold">Create Chat Session</span>
         </div>
       }
       open={visible}
@@ -124,7 +121,7 @@ const ChatSessionModal: React.FC<ChatSessionModalProps> = ({
       width={600}
       footer={[
         <Button key="cancel" onClick={handleClose}>
-          {t('newChat.cancel')}
+          Cancel
         </Button>,
         <Button
           key="create"
@@ -133,21 +130,21 @@ const ChatSessionModal: React.FC<ChatSessionModalProps> = ({
           onClick={handleSubmit}
           disabled={!formValues.title?.trim() || fileList.length === 0 || isCreating}
         >
-          {t('newChat.create')}
+          Begin analyzing
         </Button>,
       ]}
     >
       <div className="mb-4 p-3 bg-gray-50 rounded-lg">
         <div className="text-sm text-gray-600 mb-1">
-          <strong>{t('newChat.folder')}:</strong> {folderData.title}
+          <strong>Folder:</strong> {folderData.title}
         </div>
         {folderData.description && (
           <div className="text-sm text-gray-600 mb-1">
-            <strong>{t('newChat.description')}:</strong> {folderData.description}
+            <strong>Description:</strong> {folderData.description}
           </div>
         )}
         <div className="text-sm text-gray-600">
-          <strong>{t('newChat.patient')}:</strong> {patientData.fullname} ({patientData.gender})
+          <strong>Patient:</strong> {patientData.fullname} ({patientData.gender})
         </div>
       </div>
 
@@ -160,38 +157,38 @@ const ChatSessionModal: React.FC<ChatSessionModalProps> = ({
         {/* Title input */}
         <Form.Item
           name="title"
-          label={t('newChat.chatSessionTitle')}
+          label="Chat Session Title"
           rules={[
-            { required: true, message: t('newChat.titleRequired') },
-            { min: 3, message: t('newChat.titleMinLength') },
-            { max: 50, message: t('newChat.titleMaxLength') }
+            { required: true, message: 'Please enter a folder title' },
+            { min: 3, message: 'Title must be at least 3 characters' },
+            { max: 50, message: 'Title must be less than 50 characters' }
           ]}
         >
           <Input 
-            placeholder={t('newChat.chatSessionTitlePlaceholder')}
+            placeholder="Enter chat session title..."
             size="middle"
           />
         </Form.Item>
 
         <Form.Item
-          label={t('newChat.uploadFiles')}
-          help={t('newChat.uploadHelp')}
+          label="Upload Files"
+          help="Upload one X-ray image, PDF, or text file (max 10MB)"
         >
           <Dragger {...uploadProps} style={{ padding: '20px' }}>
             <p className="ant-upload-drag-icon">
               <InboxOutlined style={{ fontSize: '48px', color: '#1890ff' }} />
             </p>
             <p className="ant-upload-text" style={{ fontSize: '16px', marginBottom: '8px' }}>
-              {t('newChat.dragText')}
+              Click or drag files to this area to upload
             </p>
             <p className="ant-upload-hint" style={{ color: '#666' }}>
-              {t('newChat.supportedFormats')}
+              Supports: Images (JPG, PNG, etc.), PDF, Text files
             </p>
             <Button 
               icon={<UploadOutlined />} 
               style={{ marginTop: '16px' }}
             >
-              {t('newChat.selectFiles')}
+              Select File
             </Button>
           </Dragger>
         </Form.Item>
@@ -199,7 +196,7 @@ const ChatSessionModal: React.FC<ChatSessionModalProps> = ({
         {fileList.length > 0 && (
           <div style={{ marginTop: '16px' }}>
             <h4 style={{ marginBottom: '8px', color: '#333' }}>
-              {t('newChat.selectedFile')}
+              Selected File
             </h4>
             <div style={{ maxHeight: '120px', overflowY: 'auto' }}>
               {fileList.map((file, index) => (

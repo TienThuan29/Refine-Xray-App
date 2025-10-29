@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { Layout, Typography, Empty } from 'antd';
 import Sidebar from '../components/combination/sidebar';
 import ChatSessionComponent from '../components/combination/chatsession';
-import { useLanguage } from '../contexts/LanguageContext';
 import { ChatSession } from '../types/folder';
 const { Content } = Layout;
 const { Title } = Typography;
@@ -12,7 +11,6 @@ const { Title } = Typography;
 export default function Home() {
   const [collapsed, setCollapsed] = useState(false);
   const [selectedChatSession, setSelectedChatSession] = useState<ChatSession | null>(null);
-  const { t } = useLanguage();
   
   return (
     <Layout className="h-screen bg-gray-50">
@@ -61,7 +59,7 @@ export default function Home() {
               <Empty
                 description={
                   <span className="text-gray-500 text-lg">
-                    {t('welcome.description')}
+                    Welcome to the X-ray Diagnosis application. Select a project from the sidebar to get started.
                   </span>
                 }
                 image={Empty.PRESENTED_IMAGE_SIMPLE}

@@ -5,6 +5,7 @@ import { useState, useCallback, useMemo } from 'react';
 import useAxios from './useAxios';
 import { Api } from '@/configs/api';
 import { PatientProfileRequest, Commune, Province } from '@/types/patient';
+import { cp } from 'fs';
 
 // Types for patient profile operations
 export interface CreatePatientProfileRequest {
@@ -96,8 +97,9 @@ const usePatientProfileManager = (): UsePatientProfileManagerReturn => {
     // Create patient profile
     const createPatientProfile = useCallback(async (data: CreatePatientProfileRequest, folderId: string): Promise<PatientProfile | null> => {
         try {
+            // console.log('Creating patient profile:', data);
+            // console.log('Folder ID:', folderId);
             updateState({ isCreating: true, error: null });
-            
             const response = await axios.post(`${Api.Patient.CREATE_PATIENT_PROFILE}/${folderId}`, data);
             const newPatientProfile = response.data.dataResponse;
             
@@ -108,7 +110,7 @@ const usePatientProfileManager = (): UsePatientProfileManagerReturn => {
                 isCreating: false,
             }));
             
-            return newPatientProfile;
+            return response.data.dataResponse;
         } catch (error) {
             handleError(error, 'create patient profile');
             updateState({ isCreating: false });

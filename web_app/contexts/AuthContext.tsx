@@ -1,11 +1,10 @@
 'use client';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { AuthTokens, UserProfile } from '@/types/user';
-import axios from 'axios';
+import axios, { HttpStatusCode } from 'axios';
 import { Api } from '@/configs/api';
 import { toast } from 'sonner';
 import { permanentRedirect,useRouter } from 'next/navigation'
-import HttpStatus from '@/configs/http';
 import { Constant } from '@/configs/constant';
 import { PageUrl } from '@/configs/page.url';
 import { validateUserRole } from '@/hooks/useRoleValidator';
@@ -83,7 +82,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                 }
             });
             
-            if (response.status === HttpStatus.OK) {
+            if (response.status === 200) {
                 const userProfile = response.data.dataResponse;
                 setUser(userProfile);
                 // Cache user profile in localStorage
@@ -94,7 +93,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             return response.data.dataResponse;
         } 
         catch (error) {
-            if (axios.isAxiosError(error) && error.response?.status === HttpStatus.UNAUTHORIZED) {
+            if (axios.isAxiosError(error) && error.response?.status === HttpStatusCode.Unauthorized) {
                 // Check if it's due to token expiration
                 if (checkTokenExpiration()) {
                     return;
@@ -153,9 +152,10 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             email: email,
             password: password
         }
+        console.log(Api.BASE_API + Api.Auth.LOGIN);
         try {
             const response = await axios.post(Api.BASE_API + Api.Auth.LOGIN, authenticationRequest);
-            if (response.status === HttpStatus.OK) {
+            if (response.status === HttpStatusCode.Ok) {
                 const tokens = {
                     accessToken: response.data.dataResponse.accessToken,
                     refreshToken: response.data.dataResponse.refreshToken

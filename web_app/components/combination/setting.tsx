@@ -1,10 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Modal, Form, Select, Switch, Button, Space, Typography, Divider, Card, Row, Col } from 'antd';
-import { useLanguage } from '../../contexts/LanguageContext';
+import { Modal, Form, Switch, Button, Typography, Card, Row, Col } from 'antd';
 import {
-    GlobalOutlined,
     BellOutlined,
     SaveOutlined,
     CloseOutlined
@@ -13,7 +11,6 @@ import { toast } from "sonner"
 import { GoGear } from "react-icons/go";
 
 const { Title, Text } = Typography;
-const { Option } = Select;
 
 interface SettingsModalProps {
     visible: boolean;
@@ -21,7 +18,6 @@ interface SettingsModalProps {
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }) => {
-    const { language, setLanguage, t } = useLanguage();
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
 
@@ -29,18 +25,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }) => {
         try {
             setLoading(true);
             const values = await form.validateFields();
-            // Update language if changed
-            if (values.language !== language) {
-                setLanguage(values.language);
-            }
             // console.log('Settings saved:', values);
             await new Promise(resolve => setTimeout(resolve, 500));
-            toast.success(t('settings.saveSuccess'));
+            toast.success('Settings saved successfully!');
             onClose();
         }
         catch (error) {
             // console.error('Failed to save settings:', error);
-            toast.error(t('settings.saveError'));
+            toast.error('Error');
         }
         finally {
             setLoading(false);
@@ -57,7 +49,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }) => {
             title={
                 <div className="flex items-center gap-2">
                     <GoGear />
-                    <span className="text-lg font-semibold">{t('settings.title')}</span>
+                    <span className="text-lg font-semibold">Settings</span>
                 </div>
             }
             open={visible}
@@ -71,7 +63,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }) => {
                     size="middle"
                     className="mr-2"
                 >
-                    {t('settings.cancel')}
+                    Cancel
                 </Button>,
                 <Button
                     key="save"
@@ -81,7 +73,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }) => {
                     icon={<SaveOutlined />}
                     size="middle"
                 >
-                    {t('settings.save')}
+                    Save
                 </Button>,
             ]}
             destroyOnHidden
@@ -91,42 +83,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }) => {
                 form={form}
                 layout="vertical"
                 initialValues={{
-                    language: language,
                     notifications: true,
                 }}
             >
                 <Row gutter={[24, 24]}>
-                    {/* Language Settings */}
-                    <Col span={24}>
-                        <Card
-                            size="small"
-                            className="border border-gray-300 rounded-xl shadow-sm"
-                            bodyStyle={{ padding: '20px' }}
-                        >
-                            <div className="flex items-center mb-4">
-                                <GlobalOutlined className="text-lg text-blue-500 mr-2" />
-                                <Title level={5} className="m-0 text-gray-800">
-                                    {t('settings.language')}
-                                </Title>
-                            </div>
-                            <Form.Item
-                                name="language"
-                                rules={[{ required: true, message: 'Please select a language' }]}
-                                className="mb-0"
-                            >
-                                <Select
-                                    placeholder={t('settings.language')}
-                                    className="w-full"
-                                    size="large"
-                                    suffixIcon={<GlobalOutlined />}
-                                >
-                                    <Option value="en">🇺🇸 {t('settings.language.en')}</Option>
-                                    <Option value="vi">🇻🇳 {t('settings.language.vi')}</Option>
-                                </Select>
-                            </Form.Item>
-                        </Card>
-                    </Col>
-
                     {/* Notification Settings */}
                     <Col span={24}>
                         <Card
@@ -137,14 +97,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }) => {
                             <div className="flex items-center mb-4">
                                 <BellOutlined className="text-lg text-green-500 mr-2" />
                                 <Title level={5} className="m-0 text-gray-800">
-                                    {t('settings.notifications')}
+                                    Notifications
                                 </Title>
                             </div>
                             <Form.Item name="notifications" valuePropName="checked" className="mb-0">
                                 <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
                                     <div className="flex items-center gap-2">
                                         <Text className="text-sm font-medium">
-                                            {t('settings.notifications.enabled')}
+                                            Enable notifications
                                         </Text>
                                         <Text type="secondary" className="text-xs">
                                             (Coming soon)

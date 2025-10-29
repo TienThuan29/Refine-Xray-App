@@ -1,0 +1,29 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "AWS": {
+    "Region": "",
+    "AccessKey": "",
+    "SecretKey": ""
+  },
+  "DynamoDB": {
+    "UserTable": "prm392-users"
+  },
+  "Jwt": {
+    "JwtSecret": "",
+    "JwtAccessTokenExpiration": "1d",
+    "JwtRefreshTokenExpiration": "7d",
+    "BcryptSaltRounds": "12"
+  },
+  "Cors": {
+    "CorsOrigin": "http://localhost:3000"
+  },
+  "SystemSecret": "",
+  "HashingSecretKey": ""
+}
+

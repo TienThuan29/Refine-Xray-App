@@ -21,7 +21,6 @@ import {
 } from '@ant-design/icons';
 import { MenuProps } from 'antd';
 import { formatDate } from '../lib/date';
-import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { CiLogin } from "react-icons/ci";
 import { IoSend } from "react-icons/io5";
@@ -96,7 +95,6 @@ export default function Page() {
   // Pipeline data
   const [folderData, setFolderData] = useState<{ id: string; title: string; description?: string } | null>(null);
   const [patientData, setPatientData] = useState<{ fullname: string; gender: string } | null>(null);
-  const { t } = useLanguage();
 
   // Hooks for data management
   const {

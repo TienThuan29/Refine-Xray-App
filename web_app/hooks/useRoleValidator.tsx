@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { UserProfile } from '@/types/user';
 import { Constant } from '@/configs/constant';
-import { hashString } from '@/lib/hashing';
 
 export const validateUserRole = (user: UserProfile | null) => {
     if (!user) {
@@ -16,13 +15,7 @@ export const validateUserRole = (user: UserProfile | null) => {
 
     const hashedUserRole = user.role;
     const hasRole = (role: string): boolean => {
-        try {
-            const hashedRole = hashString(role);
-            return hashedUserRole === hashedRole;
-        } catch (error) {
-            console.error('Error hashing role for comparison:', error);
-            return false;
-        }
+        return hashedUserRole === role;
     };
 
     return {

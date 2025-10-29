@@ -3,9 +3,7 @@
 import React, { useState } from 'react';
 import { Input, Button, Card, Avatar, Typography, Space, Image, Modal, List, Tag } from 'antd';
 import { SearchOutlined, UserOutlined, RobotOutlined, CalendarOutlined, FileImageOutlined } from '@ant-design/icons';
-import { useLanguage } from '../../contexts/LanguageContext';
-import { ChatSession, ChatItem } from '../../types/folder';
-import { mockItems } from '../../mocks/folderData';
+import { ChatSession, ChatItem } from '../../types/chatsession';
 import MarkdownRenderer from '../ui/markdown-renderer';
 
 const { Search } = Input;
@@ -18,7 +16,6 @@ interface ChatSessionProps {
 
 const ChatSessionComponent: React.FC<ChatSessionProps> = ({ selectedSession, onItemClick }) => {
   
-  const { t } = useLanguage();
   const [searchText, setSearchText] = useState('');
   const [selectedItem, setSelectedItem] = useState<ChatSession | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -34,9 +31,7 @@ const ChatSessionComponent: React.FC<ChatSessionProps> = ({ selectedSession, onI
     setSelectedItem(null);
   };
 
-  const filteredItems = mockItems.filter(item =>
-    item.title.toLowerCase().includes(searchText.toLowerCase())
-  );
+  const filteredItems: ChatSession[] = [];
 
   const formatDate = (dateString: string) => {
     if (!dateString) return '';
@@ -130,10 +125,10 @@ const ChatSessionComponent: React.FC<ChatSessionProps> = ({ selectedSession, onI
       {/* Header */}
       <div className="p-4 border-b border-gray-200 flex-shrink-0">
         <Title level={4} className="mb-4 text-gray-800">
-          {t('chatSession.title')}
+          Chat Sessions
         </Title>
         <Search
-          placeholder={t('chatSession.searchPlaceholder')}
+          placeholder="Search chat sessions..."
           allowClear
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
@@ -145,7 +140,7 @@ const ChatSessionComponent: React.FC<ChatSessionProps> = ({ selectedSession, onI
       {/* Items List */}
       <div className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
         <Space direction="vertical" size="middle" className="w-full">
-          {filteredItems.map((item) => (
+          {filteredItems.map((item: ChatSession) => (
             <Card
               key={item.id}
               hoverable
@@ -172,7 +167,7 @@ const ChatSessionComponent: React.FC<ChatSessionProps> = ({ selectedSession, onI
                   <div className="flex items-center space-x-4 text-sm text-gray-500">
                     <span className="flex items-center">
                       <CalendarOutlined className="mr-1" />
-                      {item.chatItems.length} {t('chatSession.messages')}
+                      {item.chatItems?.length || 0} messages
                     </span>
                     <Text type="secondary" className="text-xs">
                       {formatDate(item.updatedDate || '')}

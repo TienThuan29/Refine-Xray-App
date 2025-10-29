@@ -17,16 +17,44 @@ services:
     networks:
       - prm392-network
   
-  # Ai Service Api
-  clinisearch-api:
-    image: tienthuan29/clinisearch-api:latest
-    container_name: clinisearch-api
+  # Ai Service Api (Old)
+  # clinisearch:
+  #   image: tienthuan29/clinisearch:latest
+  #   container_name: clinisearch
+  #   ports:
+  #     - "8000:8000"
+  #   environment:
+  #     - GOOGLE_API_KEY=
+  #     - NCBI_EMAIL=
+  #     - ANTHROPIC_API_KEY=
+  #     - GEMINI_MODEL_NAME=
+  #     - LOG_LEVEL=${LOG_LEVEL:-INFO}
+  #     - API_HOST=0.0.0.0
+  #     - API_PORT=8000
+  #   volumes:
+  #     - model_cache:/app/.cache
+  #     - ./logs:/app/logs
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 40s
+  #   networks:
+  #     - prm392-network
+
+    # Ai Service Api (New)
+  clinisearch:
+    image: tienthuan29/clinisearch:latest
+    container_name: clinisearch
     ports:
       - "8000:8000"
     environment:
-      - GOOGLE_API_KEY=
-      - NCBI_EMAIL=
-      - ANTHROPIC_API_KEY=
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - NCBI_EMAIL=${NCBI_EMAIL}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GEMINI_MODEL_NAME=${GEMINI_MODEL_NAME}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - API_HOST=0.0.0.0
       - API_PORT=8000
@@ -43,9 +71,31 @@ services:
     networks:
       - prm392-network
 
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    container_name: n8n-server
+    ports:
+      - "5678:5678"
+    environment:
+      - GENERIC_TIMEZONE=UTC
+      - TZ=UTC
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      - N8N_RUNNERS_ENABLED=true
+      - N8N_USER_MANAGEMENT_DISABLED=false
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_HOST=${N8N_HOST:-localhost}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+    volumes:
+      - n8n_data:/home/node/.n8n
+    restart: unless-stopped
+    networks:
+      - prm392-network
+
 volumes:
   model_cache:
   redis_data:
+  n8n_data:
 
 networks:
   prm392-network:

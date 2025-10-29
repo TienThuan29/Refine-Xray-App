@@ -17,7 +17,6 @@ import { FaRegFolderOpen, FaFolderPlus } from "react-icons/fa6";
 import { MenuItem } from '../../types/folder';
 import { mockFolders } from '../../mocks/folderData';
 import { GoGear } from "react-icons/go";
-import { useLanguage } from '../../contexts/LanguageContext';
 import SettingsModal from './setting';
 import NewChatModal from './newchat';
 import { FaEllipsisH } from "react-icons/fa";
@@ -31,7 +30,6 @@ interface SidebarProps {
 
 
 const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse, onItemSelect }) => {
-  const { t } = useLanguage();
   const [selectedKey, setSelectedKey] = useState('');
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [settingsVisible, setSettingsVisible] = useState(false);
@@ -41,17 +39,17 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse, onItem
     {
       key: 'new-chat',
       icon: <EditOutlined />,
-      label: t('sidebar.newChat'),
+      label: 'New chat',
     },
     {
       key: 'search',
       icon: <SearchOutlined />,
-      label: t('sidebar.searchChats'),
+      label: 'Search chats',
     },
     {
       key: 'settings',
       icon: <GoGear />,
-      label: t('sidebar.setting'),
+      label: 'Setting',
     }
   ];
 
@@ -104,7 +102,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse, onItem
     items.push({
       key: 'see-more',
       icon: <FaEllipsisH />,
-      label: t('sidebar.seeMore'),
+      label: 'See more',
       isNew: false,
     });
 
@@ -158,7 +156,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse, onItem
 
           <div className="mb-1">
               <div className="text-center text-gray-800 font-bold text-lg">
-                {t('app.title')}
+                Medical Clini AI
               </div>
           </div>
 
@@ -226,7 +224,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse, onItem
             {!collapsed && (
               <div>
                 <div className=" ml-2 text-sm font-bold text-gray-800">
-                  {t('user.name')}
+                  User
                 </div>
               </div>
             )}

@@ -1,22 +1,65 @@
 {
     "Routes": [
       {
-        "DownstreamPathTemplate": "/{everything}",
+        "DownstreamPathTemplate": "/api/{everything}",
         "DownstreamScheme": "http",
-        "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 8081 }],
-        "UpstreamPathTemplate": "/master-services/{everything}",
+        "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 8082 }],
+        "UpstreamPathTemplate": "/identity-service/api/{everything}",
         "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ]
       },
       {
-        "DownstreamPathTemplate": "/{everything}",
+        "DownstreamPathTemplate": "/api/{everything}",
         "DownstreamScheme": "http",
-        "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 8082 }],
-        "UpstreamPathTemplate": "/ai-services/{everything}",
+        "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 8083 }],
+        "UpstreamPathTemplate": "/doctor-service/api/{everything}",
+        "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ]
+      },
+      {
+        "DownstreamPathTemplate": "/api/{everything}",
+        "DownstreamScheme": "http",
+        "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 8084 }],
+        "UpstreamPathTemplate": "/ai-services/api/{everything}",
+        "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+        "Timeout": 900000,
+        "HttpHandlerOptions": {
+          "AllowAutoRedirect": true,
+          "UseCookieContainer": false,
+          "UseTracing": false,
+          "MaxConnectionsPerServer": 2147483647
+        },
+        "LoadBalancerOptions": {
+          "Type": "RoundRobin"
+        },
+        "RateLimitOptions": {
+          "DisableRateLimitHeaders": true,
+          "QuotaExceededMessage": "Rate limit exceeded",
+          "HttpStatusCode": 429,
+          "ClientIdHeader": "ClientId"
+        }
+      },
+      {
+        "DownstreamPathTemplate": "/api/{everything}",
+        "DownstreamScheme": "http",
+        "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 8085 }],
+        "UpstreamPathTemplate": "/patient-service/api/{everything}",
+        "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ]
+      },
+      {
+        "DownstreamPathTemplate": "/api/{everything}",
+        "DownstreamScheme": "http",
+        "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 8086 }],
+        "UpstreamPathTemplate": "/admin-service/api/{everything}",
         "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ]
       }
     ],
     "GlobalConfiguration": {
-      "BaseUrl": "http://0.0.0.0:8080"
+      "BaseUrl": "http://0.0.0.0:8080",
+      "HttpHandlerOptions": {
+        "AllowAutoRedirect": true,
+        "UseCookieContainer": false,
+        "UseTracing": false,
+        "MaxConnectionsPerServer": 2147483647
+      }
     }
   }
   
