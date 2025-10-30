@@ -43,7 +43,15 @@ app.UseCors();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "API Gateway");
+        c.SwaggerEndpoint("/swagger/auth/swagger.json", "Auth Service");
+        c.SwaggerEndpoint("/swagger/doctors/swagger.json", "Doctor Service");
+        c.SwaggerEndpoint("/swagger/patients/swagger.json", "Patient Service");
+        c.SwaggerEndpoint("/swagger/admin/swagger.json", "Admin Service");
+        c.RoutePrefix = "swagger";
+    });
 }
 
 // Add middleware to handle health checks before Ocelot
