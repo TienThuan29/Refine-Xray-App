@@ -4,12 +4,11 @@ using DoctorService.Web.Requests;
 using DoctorService.Web.Responses;
 using DoctorService.Libs;
 using DoctorService.Models;
-using System.ComponentModel.DataAnnotations;
 
 namespace DoctorService.Web.Controllers
 {
     [ApiController]
-    [Route("api/v1/folder")]
+    [Route("api/v1/folders")]
     public class FolderController : ControllerBase
     {
         private readonly IFolderService _folderService;
@@ -21,7 +20,7 @@ namespace DoctorService.Web.Controllers
             _logger = logger;
         }
 
-        [HttpPost("create-folder")]
+        [HttpPost]
         public async Task<ActionResult<ApiResponse<Folder>>> CreateFolder([FromBody] FolderRequest folderRequest)
         {
             try
@@ -44,29 +43,7 @@ namespace DoctorService.Web.Controllers
             }
         }
 
-        [HttpPut("update-patient-profile-id/{folderId}")]
-        public async Task<ActionResult<ApiResponse<Folder>>> UpdatePatientProfileId(
-            [FromRoute] string folderId, 
-            [FromBody] UpdatePatientProfileIdRequest request)
-        {
-            try
-            {
-                var updatedFolder = await _folderService.UpdatePatientProfileIdAsync(folderId, request.PatientProfileId);
-                if (updatedFolder == null)
-                {
-                    return ResponseUtil.Error<Models.Folder>("Folder not found or patient profile not found", 404);
-                }
-
-                return ResponseUtil.Success(updatedFolder, "Patient profile updated successfully", 200);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating patient profile");
-                return ResponseUtil.Error<Models.Folder>("Internal Server Error", 500);
-            }
-        }
-
-        [HttpGet("get/{folderId}")]
+         [HttpGet("{folderId}")]
         public async Task<ActionResult<ApiResponse<Models.Folder>>> FindFolderById([FromRoute] string folderId)
         {
             try
@@ -86,7 +63,30 @@ namespace DoctorService.Web.Controllers
             }
         }
 
-        [HttpGet("get-all-created-by")]
+        // [HttpPut("patient-profile/{folderId}")]
+        // public async Task<ActionResult<ApiResponse<Folder>>> UpdatePatientProfileId(
+        //     [FromRoute] string folderId, 
+        //     [FromBody] UpdatePatientProfileIdRequest request)
+        // {
+        //     try
+        //     {
+        //         var updatedFolder = await _folderService.UpdatePatientProfileIdAsync(folderId, request.PatientProfileId);
+        //         if (updatedFolder == null)
+        //         {
+        //             return ResponseUtil.Error<Models.Folder>("Folder not found or patient profile not found", 404);
+        //         }
+
+        //         return ResponseUtil.Success(updatedFolder, "Patient profile updated successfully", 200);
+        //     }
+        //     catch (Exception ex)
+        //     {
+        //         _logger.LogError(ex, "Error updating patient profile");
+        //         return ResponseUtil.Error<Models.Folder>("Internal Server Error", 500);
+        //     }
+        // }
+
+       
+        [HttpGet("created-by/{userId}")]
         public async Task<ActionResult<ApiResponse<List<FolderResponse>>>> GetFolderOfUser([FromQuery] string userId)
         {
             try
@@ -112,11 +112,6 @@ namespace DoctorService.Web.Controllers
         }
     }
 
-    // Request DTO for updating patient profile ID
-    public class UpdatePatientProfileIdRequest
-    {
-        [Required]
-        public string PatientProfileId { get; set; } = string.Empty;
-    }
+    
 }
 

@@ -5,11 +5,9 @@ using Amazon;
 using Amazon.Extensions.NETCore.Setup;
 using DotNetEnv;
 using DoctorService.Repositories.Folder;
-using DoctorService.Repositories.PatientProfile;
 using DoctorService.Repositories.ChatSession;
 using DoctorService.Repositories.S3;
 using DoctorService.Services.Folder;
-using DoctorService.Services.PatientProfile;
 using DoctorService.Services.ChatSession;
 using DoctorService.Services.CliniAI;
 using DoctorService.Services.GradCam;
@@ -45,13 +43,11 @@ builder.Services.AddAWSService<IAmazonS3>(awsOptions);
 
 // Add repositories
 builder.Services.AddScoped<IFolderRepository, FolderRepository>();
-builder.Services.AddScoped<IPatientProfileRepository, PatientProfileRepository>();
 builder.Services.AddScoped<IChatSessionRepository, ChatSessionRepository>();
 builder.Services.AddScoped<IS3Repository, S3Repository>();
 
 // Add services
 builder.Services.AddScoped<IFolderService, FolderService>();
-builder.Services.AddScoped<IPatientProfileService, PatientProfileService>();
 builder.Services.AddScoped<IChatSessionService, ChatSessionService>();
 builder.Services.AddScoped<ICliniAiService, CliniAiService>();
 builder.Services.AddScoped<IGradCamImageService, GradCamImageService>();
@@ -85,6 +81,7 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Doctor Services", Version = "v1" });
 });
+builder.Services.AddHostedService<DoctorService.Utils.DynamoWarmupHostedService>();
 
 builder.Services.AddCors(o => 
     o.AddDefaultPolicy(p => p.AllowAnyOrigin()

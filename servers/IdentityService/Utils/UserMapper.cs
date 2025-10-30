@@ -9,6 +9,7 @@ namespace IdentityService.Utils
         {
             return new UserProfileResponse
             {
+                Id = user.Id,
                 Email = user.Email,
                 Fullname = user.Fullname,
                 Phone = user.Phone,

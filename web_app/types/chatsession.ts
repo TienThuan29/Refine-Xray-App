@@ -54,3 +54,9 @@ export type ChatItem = {
         pubmedFetchUrl?: string[];
     };
 }
+
+export type Report = {
+    id?: string;
+    content?: string;
+    createdDate?: string;
+}

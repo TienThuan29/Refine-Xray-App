@@ -4,51 +4,28 @@
         "DownstreamPathTemplate": "/api/{everything}",
         "DownstreamScheme": "http",
         "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 8082 }],
-        "UpstreamPathTemplate": "/identity-service/api/{everything}",
+        "UpstreamPathTemplate": "/api/auth/{everything}",
         "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ]
       },
       {
         "DownstreamPathTemplate": "/api/{everything}",
         "DownstreamScheme": "http",
         "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 8083 }],
-        "UpstreamPathTemplate": "/doctor-service/api/{everything}",
+        "UpstreamPathTemplate": "/api/doctors/{everything}",
         "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ]
       },
       {
         "DownstreamPathTemplate": "/api/{everything}",
         "DownstreamScheme": "http",
-        "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 8084 }],
-        "UpstreamPathTemplate": "/ai-services/api/{everything}",
-        "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
-        "Timeout": 900000,
-        "HttpHandlerOptions": {
-          "AllowAutoRedirect": true,
-          "UseCookieContainer": false,
-          "UseTracing": false,
-          "MaxConnectionsPerServer": 2147483647
-        },
-        "LoadBalancerOptions": {
-          "Type": "RoundRobin"
-        },
-        "RateLimitOptions": {
-          "DisableRateLimitHeaders": true,
-          "QuotaExceededMessage": "Rate limit exceeded",
-          "HttpStatusCode": 429,
-          "ClientIdHeader": "ClientId"
-        }
-      },
-      {
-        "DownstreamPathTemplate": "/api/{everything}",
-        "DownstreamScheme": "http",
         "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 8085 }],
-        "UpstreamPathTemplate": "/patient-service/api/{everything}",
+        "UpstreamPathTemplate": "/api/patients/{everything}",
         "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ]
       },
       {
         "DownstreamPathTemplate": "/api/{everything}",
         "DownstreamScheme": "http",
         "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 8086 }],
-        "UpstreamPathTemplate": "/admin-service/api/{everything}",
+        "UpstreamPathTemplate": "/api/admin/{everything}",
         "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ]
       }
     ],

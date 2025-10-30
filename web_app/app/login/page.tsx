@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Form, Input, Button, Checkbox, Divider } from 'antd';
-import { GoogleOutlined, FacebookOutlined } from '@ant-design/icons';
+import { Form, Input, Button, Checkbox, Divider, Dropdown } from 'antd';
+import { GoogleOutlined, FacebookOutlined, GlobalOutlined } from '@ant-design/icons';
 import Link from 'next/link';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
@@ -11,9 +12,10 @@ const LoginPage: React.FC = () => {
 
   const { login } = useAuth();
   const [form] = Form.useForm();
+  const { language, setLanguage, t } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);
 
-  const onFinish = async (values: any) => {
+  const onFinish = async (values: { email: string; password: string; remember?: boolean }) => {
     // console.log('Received values of form: ', values);
     try {
       setIsLoading(true);
@@ -26,9 +28,37 @@ const LoginPage: React.FC = () => {
     }
   };
 
+  const languageItems = [
+    {
+      key: 'en',
+      label: 'English',
+      onClick: () => setLanguage('en'),
+    },
+    {
+      key: 'vi',
+      label: 'Tiếng Việt',
+      onClick: () => setLanguage('vi'),
+    },
+  ];
 
   return (
     <div className="min-h-screen flex relative">
+      {/* Language Switcher - Top Right */}
+      <div className="absolute top-4 right-4 z-50">
+        <Dropdown
+          menu={{ items: languageItems }}
+          placement="bottomRight"
+          trigger={['click']}
+        >
+          <Button
+            type="text"
+            icon={<GlobalOutlined />}
+            className="text-white hover:text-blue-200 hover:bg-white/10 border-white/20"
+          >
+            {language === 'en' ? 'EN' : 'VI'}
+          </Button>
+        </Dropdown>
+      </div>
 
       {/* Left Section - Brand */}
       <div className="flex-1 bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 flex items-center justify-center relative overflow-hidden">
@@ -52,7 +82,7 @@ const LoginPage: React.FC = () => {
 
           {/* Main Heading */}
           <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
-            Clini AI Medical
+            Clini AI
           </h1>
 
           {/* Subtitle */}
@@ -98,11 +128,11 @@ const LoginPage: React.FC = () => {
         <div className="w-full max-w-md">
           {/* Header */}
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome to Clini AI</h2>
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">{t('login.title')}</h2>
             <p className="text-gray-600">
-              Don't have an account?{' '}
+              {t('login.subtitle')}{' '}
               <Link href="/signup" className="text-blue-600 hover:text-blue-800 font-medium">
-                Sign Up
+                {t('login.signUp')}
               </Link>
             </p>
           </div>
@@ -122,13 +152,13 @@ const LoginPage: React.FC = () => {
                 </svg>
               }
             >
-              Sign in with Google
+              {t('login.googleSignIn')}
             </Button>
           </div>
 
           {/* Divider */}
           <div className="relative mb-6">
-            <Divider className="text-gray-400">OR</Divider>
+            <Divider className="text-gray-400">{t('login.or')}</Divider>
           </div>
 
           {/* Login Form */}
@@ -142,29 +172,29 @@ const LoginPage: React.FC = () => {
           >
             <Form.Item
               name="email"
-              label="Email"
+              label={t('login.email')}
               rules={[
-                { required: true, message: 'Please input your email!' },
-                { type: 'email', message: 'Please enter a valid email!' }
+                { required: true, message: t('login.emailRequired') },
+                { type: 'email', message: t('login.emailInvalid') }
               ]}
             >
-              <Input placeholder="Enter your email" />
+              <Input placeholder={t('login.emailPlaceholder')} />
             </Form.Item>
 
             <Form.Item
               name="password"
-              label="Password"
-              rules={[{ required: true, message: 'Please input your password!' }]}
+              label={t('login.password')}
+              rules={[{ required: true, message: t('login.passwordRequired') }]}
             >
-              <Input.Password placeholder="Enter your password" />
+              <Input.Password placeholder={t('login.passwordPlaceholder')} />
             </Form.Item>
 
             <div className="flex items-center justify-between mb-4">
               <Form.Item name="remember" valuePropName="checked" className="mb-0">
-                <Checkbox>Remember me</Checkbox>
+                <Checkbox>{t('login.rememberMe')}</Checkbox>
               </Form.Item>
               <Link href="/forgot-password" className="text-blue-600 hover:text-blue-800 text-sm">
-                Forgot Password?
+                {t('login.forgotPassword')}
               </Link>
             </div>
 
@@ -176,7 +206,7 @@ const LoginPage: React.FC = () => {
                 disabled={isLoading}
                 className="w-full h-12 bg-black hover:bg-gray-800 border-none text-lg font-medium"
               >
-                Login
+                {t('login.loginButton')}
               </Button>
             </Form.Item>
           </Form>

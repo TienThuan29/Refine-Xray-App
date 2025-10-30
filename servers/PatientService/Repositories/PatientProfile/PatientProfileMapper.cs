@@ -1,11 +1,10 @@
 using Amazon.DynamoDBv2.Model;
-using DoctorService.Models;
+using PatientService.Models;
 
-namespace DoctorService.Repositories.PatientProfile
+namespace PatientService.Repositories.PatientProfile
 {
     public static class DynamoMapper
     {
-        // PatientProfile mapping methods
         public static Dictionary<string, AttributeValue> PatientProfileToDynamoItem(Models.PatientProfile patientProfile)
         {
             var item = new Dictionary<string, AttributeValue>
@@ -14,16 +13,12 @@ namespace DoctorService.Repositories.PatientProfile
                 ["fullname"] = new AttributeValue { S = patientProfile.Fullname },
                 ["gender"] = new AttributeValue { S = patientProfile.Gender.ToString() }
             };
-
             if (!string.IsNullOrEmpty(patientProfile.Phone))
                 item["phone"] = new AttributeValue { S = patientProfile.Phone };
-
             if (!string.IsNullOrEmpty(patientProfile.HouseNumber))
                 item["houseNumber"] = new AttributeValue { S = patientProfile.HouseNumber };
-
             if (!string.IsNullOrEmpty(patientProfile.Nation))
                 item["nation"] = new AttributeValue { S = patientProfile.Nation };
-
             if (patientProfile.Commune != null)
             {
                 item["commune"] = new AttributeValue
@@ -40,7 +35,6 @@ namespace DoctorService.Repositories.PatientProfile
                     }
                 };
             }
-
             if (patientProfile.Province != null)
             {
                 item["province"] = new AttributeValue
@@ -55,10 +49,8 @@ namespace DoctorService.Repositories.PatientProfile
                     }
                 };
             }
-
             return item;
         }
-
         public static Models.PatientProfile DynamoItemToPatientProfile(Dictionary<string, AttributeValue> item)
         {
             var patientProfile = new Models.PatientProfile
@@ -67,16 +59,12 @@ namespace DoctorService.Repositories.PatientProfile
                 Fullname = item["fullname"].S,
                 Gender = Enum.Parse<Gender>(item["gender"].S)
             };
-
             if (item.ContainsKey("phone") && !string.IsNullOrEmpty(item["phone"].S))
                 patientProfile.Phone = item["phone"].S;
-
             if (item.ContainsKey("houseNumber") && !string.IsNullOrEmpty(item["houseNumber"].S))
                 patientProfile.HouseNumber = item["houseNumber"].S;
-
             if (item.ContainsKey("nation") && !string.IsNullOrEmpty(item["nation"].S))
                 patientProfile.Nation = item["nation"].S;
-
             if (item.ContainsKey("commune") && item["commune"].M != null)
             {
                 var communeMap = item["commune"].M;
@@ -91,7 +79,6 @@ namespace DoctorService.Repositories.PatientProfile
                     Decree = communeMap["decree"].S
                 };
             }
-
             if (item.ContainsKey("province") && item["province"].M != null)
             {
                 var provinceMap = item["province"].M;
@@ -104,9 +91,7 @@ namespace DoctorService.Repositories.PatientProfile
                     Decree = provinceMap["decree"].S
                 };
             }
-
             return patientProfile;
         }
     }
 }
-

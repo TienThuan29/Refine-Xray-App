@@ -3,16 +3,22 @@
 import { useState, useCallback, useMemo } from 'react';
 import useAxios from './useAxios';
 import { Api } from '@/configs/api';
-import { Folder } from '@/types/folder';
+import { Folder, Type } from '@/types/folder';
 
 // Types for folder operations
 export interface CreateFolderRequest {
     title: string;
     description?: string;
+    type?: Type;
 }
 
 export interface UpdatePatientProfileRequest {
     patientProfileId: string;
+}
+
+export interface RenameFolderRequest {
+    title: string;
+    description?: string;
 }
 
 export interface FolderManagerState {
@@ -24,6 +30,8 @@ export interface FolderManagerState {
     isUpdating: boolean;
     isFetching: boolean;
     isFetchingUserFolders: boolean;
+    isRenaming: boolean;
+    isDeleting: boolean;
 }
 
 export interface FolderManagerActions {
@@ -32,6 +40,8 @@ export interface FolderManagerActions {
     getFolder: (folderId: string) => Promise<Folder | null>;
     updatePatientProfile: (folderId: string, data: UpdatePatientProfileRequest) => Promise<Folder | null>;
     getFoldersOfUser: () => Promise<Folder[] | null>;
+    renameFolder: (folderId: string, data: RenameFolderRequest) => Promise<Folder | null>;
+    deleteFolder: (folderId: string) => Promise<boolean>;
     
     // State Management
     setCurrentFolder: (folder: Folder | null) => void;
@@ -55,6 +65,8 @@ const useFolderManager = (): UseFolderManagerReturn => {
         isUpdating: false,
         isFetching: false,
         isFetchingUserFolders: false,
+        isRenaming: false,
+        isDeleting: false,
     });
 
     // Helper function to update state
@@ -198,6 +210,66 @@ const useFolderManager = (): UseFolderManagerReturn => {
         await getFoldersOfUser();
     }, [getFoldersOfUser]);
 
+    // Rename folder
+    const renameFolder = useCallback(async (folderId: string, data: RenameFolderRequest): Promise<Folder | null> => {
+        try {
+            updateState({ isRenaming: true, error: null });
+            
+            const response = await axios.put(`${Api.Folder.RENAME_FOLDER}/${folderId}`, data);
+            
+            if (!response.data.success) {
+                throw new Error(response.data.message || 'Failed to rename folder');
+            }
+            
+            const updatedFolder = response.data.dataResponse;
+            
+            // Update folders list
+            setState(prev => ({
+                ...prev,
+                folders: prev.folders.map(folder => 
+                    folder.id === folderId ? updatedFolder : folder
+                ),
+                currentFolder: prev.currentFolder?.id === folderId ? updatedFolder : prev.currentFolder,
+                isRenaming: false,
+            }));
+            
+            return updatedFolder;
+        } catch (error: any) {
+            console.error('Error renaming folder:', error);
+            handleError(error, 'rename folder');
+            updateState({ isRenaming: false });
+            return null;
+        }
+    }, [axios, updateState, handleError]);
+
+    // Delete folder
+    const deleteFolder = useCallback(async (folderId: string): Promise<boolean> => {
+        try {
+            updateState({ isDeleting: true, error: null });
+            
+            const response = await axios.delete(`${Api.Folder.DELETE_FOLDER}/${folderId}`);
+            
+            if (!response.data.success) {
+                throw new Error(response.data.message || 'Failed to delete folder');
+            }
+            
+            // Remove folder from folders list
+            setState(prev => ({
+                ...prev,
+                folders: prev.folders.filter(folder => folder.id !== folderId),
+                currentFolder: prev.currentFolder?.id === folderId ? null : prev.currentFolder,
+                isDeleting: false,
+            }));
+            
+            return true;
+        } catch (error: any) {
+            console.error('Error deleting folder:', error);
+            handleError(error, 'delete folder');
+            updateState({ isDeleting: false });
+            return false;
+        }
+    }, [axios, updateState, handleError]);
+
     // Memoized return value to prevent unnecessary re-renders
     const returnValue = useMemo(() => ({
         // State
@@ -209,12 +281,16 @@ const useFolderManager = (): UseFolderManagerReturn => {
         isUpdating: state.isUpdating,
         isFetching: state.isFetching,
         isFetchingUserFolders: state.isFetchingUserFolders,
+        isRenaming: state.isRenaming,
+        isDeleting: state.isDeleting,
         
         // Actions
         createFolder,
         getFolder,
         updatePatientProfile,
         getFoldersOfUser,
+        renameFolder,
+        deleteFolder,
         setCurrentFolder,
         clearError,
         refreshFolder,
@@ -225,6 +301,8 @@ const useFolderManager = (): UseFolderManagerReturn => {
         getFolder,
         updatePatientProfile,
         getFoldersOfUser,
+        renameFolder,
+        deleteFolder,
         setCurrentFolder,
         clearError,
         refreshFolder,

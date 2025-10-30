@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Form, Input, Button, Select, Row, Col } from 'antd';
 import { UserOutlined } from '@ant-design/icons';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { toast } from "sonner";
 import { useVietnamAddress } from '../../hooks/useVietnamAddress';
 import { PatientProfileRequest } from '../../types/patient';
@@ -16,6 +17,7 @@ interface PatientModalProps {
 }
 
 const PatientModal: React.FC<PatientModalProps> = ({ visible, onClose, onComplete, folderData }) => {
+  const { t, language } = useLanguage();
   const [form] = Form.useForm();
   const [formValues, setFormValues] = useState({ 
     fullname: '', 
@@ -37,25 +39,14 @@ const PatientModal: React.FC<PatientModalProps> = ({ visible, onClose, onComplet
       const values = await form.validateFields();
       clearError(); // Clear any previous errors
       
-      const selectedCommune = values.commune && Array.isArray(communesOfProvince) ? communesOfProvince.find(c => c.code === values.commune) : undefined;
-      const selectedProvince = values.province && Array.isArray(provinces) ? provinces.find(p => p.code === values.province) : undefined;
-
       const patientProfileData = {
         fullname: values.fullname,
-        gender: values.gender.toUpperCase(),
+        gender: values.gender,
         phone: values.phone,
         houseNumber: values.houseNumber,
-        commune: selectedCommune ? {
-          ...selectedCommune,
-          englishName: selectedCommune.englishName || selectedCommune.name,
-          decree: selectedCommune.decree || 'N/A'
-        } : undefined,
-        province: selectedProvince ? {
-          ...selectedProvince,
-          englishName: selectedProvince.englishName || selectedProvince.name,
-          decree: selectedProvince.decree || 'N/A'
-        } : undefined,
-        nation: values.nation || 'Vietnam'
+        commune: values.commune && Array.isArray(communesOfProvince) ? communesOfProvince.find(c => c.code === values.commune) : undefined,
+        province: values.province && Array.isArray(provinces) ? provinces.find(p => p.code === values.province) : undefined,
+        nation: values.nation || (language === 'vi' ? 'Việt Nam' : 'Vietnam')
       };
       
       const createdPatientProfile = await createPatientProfile(patientProfileData, folderData.id);
@@ -77,12 +68,12 @@ const PatientModal: React.FC<PatientModalProps> = ({ visible, onClose, onComplet
           patientProfile
         });
         
-        toast.success('New chat created successfully!');
+        toast.success(t('newChat.createSuccess'));
         // Don't call handleClose() here - let the parent handle the transition
       } else {
-        toast.error('Failed to create patient profile');
+        toast.error(t('newChat.createError') || 'Failed to create patient profile');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Validation failed:', error);
       if (error) {
         toast.error('Failed to create patient profile');
@@ -96,7 +87,7 @@ const PatientModal: React.FC<PatientModalProps> = ({ visible, onClose, onComplet
     onClose();
   };
 
-  const handleValuesChange = (changedValues: any, allValues: any) => {
+  const handleValuesChange = (_changedValues: Record<string, string>, allValues: { fullname: string; gender: string; province: string; commune: string }) => {
     setFormValues(allValues);
   };
 
@@ -106,15 +97,16 @@ const PatientModal: React.FC<PatientModalProps> = ({ visible, onClose, onComplet
       title={
         <div className="flex items-center gap-2">
           <UserOutlined />
-          <span className="text-lg font-semibold">Patient Information</span>
+          <span className="text-lg font-semibold">{t('newChat.patientInfo')}</span>
         </div>
       }
       open={visible}
       onCancel={handleClose}
+      maskClosable={false}
       width={800}
       footer={[
         <Button key="back" onClick={handleClose}>
-          Back
+          {t('newChat.back')}
         </Button>,
         <Button 
           key="next" 
@@ -129,14 +121,14 @@ const PatientModal: React.FC<PatientModalProps> = ({ visible, onClose, onComplet
             isCreating
           }
         >
-          Next
+          {t('newChat.next')}
         </Button>,
       ]}
     >
       {/* Folder Info Display */}
       <div style={{ marginBottom: '24px', padding: '16px', background: '#f5f5f5', borderRadius: '8px' }}>
         <h4 style={{ margin: '0 0 8px 0', color: '#333' }}>
-          Folder Information
+          {t('newChat.folderInfo')}
         </h4>
         <p style={{ margin: '0 0 4px 0', fontWeight: 'bold' }}>{folderData.title}</p>
         {folderData.description && (
@@ -153,33 +145,33 @@ const PatientModal: React.FC<PatientModalProps> = ({ visible, onClose, onComplet
         {/* Patient Profile Section */}
         <div style={{ marginBottom: '24px' }}>
           <h4 style={{ marginBottom: '16px', color: '#333', borderBottom: '1px solid #f0f0f0', paddingBottom: '8px' }}>
-            Patient Information
+            {t('patient.title')}
           </h4>
           
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
                 name="fullname"
-                label="Full Name"
+                label={t('patient.fullname')}
                 rules={[
-                  { required: true, message: 'Please enter full name' },
-                  { min: 2, message: 'Full name must be at least 2 characters' },
-                  { max: 100, message: 'Full name must be less than 100 characters' }
+                  { required: true, message: t('patient.fullnameRequired') },
+                  { min: 2, message: t('patient.fullnameMinLength') },
+                  { max: 100, message: t('patient.fullnameMaxLength') }
                 ]}
               >
-                <Input placeholder="Enter full name" />
+                <Input placeholder={t('patient.fullnamePlaceholder')} />
               </Form.Item>
             </Col>
             <Col span={12}>
               <Form.Item
                 name="gender"
-                label="Gender"
-                rules={[{ required: true, message: 'Please select gender' }]}
+                label={t('patient.gender')}
+                rules={[{ required: true, message: t('patient.genderRequired') }]}
               >
-                <Select placeholder="Select gender">
-                  <Select.Option value="male">Male</Select.Option>
-                  <Select.Option value="female">Female</Select.Option>
-                  <Select.Option value="other">Other</Select.Option>
+                <Select placeholder={t('patient.genderPlaceholder')}>
+                  <Select.Option value="male">{t('patient.genderMale')}</Select.Option>
+                  <Select.Option value="female">{t('patient.genderFemale')}</Select.Option>
+                  <Select.Option value="other">{t('patient.genderOther')}</Select.Option>
                 </Select>
               </Form.Item>
             </Col>
@@ -189,21 +181,21 @@ const PatientModal: React.FC<PatientModalProps> = ({ visible, onClose, onComplet
             <Col span={12}>
               <Form.Item
                 name="phone"
-                label="Phone Number"
+                label={t('patient.phone')}
                 rules={[
-                  { pattern: /^[0-9+\-\s()]+$/, message: 'Invalid phone number' },
-                  { max: 15, message: 'Phone number must be less than 15 characters' }
+                  { pattern: /^[0-9+\-\s()]+$/, message: t('patient.phoneInvalid') },
+                  { max: 15, message: t('patient.phoneMaxLength') }
                 ]}
               >
-                <Input placeholder="Enter phone number" />
+                <Input placeholder={t('patient.phonePlaceholder')} />
               </Form.Item>
             </Col>
             <Col span={12}>
               <Form.Item
                 name="houseNumber"
-                label="House Number"
+                label={t('patient.houseNumber')}
               >
-                <Input placeholder="Enter house number" />
+                <Input placeholder={t('patient.houseNumberPlaceholder')} />
               </Form.Item>
             </Col>
           </Row>
@@ -212,11 +204,11 @@ const PatientModal: React.FC<PatientModalProps> = ({ visible, onClose, onComplet
             <Col span={12}>
               <Form.Item
                 name="province"
-                label="Province/City"
-                rules={[{ required: true, message: 'Please select province/city' }]}
+                label={t('patient.province')}
+                rules={[{ required: true, message: t('patient.provinceRequired') }]}
               >
                 <Select 
-                  placeholder="Select province/city"
+                  placeholder={t('patient.provincePlaceholder')}
                   onChange={(value) => {
                     form.setFieldsValue({ commune: undefined });
                     getCommunesOfProvince(value);
@@ -234,11 +226,11 @@ const PatientModal: React.FC<PatientModalProps> = ({ visible, onClose, onComplet
             <Col span={12}>
               <Form.Item
                 name="commune"
-                label="Ward/Commune/Town"
-                rules={[{ required: true, message: 'Please select ward/commune/town' }]}
+                label={t('patient.commune')}
+                rules={[{ required: true, message: t('patient.communeRequired') }]}
               >
                 <Select 
-                  placeholder="Select ward/commune/town"
+                  placeholder={t('patient.communePlaceholder')}
                   disabled={!form.getFieldValue('province')}
                   loading={loadingCommunes}
                 >
@@ -256,9 +248,9 @@ const PatientModal: React.FC<PatientModalProps> = ({ visible, onClose, onComplet
             <Col span={24}>
               <Form.Item
                 name="nation"
-                label="Nationality"
+                label={t('patient.nation')}
               >
-                <Input placeholder="Enter nationality (default: Vietnam)" defaultValue="Vietnam" />
+                <Input disabled={true} placeholder={t('patient.nationPlaceholder')} defaultValue={language === 'vi' ? 'Việt Nam' : 'Vietnam'} />
               </Form.Item>
             </Col>
           </Row>

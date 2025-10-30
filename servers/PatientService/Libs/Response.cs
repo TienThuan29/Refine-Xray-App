@@ -13,7 +13,7 @@ namespace PatientService.Libs
 
     public class ResponseUtil
     {
-        public static ActionResult<ApiResponse<T>> Success<T>(
+        public static IActionResult Success<T>(
             T dataResponse,
             string message = "Success",
             int statusCode = 200)
@@ -31,7 +31,7 @@ namespace PatientService.Libs
             };
         }
 
-        public static ActionResult<ApiResponse<T>> Error<T>(
+        public static IActionResult Error<T>(
             string message = "Internal Server Error",
             int statusCode = 500,
             string? error = null,
@@ -58,7 +58,7 @@ namespace PatientService.Libs
             };
         }
 
-        public static ActionResult<ApiResponse<object>> Validation(
+        public static IActionResult Validation(
             string message = "Validation Error",
             object? errors = null)
         {

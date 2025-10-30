@@ -1,11 +1,13 @@
-using DoctorService.Models;
+using System.ComponentModel.DataAnnotations;
+using PatientService.Models;
 
-namespace DoctorService.Web.Responses
+namespace PatientService.Web.Requests
 {
-    public class PatientProfileResponse
+    public class PatientProfileRequest
     {
-        public string Id { get; set; } = string.Empty;
+        [Required]
         public string Fullname { get; set; } = string.Empty;
+        [Required]
         public Gender Gender { get; set; }
         public string? Phone { get; set; }
         public string? HouseNumber { get; set; }
@@ -14,4 +16,3 @@ namespace DoctorService.Web.Responses
         public string? Nation { get; set; }
     }
 }
-

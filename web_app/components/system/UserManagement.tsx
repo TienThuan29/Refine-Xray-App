@@ -8,7 +8,6 @@ import {
   Form,
   Input,
   Select,
-  Switch,
   DatePicker,
   Space,
   Popconfirm,
@@ -40,7 +39,8 @@ import dayjs from 'dayjs';
 const { Option } = Select;
 
 interface UserManagementProps {
-  // Props có thể được mở rộng sau này
+  // Props can be extended later if needed
+  className?: string;
 }
 
 const UserManagement: React.FC<UserManagementProps> = () => {
@@ -53,6 +53,8 @@ const UserManagement: React.FC<UserManagementProps> = () => {
   const [searchText, setSearchText] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [isStatusModalVisible, setIsStatusModalVisible] = useState(false);
+  const [userToToggle, setUserToToggle] = useState<UserProfile | null>(null);
   const { isSystem, isAdmin, isDoctor } = useRoleValidator(useAuth().user);
   const { getAllUsers, createUser, updateUser, deleteUser, updateUserStatus } = useUserService();
 
@@ -126,23 +128,38 @@ const UserManagement: React.FC<UserManagementProps> = () => {
     }
   };
 
-  const handleToggleStatus = async (user: UserProfile, currentStatus: boolean) => {
+  const handleToggleStatusClick = (user: UserProfile) => {
     // Check if user has permission to toggle user status
     if (!isSystem && !isAdmin) {
       toast.error('You do not have permission to change user status');
       return;
     }
     
+    setUserToToggle(user);
+    setIsStatusModalVisible(true);
+  };
+
+  const handleToggleStatusConfirm = async () => {
+    if (!userToToggle) return;
+    
     try {
-      const updatedUser = await updateUserStatus(user.email, { isEnable: !currentStatus }, authTokens);
+      const updatedUser = await updateUserStatus(userToToggle.email, { isEnable: !userToToggle.isEnable }, authTokens);
       setUsers(users.map(u => 
-        u.email === user.email ? updatedUser : u
+        u.email === userToToggle.email ? updatedUser : u
       ));
       toast.success('Status updated successfully');
     } catch (error) {
       console.error('Error toggling user status:', error);
       toast.error('Error updating status');
+    } finally {
+      setIsStatusModalVisible(false);
+      setUserToToggle(null);
     }
+  };
+
+  const handleToggleStatusCancel = () => {
+    setIsStatusModalVisible(false);
+    setUserToToggle(null);
   };
 
   const handleModalOk = async () => {
@@ -195,45 +212,19 @@ const UserManagement: React.FC<UserManagementProps> = () => {
   };
 
   const getRoleColor = (role: string) => {
-    // Create a mock user object to use with validateUserRole
-    const mockUser: UserProfile = {
-      email: '',
-      fullname: '',
-      role: role,
-      isEnable: true,
-      createdDate: new Date(),
-      lastLoginDate: undefined,
-      phone: '',
-      dateOfBirth: undefined
-    };
-    
-    const roleValidator = validateUserRole(mockUser);
-    
-    if (roleValidator.isSystem) return 'purple';
-    if (roleValidator.isAdmin) return 'red';
-    if (roleValidator.isDoctor) return 'blue';
+    // Simple role color mapping without async validation
+    if (role === 'SYSTEM' || role.includes('system')) return 'purple';
+    if (role === 'ADMIN' || role.includes('admin')) return 'red';
+    if (role === 'DOCTOR' || role.includes('doctor')) return 'blue';
     
     return 'default'; // Fallback color
   };
 
   const getRoleText = (role: string) => {
-    // Create a mock user object to use with validateUserRole
-    const mockUser: UserProfile = {
-      email: '',
-      fullname: '',
-      role: role,
-      isEnable: true,
-      createdDate: new Date(),
-      lastLoginDate: undefined,
-      phone: '',
-      dateOfBirth: undefined
-    };
-    
-    const roleValidator = validateUserRole(mockUser);
-    
-    if (roleValidator.isSystem) return 'System';
-    if (roleValidator.isAdmin) return 'Administrator';
-    if (roleValidator.isDoctor) return 'Doctor';
+    // Simple role text mapping without async validation
+    if (role === 'SYSTEM' || role.includes('system')) return 'System';
+    if (role === 'ADMIN' || role.includes('admin')) return 'Administrator';
+    if (role === 'DOCTOR' || role.includes('doctor')) return 'Doctor';
     
     return 'User'; // Fallback to User if not found
   };
@@ -245,22 +236,12 @@ const UserManagement: React.FC<UserManagementProps> = () => {
       user.phone?.includes(searchText);
     
     const matchesRole = roleFilter === 'all' || (() => {
-      const mockUser: UserProfile = {
-        email: '',
-        fullname: '',
-        role: user.role,
-        isEnable: true,
-        createdDate: new Date(),
-        lastLoginDate: undefined,
-        phone: '',
-        dateOfBirth: undefined
-      };
-      const roleValidator = validateUserRole(mockUser);
+      const role = user.role;
       
-      if (roleFilter === 'ADMIN') return roleValidator.isAdmin;
-      if (roleFilter === 'DOCTOR') return roleValidator.isDoctor;
-      if (roleFilter === 'SYSTEM') return roleValidator.isSystem;
-      if (roleFilter === 'user') return !roleValidator.isAdmin && !roleValidator.isDoctor && !roleValidator.isSystem;
+      if (roleFilter === 'ADMIN') return role === 'ADMIN' || role.includes('admin');
+      if (roleFilter === 'DOCTOR') return role === 'DOCTOR' || role.includes('doctor');
+      if (roleFilter === 'SYSTEM') return role === 'SYSTEM' || role.includes('system');
+      if (roleFilter === 'user') return role === 'user' || (!role.includes('admin') && !role.includes('doctor') && !role.includes('system'));
       
       return false;
     })();
@@ -323,14 +304,10 @@ const UserManagement: React.FC<UserManagementProps> = () => {
       dataIndex: 'isEnable',
       key: 'isEnable',
       width: 100,
-      render: (isEnable: boolean, record) => (
-        <Switch
-          checked={isEnable}
-          onChange={() => handleToggleStatus(record, isEnable)}
-          checkedChildren="Active"
-          unCheckedChildren="Inactive"
-          disabled={!isSystem && !isAdmin}
-        />
+      render: (isEnable: boolean) => (
+        <Tag color={isEnable ? 'green' : 'red'}>
+          {isEnable ? 'Active' : 'Inactive'}
+        </Tag>
       ),
     },
     {
@@ -358,7 +335,7 @@ const UserManagement: React.FC<UserManagementProps> = () => {
     {
       title: 'Actions',
       key: 'actions',
-      width: 120,
+      width: 180,
       render: (_, record) => (
         <Space>
           {(isSystem || isAdmin) && (
@@ -369,6 +346,18 @@ const UserManagement: React.FC<UserManagementProps> = () => {
                 size="small"
                 onClick={() => handleEdit(record)}
               />
+            </Tooltip>
+          )}
+          {(isSystem || isAdmin) && (
+            <Tooltip title={record.isEnable ? "Deactivate User" : "Activate User"}>
+              <Button
+                type={record.isEnable ? "default" : "primary"}
+                danger={record.isEnable}
+                size="small"
+                onClick={() => handleToggleStatusClick(record)}
+              >
+                {record.isEnable ? "Deactivate" : "Activate"}
+              </Button>
             </Tooltip>
           )}
           {(isSystem || isAdmin) && (
@@ -483,6 +472,7 @@ const UserManagement: React.FC<UserManagementProps> = () => {
         open={isModalVisible}
         onOk={handleModalOk}
         onCancel={handleModalCancel}
+        maskClosable={false}
         width={600}
         okText="Save"
         cancelText="Cancel"
@@ -546,6 +536,35 @@ const UserManagement: React.FC<UserManagementProps> = () => {
           </Row>
 
         </Form>
+      </Modal>
+
+      {/* Status Toggle Confirmation Modal */}
+      <Modal
+        title="Confirm Status Change"
+        open={isStatusModalVisible}
+        onOk={handleToggleStatusConfirm}
+        onCancel={handleToggleStatusCancel}
+        okText="Confirm"
+        cancelText="Cancel"
+        okButtonProps={{
+          danger: userToToggle?.isEnable ? false : true,
+          type: userToToggle?.isEnable ? 'default' : 'primary'
+        }}
+      >
+        <p>
+          Are you sure you want to {userToToggle?.isEnable ? 'deactivate' : 'activate'} user{' '}
+          <strong>{userToToggle?.fullname}</strong> ({userToToggle?.email})?
+        </p>
+        {userToToggle?.isEnable && (
+          <p style={{ color: '#ff4d4f', marginTop: 8 }}>
+            Deactivating this user will prevent them from logging into the system.
+          </p>
+        )}
+        {!userToToggle?.isEnable && (
+          <p style={{ color: '#52c41a', marginTop: 8 }}>
+            Activating this user will allow them to log into the system.
+          </p>
+        )}
       </Modal>
     </div>
   );

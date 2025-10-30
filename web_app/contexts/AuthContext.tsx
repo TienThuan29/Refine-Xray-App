@@ -1,10 +1,11 @@
 'use client';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { AuthTokens, UserProfile } from '@/types/user';
-import axios, { HttpStatusCode } from 'axios';
+import axios from 'axios';
 import { Api } from '@/configs/api';
 import { toast } from 'sonner';
 import { permanentRedirect,useRouter } from 'next/navigation'
+import HttpStatus from '@/configs/http';
 import { Constant } from '@/configs/constant';
 import { PageUrl } from '@/configs/page.url';
 import { validateUserRole } from '@/hooks/useRoleValidator';
@@ -82,7 +83,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                 }
             });
             
-            if (response.status === 200) {
+            if (response.status === HttpStatus.OK) {
                 const userProfile = response.data.dataResponse;
                 setUser(userProfile);
                 // Cache user profile in localStorage
@@ -93,7 +94,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             return response.data.dataResponse;
         } 
         catch (error) {
-            if (axios.isAxiosError(error) && error.response?.status === HttpStatusCode.Unauthorized) {
+            if (axios.isAxiosError(error) && error.response?.status === HttpStatus.UNAUTHORIZED) {
                 // Check if it's due to token expiration
                 if (checkTokenExpiration()) {
                     return;
@@ -152,10 +153,9 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             email: email,
             password: password
         }
-        console.log(Api.BASE_API + Api.Auth.LOGIN);
         try {
             const response = await axios.post(Api.BASE_API + Api.Auth.LOGIN, authenticationRequest);
-            if (response.status === HttpStatusCode.Ok) {
+            if (response.status === HttpStatus.OK) {
                 const tokens = {
                     accessToken: response.data.dataResponse.accessToken,
                     refreshToken: response.data.dataResponse.refreshToken
@@ -163,17 +163,18 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                 setAuthTokens(tokens);
                 localStorage.setItem(AUTH_TOKENS_KEY, JSON.stringify(tokens));
 
-                const userProfile = await fetchUser(tokens);
-                const roleValidator = validateUserRole(userProfile);
+                const userProfile = response.data.dataResponse.userProfile;
+                // console.log(userProfile);
+                const roleValidator = await validateUserRole(userProfile);
 
                 if (roleValidator.isSystem) {
-                    router.push(PageUrl.SYSTEM_DASHBOARD_PAGE);
+                    router.push(PageUrl.HOME_PAGE);
                 }
                 else if (roleValidator.isAdmin) {
-                    router.push(PageUrl.SYSTEM_DASHBOARD_PAGE);
+                    router.push(PageUrl.Admin.HOME_PAGE);
                 }
                 else if (roleValidator.isDoctor) {
-                    router.push(PageUrl.HOME_PAGE);
+                    router.push(PageUrl.Doctor.HOME_PAGE);
                 }
                 else {
                     toast.error('Invalid role!');

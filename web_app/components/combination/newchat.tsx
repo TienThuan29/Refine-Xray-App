@@ -15,9 +15,9 @@ interface NewChatModalProps {
 const NewChatModal: React.FC<NewChatModalProps> = ({ visible, onClose, onCreateChat }) => {
   const [showFolderModal, setShowFolderModal] = useState(false);
   const [showPatientModal, setShowPatientModal] = useState(false);
-  const [folderData, setFolderData] = useState<{ title: string; description?: string } | null>(null);
+  const [folderData, setFolderData] = useState<{ id: string; title: string; description?: string } | null>(null);
 
-  const handleFolderCreated = (data: { title: string; description?: string }) => {
+  const handleFolderCreated = (data: { id: string; title: string; description?: string }) => {
     setFolderData(data);
     setShowFolderModal(false);
     setShowPatientModal(true);
@@ -63,7 +63,7 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ visible, onClose, onCreateC
           files: [],
           patientProfile: data.patientProfile
         })}
-        folderData={folderData || { title: '', description: '', id: '' }}
+        folderData={folderData || { id: '', title: '', description: '' }}
       />
     </>
   );

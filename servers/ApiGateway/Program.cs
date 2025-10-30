@@ -34,6 +34,7 @@ builder.Services.AddOcelot()
     .AddDelegatingHandler<OverrideOcelotTimeoutHandler>();
 
 builder.Services.AddSingleton<Ocelot.Requester.TimeoutDelegatingHandler, DisabledTimeoutHandler>();
+builder.Services.AddHttpClient();
 
 var app = builder.Build();
 
@@ -59,9 +60,14 @@ app.Use(async (context, next) =>
     
     await next();
 });
-
-// Add System Secret validation middleware before Ocelot
+// System secret validation middleware
 app.UseMiddleware<ApiGateway.Middleware.SystemSecretValidationMiddleware>();
+
+// doctor service validation middleware
+app.UseWhen(
+    context => context.Request.Path.StartsWithSegments("/api/doctors"),
+    subApp => { subApp.UseMiddleware<ApiGateway.Middleware.JwtDoctorValidationMiddleware>(); }
+);
 
 app.MapGet("/health", () => Results.Ok("OK"));
 

@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace DoctorService.Models
+namespace PatientService.Models
 {
     public class PatientProfile
     {

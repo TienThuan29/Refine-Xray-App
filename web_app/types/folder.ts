@@ -1,5 +1,10 @@
 import { ChatSession } from "./chatsession";
 
+export enum Type {
+    ANALYZE = 'ANALYZE',
+    TEXT = 'TEXT'
+}
+
 export interface MenuItem {
     key: string;
     icon?: React.ReactNode;
@@ -40,6 +45,7 @@ export type Folder = {
     patientProfileId: string | null;
     chatSessionIds?: string[];
     chatSessionsInfo?: ChatSessionInfo[];
+    type?: Type;
     createdBy: string;
     isDeleted: boolean;
     createdDate?: Date;

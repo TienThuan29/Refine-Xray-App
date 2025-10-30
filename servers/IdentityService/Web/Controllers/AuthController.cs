@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 namespace IdentityService.Web.Controllers
 {
     [ApiController]
-    [Route("api/v1/auth")]
+    [Route("api/v1")]
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;

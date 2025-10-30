@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Http;
+using ApiGateway.Libs;
+using System.Text.Json;
 
 namespace ApiGateway.Middleware
 {
@@ -33,7 +35,9 @@ namespace ApiGateway.Middleware
                 {
                     _logger.LogWarning("SystemSecret not configured in appsettings.json");
                     context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-                    await context.Response.WriteAsJsonAsync(new { error = "System secret not configured" });
+                    context.Response.ContentType = "application/json";
+                    await context.Response.WriteAsync(JsonSerializer.Serialize(ResponseUtil.Error<object>(
+                        "System secret not configured", 500)));
                     return;
                 }
 
@@ -47,7 +51,9 @@ namespace ApiGateway.Middleware
                     _logger.LogWarning("System Secret missing for create-account request from {RemoteIp}", 
                         context.Connection.RemoteIpAddress);
                     context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                    await context.Response.WriteAsJsonAsync(new { error = "System Secret is required" });
+                    context.Response.ContentType = "application/json";
+                    await context.Response.WriteAsync(JsonSerializer.Serialize(ResponseUtil.Error<object>(
+                        "System Secret is required", 401)));
                     return;
                 }
 
@@ -57,7 +63,9 @@ namespace ApiGateway.Middleware
                     _logger.LogWarning("Invalid System Secret provided for create-account request from {RemoteIp}", 
                         context.Connection.RemoteIpAddress);
                     context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                    await context.Response.WriteAsJsonAsync(new { error = "Invalid System Secret" });
+                    context.Response.ContentType = "application/json";
+                    await context.Response.WriteAsync(JsonSerializer.Serialize(ResponseUtil.Error<object>(
+                        "Invalid System Secret", 403)));
                     return;
                 }
 

@@ -19,6 +19,7 @@ namespace IdentityService.Web.Middlewares
             try
             {
                 var authHeader = context.Request.Headers.Authorization.FirstOrDefault();
+                Console.WriteLine("AuthHeader: " + authHeader);
                 if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
                 {
                     await WriteErrorResponse(context, "Access token required", 401);

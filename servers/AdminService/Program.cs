@@ -51,6 +51,7 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Admin Services", Version = "v1" });
 });
+// builder.Services.AddHostedService<AdminService.Utils.DynamoWarmupHostedService>();
 
 builder.Services.AddCors(o => 
     o.AddDefaultPolicy(p => p.AllowAnyOrigin()

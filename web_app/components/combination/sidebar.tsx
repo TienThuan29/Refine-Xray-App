@@ -17,6 +17,7 @@ import { FaRegFolderOpen, FaFolderPlus } from "react-icons/fa6";
 import { MenuItem } from '../../types/folder';
 import { mockFolders } from '../../mocks/folderData';
 import { GoGear } from "react-icons/go";
+import { useLanguage } from '../../contexts/LanguageContext';
 import SettingsModal from './setting';
 import NewChatModal from './newchat';
 import { FaEllipsisH } from "react-icons/fa";
@@ -25,11 +26,12 @@ import { FaEllipsisH } from "react-icons/fa";
 interface SidebarProps {
   collapsed?: boolean;
   onCollapse?: (collapsed: boolean) => void;
-  onItemSelect?: (item: any) => void;
+  onItemSelect?: (item: { id: string; title: string }) => void;
 }
 
 
 const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse, onItemSelect }) => {
+  const { t } = useLanguage();
   const [selectedKey, setSelectedKey] = useState('');
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [settingsVisible, setSettingsVisible] = useState(false);
@@ -39,17 +41,17 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse, onItem
     {
       key: 'new-chat',
       icon: <EditOutlined />,
-      label: 'New chat',
+      label: t('sidebar.newChat'),
     },
     {
       key: 'search',
       icon: <SearchOutlined />,
-      label: 'Search chats',
+      label: t('sidebar.searchChats'),
     },
     {
       key: 'settings',
       icon: <GoGear />,
-      label: 'Setting',
+      label: t('sidebar.setting'),
     }
   ];
 
@@ -102,7 +104,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse, onItem
     items.push({
       key: 'see-more',
       icon: <FaEllipsisH />,
-      label: 'See more',
+      label: t('sidebar.seeMore'),
       isNew: false,
     });
 
@@ -156,7 +158,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse, onItem
 
           <div className="mb-1">
               <div className="text-center text-gray-800 font-bold text-lg">
-                Medical Clini AI
+                {t('app.title')}
               </div>
           </div>
 
@@ -224,7 +226,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse, onItem
             {!collapsed && (
               <div>
                 <div className=" ml-2 text-sm font-bold text-gray-800">
-                  User
+                  {t('user.name')}
                 </div>
               </div>
             )}

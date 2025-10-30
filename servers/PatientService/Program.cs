@@ -2,6 +2,9 @@ using Microsoft.OpenApi.Models;
 using Amazon.DynamoDBv2;
 using Amazon;
 using Amazon.Extensions.NETCore.Setup;
+using Microsoft.AspNetCore.Mvc;
+using PatientService.Repositories.PatientProfile;
+using PatientService.Services.PatientProfile;
 using DotNetEnv;
 using System.Text.Json.Serialization;
 
@@ -42,12 +45,21 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Patient Services", Version = "v1" });
 });
+builder.Services.AddHostedService<PatientService.Utils.DynamoWarmupHostedService>();
 
 builder.Services.AddCors(o => 
     o.AddDefaultPolicy(p => p.AllowAnyOrigin()
     .AllowAnyHeader()
     .AllowAnyMethod()
 ));
+
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.SuppressModelStateInvalidFilter = true;
+});
+
+builder.Services.AddScoped<IPatientProfileRepository, PatientProfileRepository>();
+builder.Services.AddScoped<IPatientProfileService, PatientProfileService>();
 
 var app = builder.Build();
 

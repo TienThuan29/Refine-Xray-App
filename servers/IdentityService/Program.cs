@@ -11,8 +11,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Text.Json.Serialization;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.DependencyInjection;
 
 Env.Load();
 var builder = WebApplication.CreateBuilder(args);
@@ -47,6 +45,7 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 // Add services
 builder.Services.AddScoped<JwtUtil>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddHostedService<DynamoWarmupHostedService>();
 
 // Add JWT Authentication
 var jwtSecret = builder.Configuration["Jwt:JwtSecret"] ?? throw new InvalidOperationException("JWT_SECRET is not configured");
@@ -125,8 +124,8 @@ app.UseSwaggerUI();
 
 // Apply middleware
 app.MapWhen(context => 
-    context.Request.Path.StartsWithSegments("/api/v1/auth/profile") ||
-    context.Request.Path.StartsWithSegments("/api/v1/auth/users"),
+    context.Request.Path.StartsWithSegments("/api/v1/profile") ||
+    context.Request.Path.StartsWithSegments("/api/v1/users"),
     appBuilder => 
     {
         appBuilder.UseJwtValidationMiddleware();
@@ -135,7 +134,7 @@ app.MapWhen(context =>
     });
 
 app.MapWhen(context => 
-    context.Request.Path.StartsWithSegments("/api/v1/auth/register"),
+    context.Request.Path.StartsWithSegments("/api/v1/register"),
     appBuilder => 
     {
         appBuilder.UseSystemSecretMiddleware();
