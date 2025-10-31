@@ -1,24 +1,21 @@
-import { useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { UserProfile } from '@/types/user';
 import { Constant } from '@/configs/constant';
-import { hashString } from '@/lib/hashing';
 
-export const validateUserRole = (user: UserProfile | null) => {
+export const validateUserRole = async (user: UserProfile | null) => {
     if (!user) {
         return {
             isSystem: false,
             isAdmin: false,
             isDoctor: false,
-            hasRole: (role: string) => false,
+            isPatient: false,
+            hasRole: (_role: string) => false,
             getUserRole: () => null
         };
     }
-
-    const hashedUserRole = user.role;
-    const hasRole = (role: string): boolean => {
+    const hasRole = async (role: string): Promise<boolean> => {
         try {
-            const hashedRole = hashString(role);
-            return hashedUserRole === hashedRole;
+            return user.role === role;
         } catch (error) {
             console.error('Error hashing role for comparison:', error);
             return false;
@@ -26,15 +23,40 @@ export const validateUserRole = (user: UserProfile | null) => {
     };
 
     return {
-        isSystem: hasRole(Constant.ROLES.SYSTEM),
-        isAdmin: hasRole(Constant.ROLES.ADMIN),
-        isDoctor: hasRole(Constant.ROLES.DOCTOR),
+        isAdmin: await hasRole(Constant.ROLES.ADMIN),
+        isDoctor: await hasRole(Constant.ROLES.DOCTOR),
+        isPatient: await hasRole(Constant.ROLES.PATIENT),
+        isSystem: false,
         hasRole: hasRole,
-        getUserRole: () => hashedUserRole
+        getUserRole: () => user.role
     };
 };
 
-
 export const useRoleValidator = (user: UserProfile | null) => {
-    return useMemo(() => validateUserRole(user), [user]);
+    const [roleValidator, setRoleValidator] = useState<{
+        isPatient: boolean;
+        isAdmin: boolean;
+        isDoctor: boolean;
+        isSystem: boolean;
+        hasRole: (role: string) => boolean | Promise<boolean>;
+        getUserRole: () => string | null;
+    }>({
+        isPatient: false,
+        isAdmin: false,
+        isDoctor: false,
+        isSystem: false,
+        hasRole: (role: string) => false,
+        getUserRole: () => null
+    });
+
+    useEffect(() => {
+        const loadRoleValidator = async () => {
+            const validator = await validateUserRole(user);
+            setRoleValidator(validator);
+        };
+        
+        loadRoleValidator();
+    }, [user]);
+
+    return roleValidator;
 };

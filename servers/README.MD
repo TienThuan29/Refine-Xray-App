@@ -11,3 +11,6 @@
 # Terminal 2
 `dotnet run --project .\AiServices\AiServices.csproj`
 # mở: http://localhost:8082/health, http://localhost:8082/swagger
+
+# Open Swagger
+`http://localhost:8080/swagger`

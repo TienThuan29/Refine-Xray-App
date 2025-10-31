@@ -1,41 +1,49 @@
+import { config } from "./config";
+
 export const Api = {
 
-    BASE_API: process.env.NEXT_PUBLIC_BASE_API || 'http://localhost:5000',
+    BASE_API: process.env.NEXT_PUBLIC_BASE_API || 'http://localhost:8080',
 
     Auth: {
-        LOGIN: '/api/v1/auth/authenticate',
-        REFRESH_TOKEN: '/api/v1/auth/refresh-token',
-        GET_PROFILE: '/api/v1/auth/profile',
+        LOGIN: '/api/auth/v1/login',
+        REFRESH_TOKEN: '/api/auth/v1/refresh',
+        GET_PROFILE: '/api/auth/v1/profile',
     },
 
-    System: {
-        CREATE_ACCOUNT: '/api/v1/auth/create-account',
-        GET_ALL_USERS: '/api/v1/auth/users',
-        GET_USER_BY_EMAIL: '/api/v1/auth/users/by-email',
-        UPDATE_USER: '/api/v1/auth/users/update',
-        DELETE_USER: '/api/v1/auth/users/delete',
-        UPDATE_USER_STATUS: '/api/v1/auth/users/status'
+    Admin: {
+        CREATE_ACCOUNT: '/api/v1/admin/users/create-account',
+        GET_ALL_USERS: '',
+        GET_USER_BY_EMAIL: '',
+        UPDATE_USER: '',
+        DELETE_USER: '',
+        UPDATE_USER_STATUS: ''
     },
 
     Folder: {
-        CREATE_FOLDER: '/api/v1/folder/create-folder',
-        GET_FOLDER: '/api/v1/folder/get',
-        UPDATE_PATIENT_PROFILE: '/api/v1/folder/update-patient-profile-id',
-        GET_FOLDER_OF_USER: '/api/v1/folder/get-all-created-by'
+        CREATE_FOLDER: '/api/doctors/v1/folders',
+        GET_FOLDER: '/api/doctors/v1/folders',
+        UPDATE_PATIENT_PROFILE: '',
+        GET_FOLDER_OF_USER: '/api/doctors/v1/folders/created-by',
+        RENAME_FOLDER: '/api/doctors/v1/folders',
+        DELETE_FOLDER: '/api/doctors/v1/folders'
     },
 
     Patient: {
-        CREATE_PATIENT_PROFILE: '/api/v1/patient/create-profile',
-        GET_PATIENT_PROFILE: '',
-        UPDATE_PATIENT_PROFILE: '',
-        DELETE_PATIENT_PROFILE: '',
-        LIST_PATIENT_PROFILES: ''
+        CREATE_PATIENT_PROFILE: '/api/patients/v1/patient-profiles', // POST ?folderId=xxx
+        GET_PATIENT_PROFILE: '/api/patients/v1/patient-profiles',    // GET /:id
+        UPDATE_PATIENT_PROFILE: '/api/patients/v1/patient-profiles', // PUT /:id
+        DELETE_PATIENT_PROFILE: '/api/patients/v1/patient-profiles', // DELETE /:id
+        LIST_PATIENT_PROFILES: '/api/patients/v1/patient-profiles'
     },
 
     ChatSession: {
-        CREATE_CHAT_SESSION: '/api/v1/chatsessions/analyze-and-create-chatsession',
-        GET_CHAT_SESSION: '/api/v1/chatsessions/get',
-        SEND_CHAT_MESSAGE: '/api/v1/chatsessions', // Base path for chat messages
+        CREATE_CHAT_SESSION: '/api/doctors/v1/chatsessions/analyze-and-create-chatsession',
+        CREATE_TEXT_CHAT_SESSION: '',
+        GET_CHAT_SESSION: '/api/doctors/v1/chatsessions',
+        GET_CHAT_SESSIONS_BY_FOLDER: '/api/doctors/v1/chatsessions/folder',
+        SEND_CHAT_MESSAGE: '/api/doctors/v1/chatsessions',
+        RENAME_CHAT_SESSION: '',
+        DELETE_CHAT_SESSION: '/api/doctors/v1/chatsessions'
     },
 
     ThirdParty: {
@@ -43,5 +51,9 @@ export const Api = {
             GET_PROVINCES: 'https://production.cas.so/address-kit/2025-07-01/provinces',
             GET_COMMUNES_FROM_PROVINCE: 'https://production.cas.so/address-kit/2025-07-01/provinces/{province_id}/communes',
         }
+    },
+
+    XrayDetection: {
+        DETECT_XRAY: config.XRAY_DETECTION_API,
     }
 }

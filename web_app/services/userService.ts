@@ -47,7 +47,7 @@ class UserService {
 
   async getAllUsers(authTokens: AuthTokens | null): Promise<UserProfile[]> {
     try {
-      const response = await fetch(`${Api.BASE_API}${Api.System.GET_ALL_USERS}`, {
+      const response = await fetch(`${Api.BASE_API}${Api.Admin.GET_ALL_USERS}`, {
         method: 'GET',
         headers: this.getAuthHeaders(authTokens),
       });
@@ -68,7 +68,7 @@ class UserService {
 
   async getUserByEmail(email: string, authTokens: AuthTokens | null): Promise<UserProfile> {
     try {
-      const response = await fetch(`${Api.BASE_API}${Api.System.GET_USER_BY_EMAIL}`, {
+      const response = await fetch(`${Api.BASE_API}${Api.Admin.GET_USER_BY_EMAIL}`, {
         method: 'POST',
         headers: this.getAuthHeaders(authTokens),
         body: JSON.stringify({ email }),
@@ -90,7 +90,7 @@ class UserService {
 
   async createUser(userData: CreateUserData, authTokens: AuthTokens | null): Promise<UserProfile> {
     try {
-      const response = await fetch(`${Api.BASE_API}${Api.System.CREATE_ACCOUNT}`, {
+      const response = await fetch(`${Api.BASE_API}${Api.Admin.CREATE_ACCOUNT}`, {
         method: 'POST',
         headers: this.getAuthHeaders(authTokens),
         body: JSON.stringify(userData),
@@ -112,7 +112,7 @@ class UserService {
 
   async updateUser(email: string, userData: UpdateUserData, authTokens: AuthTokens | null): Promise<UserProfile> {
     try {
-      const response = await fetch(`${Api.BASE_API}${Api.System.UPDATE_USER}`, {
+      const response = await fetch(`${Api.BASE_API}${Api.Admin.UPDATE_USER}`, {
         method: 'PUT',
         headers: this.getAuthHeaders(authTokens),
         body: JSON.stringify({ email, ...userData }),
@@ -134,7 +134,7 @@ class UserService {
 
   async deleteUser(email: string, authTokens: AuthTokens | null): Promise<boolean> {
     try {
-      const response = await fetch(`${Api.BASE_API}${Api.System.DELETE_USER}`, {
+      const response = await fetch(`${Api.BASE_API}${Api.Admin.DELETE_USER}`, {
         method: 'DELETE',
         headers: this.getAuthHeaders(authTokens),
         body: JSON.stringify({ email }),
@@ -156,7 +156,7 @@ class UserService {
 
   async updateUserStatus(email: string, statusData: UpdateUserStatusData, authTokens: AuthTokens | null): Promise<UserProfile> {
     try {
-      const response = await fetch(`${Api.BASE_API}${Api.System.UPDATE_USER_STATUS}`, {
+        const response = await fetch(`${Api.BASE_API}${Api.Admin.UPDATE_USER_STATUS}`, {
         method: 'PATCH',
         headers: this.getAuthHeaders(authTokens),
         body: JSON.stringify({ email, ...statusData }),

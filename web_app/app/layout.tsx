@@ -4,7 +4,6 @@ import '@ant-design/v5-patch-for-react-19';
 import { Inter, JetBrains_Mono } from 'next/font/google'
 import { AntdRegistry } from '@ant-design/nextjs-registry';
 import { ConfigProvider } from 'antd';
-import { LanguageProvider } from '../contexts/LanguageContext';
 import { Toaster } from "@/components/ui/sonner";
 import { UserProvider } from "@/contexts/AuthContext";
 import SessionExpiredWrapper from "@/components/combination/session-expired-wrapper";
@@ -24,7 +23,7 @@ const mono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Medical Clini AI",
+  title: "Clini AI Medical",
   description: "",
 };
 
@@ -45,12 +44,10 @@ export default function RootLayout({
               },
             }}
           >
-            <LanguageProvider>
-              <UserProvider>
-                {children}
-                <SessionExpiredWrapper />
-              </UserProvider>
-            </LanguageProvider>
+            <UserProvider>
+              {children}
+              <SessionExpiredWrapper />
+            </UserProvider>
           </ConfigProvider>
         </AntdRegistry>
       </body>

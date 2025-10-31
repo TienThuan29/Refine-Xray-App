@@ -3,27 +3,27 @@
 import React, { useState } from 'react';
 import { Modal, Form, Input, Button } from 'antd';
 import { FolderOutlined } from '@ant-design/icons';
-import { useLanguage } from '../../contexts/LanguageContext';
 import { toast } from "sonner";
 import useFolderManager from '../../hooks/useFolderManager';
+import { Type } from '../../types/folder';
 
 interface FolderModalProps {
   visible: boolean;
   onClose: () => void;
-  onFolderCreated: (data: { id: string; title: string; description?: string }) => void;
+  onFolderCreated: (data: { id: string; title: string; description?: string; type?: Type }) => void;
+  folderType?: Type;
 }
 
-const FolderModal: React.FC<FolderModalProps> = ({ visible, onClose, onFolderCreated }) => {
-  
-  const { t } = useLanguage();
+const FolderModal: React.FC<FolderModalProps> = ({ visible, onClose, onFolderCreated, folderType = Type.ANALYZE }) => {
+
   const [form] = Form.useForm();
   const [formValues, setFormValues] = useState({ title: '', description: '' });
-  const { createFolder, isCreating, error, clearError } = useFolderManager();
+  const { createFolder, isCreating, clearError } = useFolderManager();
 
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      clearError(); // Clear any previous errors
+      clearError();
 
       console.log('Creating folder with data:', {
         title: values.title,
@@ -32,7 +32,8 @@ const FolderModal: React.FC<FolderModalProps> = ({ visible, onClose, onFolderCre
 
       const newFolder = await createFolder({
         title: values.title,
-        description: values.description
+        description: values.description,
+        type: folderType
       });
 
       console.log('newFolder result:', newFolder);
@@ -41,15 +42,16 @@ const FolderModal: React.FC<FolderModalProps> = ({ visible, onClose, onFolderCre
         onFolderCreated({
           id: newFolder.id,
           title: values.title,
-          description: values.description
+          description: values.description,
+          type: folderType
         });
 
-        toast.success(t('newChat.folderCreateSuccess'));
-        // Don't call handleClose() here - let the parent handle the transition
-      } else {
-        toast.error(t('newChat.folderCreateError') || 'Failed to create folder');
+        toast.success('Folder created successfully');
+      } 
+      else {
+        toast.error('Failed to create folder');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Validation failed:', error);
       if (error) {
         toast.error('Failed to create folder');
@@ -63,7 +65,7 @@ const FolderModal: React.FC<FolderModalProps> = ({ visible, onClose, onFolderCre
     onClose();
   };
 
-  const handleValuesChange = (changedValues: any, allValues: any) => {
+  const handleValuesChange = (_changedValues: Record<string, string>, allValues: { title: string; description: string }) => {
     setFormValues(allValues);
   };
 
@@ -72,15 +74,16 @@ const FolderModal: React.FC<FolderModalProps> = ({ visible, onClose, onFolderCre
       title={
         <div className="flex items-center gap-2">
           <FolderOutlined />
-          <span className="text-lg font-semibold">{t('newChat.createFolder')}</span>
+          <span className="text-lg font-semibold">Create Folder</span>
         </div>
       }
       open={visible}
       onCancel={handleClose}
+      maskClosable={false}
       width={600}
       footer={[
         <Button key="cancel" onClick={handleClose}>
-          {t('newChat.cancel')}
+          Cancel
         </Button>,
         <Button
           key="create"
@@ -91,7 +94,7 @@ const FolderModal: React.FC<FolderModalProps> = ({ visible, onClose, onFolderCre
             !formValues.title?.trim() || isCreating
           }
         >
-          {t('newChat.next')}
+          Next
         </Button>,
       ]}
     >
@@ -103,28 +106,28 @@ const FolderModal: React.FC<FolderModalProps> = ({ visible, onClose, onFolderCre
       >
         <Form.Item
           name="title"
-          label={t('newChat.folderTitle')}
+          label="Folder title"
           rules={[
-            { required: true, message: t('newChat.titleRequired') },
+            { required: true, message: 'Title is required' },
             // { min: 3, message: t('newChat.titleMinLength') },
             // { max: 50, message: t('newChat.titleMaxLength') }
           ]}
         >
           <Input
-            placeholder={t('newChat.titlePlaceholder')}
+            placeholder="Title"
             size="middle"
           />
         </Form.Item>
 
         <Form.Item
           name="description"
-          label={t('newChat.description')}
+          label="Description"
           rules={[
-            { max: 200, message: t('newChat.descriptionMaxLength') }
+            { max: 200, message: 'Max 200 characters' }
           ]}
         >
           <Input.TextArea
-            placeholder={t('newChat.descriptionPlaceholder')}
+            placeholder="Description"
             rows={3}
             showCount
             maxLength={200}

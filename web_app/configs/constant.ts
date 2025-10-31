@@ -5,8 +5,8 @@ export const Constant = {
     
     // User Roles
     ROLES: {
-        SYSTEM: 'SYSTEM',
         ADMIN: 'ADMIN', 
-        DOCTOR: 'DOCTOR'
+        DOCTOR: 'DOCTOR',
+        PATIENT: 'PATIENT'
     }
 }

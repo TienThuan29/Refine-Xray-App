@@ -163,17 +163,21 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                 setAuthTokens(tokens);
                 localStorage.setItem(AUTH_TOKENS_KEY, JSON.stringify(tokens));
 
-                const userProfile = await fetchUser(tokens);
-                const roleValidator = validateUserRole(userProfile);
+                const userProfile = response.data.dataResponse.userProfile;
+                // console.log(userProfile);
+                // Persist user profile immediately so UI can consume it
+                setUser(userProfile);
+                localStorage.setItem(USER_PROFILE_KEY, JSON.stringify(userProfile));
+                const roleValidator = await validateUserRole(userProfile);
 
                 if (roleValidator.isSystem) {
-                    router.push(PageUrl.SYSTEM_DASHBOARD_PAGE);
+                    router.push(PageUrl.HOME_PAGE);
                 }
                 else if (roleValidator.isAdmin) {
-                    router.push(PageUrl.SYSTEM_DASHBOARD_PAGE);
+                    router.push(PageUrl.Admin.HOME_PAGE);
                 }
                 else if (roleValidator.isDoctor) {
-                    router.push(PageUrl.HOME_PAGE);
+                    router.push(PageUrl.Doctor.HOME_PAGE);
                 }
                 else {
                     toast.error('Invalid role!');

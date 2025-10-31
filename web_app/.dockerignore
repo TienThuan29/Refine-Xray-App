@@ -1,0 +1,52 @@
+# Dependencies
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Next.js
+.next
+out
+
+# Testing
+coverage
+*.test.tsx
+*.test.ts
+*.spec.tsx
+*.spec.ts
+__tests__
+
+# Development
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*.swn
+
+# Logs
+logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+tsconfig.tsbuildinfo
+
+# Documentation
+README.md
+*.md
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml
+

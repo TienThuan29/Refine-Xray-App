@@ -18,25 +18,22 @@ export type ChatSession = {
 }
 
 export type Result = {
-    predicted_diseases: DiseasePrediction[];
-    top_5_diseases: DiseasePrediction[];
-    gradcam_analyses: { // s3 urls
-        top1_Pneumonia: string;
-        top2_Consolidation: string;
-        top3_Effusion: string;
-        top4_Atelectasis: string;
-        top5_Cardiomegaly: string;
+    predictedDiseases: DiseasePrediction[];
+    top5Diseases: DiseasePrediction[];
+    gradcamAnalyses: { // s3 urls - dynamic keys from backend (e.g., "top1_Hernia", "top2_Cardiomegaly")
+        [key: string]: string;
     };
-    attention_map: string; // s3 url
-    individual_analyses: {
-        top1_Pneumonia: string;
-        top2_Consolidation: string;
-        top3_Effusion: string;
-        top4_Atelectasis: string;
-        top5_Cardiomegaly: string;
+    attentionMap: string; // s3 url
+    individualAnalyses: {
+        top1_Pneumothorax: string;
+        top2_Atelectasis: string;
+        top3_Edema: string;
+        top4_Pneumonia: string;
+        top5_Pleural_Thickening: string;
+        [key: string]: string; // Allow additional dynamic keys
     };
-    concise_conclusion: string;
-    comprehensive_analysis: string;
+    conciseConclusion: string;
+    comprehensiveAnalysis: string;
 }
 
 export type DiseasePrediction = {
@@ -53,4 +50,10 @@ export type ChatItem = {
         pubmedQueryUrl?: string;
         pubmedFetchUrl?: string[];
     };
+}
+
+export type Report = {
+    id?: string;
+    content?: string;
+    createdDate?: string;
 }

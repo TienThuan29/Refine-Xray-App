@@ -18,7 +18,7 @@ export const useVietnamAddress = () => {
         setLoadingProvinces(true);
         try {
             const response = await axios.get(Api.ThirdParty.VietnamAddress.GET_PROVINCES);
-            console.log('response', response.data);
+            // console.log('response', response.data);
             const data = Array.isArray(response.data.provinces) ? response.data.provinces : [];
             setProvinces(data);
         } 

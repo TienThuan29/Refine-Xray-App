@@ -98,7 +98,7 @@ const usePatientProfileManager = (): UsePatientProfileManagerReturn => {
         try {
             updateState({ isCreating: true, error: null });
             
-            const response = await axios.post(`${Api.Patient.CREATE_PATIENT_PROFILE}/${folderId}`, data);
+            const response = await axios.post(`${Api.Patient.CREATE_PATIENT_PROFILE}?folderId=${encodeURIComponent(folderId)}`, data);
             const newPatientProfile = response.data.dataResponse;
             
             // Update patient profiles list
@@ -122,7 +122,7 @@ const usePatientProfileManager = (): UsePatientProfileManagerReturn => {
             updateState({ isFetching: true, error: null });
             
             const response = await axios.get(`${Api.Patient.GET_PATIENT_PROFILE}/${patientId}`);
-            const patientProfile = response.data.data;
+            const patientProfile = response.data.dataResponse;
             
             updateState({
                 currentPatientProfile: patientProfile,

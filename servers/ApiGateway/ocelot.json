@@ -1,22 +1,70 @@
 {
     "Routes": [
       {
-        "DownstreamPathTemplate": "/{everything}",
+        "DownstreamPathTemplate": "/api/{everything}",
         "DownstreamScheme": "http",
-        "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 8081 }],
-        "UpstreamPathTemplate": "/master-services/{everything}",
+        "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 8082 }],
+        "UpstreamPathTemplate": "/api/auth/{everything}",
         "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ]
       },
       {
-        "DownstreamPathTemplate": "/{everything}",
+        "DownstreamPathTemplate": "/api/{everything}",
+        "DownstreamScheme": "http",
+        "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 8083 }],
+        "UpstreamPathTemplate": "/api/doctors/{everything}",
+        "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ]
+      },
+      {
+        "DownstreamPathTemplate": "/api/{everything}",
+        "DownstreamScheme": "http",
+        "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 8085 }],
+        "UpstreamPathTemplate": "/api/patients/{everything}",
+        "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ]
+      },
+      {
+        "DownstreamPathTemplate": "/api/{everything}",
+        "DownstreamScheme": "http",
+        "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 8086 }],
+        "UpstreamPathTemplate": "/api/admin/{everything}",
+        "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ]
+      },
+      {
+        "DownstreamPathTemplate": "/swagger/v1/swagger.json",
         "DownstreamScheme": "http",
         "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 8082 }],
-        "UpstreamPathTemplate": "/ai-services/{everything}",
-        "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ]
+        "UpstreamPathTemplate": "/swagger/auth/swagger.json",
+        "UpstreamHttpMethod": [ "GET" ]
+      },
+      {
+        "DownstreamPathTemplate": "/swagger/v1/swagger.json",
+        "DownstreamScheme": "http",
+        "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 8083 }],
+        "UpstreamPathTemplate": "/swagger/doctors/swagger.json",
+        "UpstreamHttpMethod": [ "GET" ]
+      },
+      {
+        "DownstreamPathTemplate": "/swagger/v1/swagger.json",
+        "DownstreamScheme": "http",
+        "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 8085 }],
+        "UpstreamPathTemplate": "/swagger/patients/swagger.json",
+        "UpstreamHttpMethod": [ "GET" ]
+      },
+      {
+        "DownstreamPathTemplate": "/swagger/v1/swagger.json",
+        "DownstreamScheme": "http",
+        "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 8086 }],
+        "UpstreamPathTemplate": "/swagger/admin/swagger.json",
+        "UpstreamHttpMethod": [ "GET" ]
       }
     ],
     "GlobalConfiguration": {
-      "BaseUrl": "http://0.0.0.0:8080"
+      "BaseUrl": "http://0.0.0.0:8080",
+      "HttpHandlerOptions": {
+        "AllowAutoRedirect": true,
+        "UseCookieContainer": false,
+        "UseTracing": false,
+        "MaxConnectionsPerServer": 2147483647
+      }
     }
   }
   
