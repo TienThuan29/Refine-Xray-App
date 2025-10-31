@@ -118,7 +118,35 @@ namespace DoctorService.Repositories.Folder
 
                 var response = await _dynamoDBClient.ScanAsync(scanRequest);
                 
-                return response.Items.Select(item => DynamoMapper.DynamoItemToFolder(item)).ToList();
+                var folders = new List<Models.Folder>();
+                foreach (var item in response.Items)
+                {
+                    var folder = DynamoMapper.DynamoItemToFolder(item);
+                    
+                    // Check if this specific folder doesn't have type field in DynamoDB
+                    if (!item.ContainsKey("type") || string.IsNullOrEmpty(item["type"].S))
+                    {
+                        // Old folder without type field - set default and save back to DB
+                        folder.Type = FolderType.ANALYZE; // Ensure default is set
+                        
+                        // Save the type back to DB to update old folders
+                        try
+                        {
+                            var dynamoItem = DynamoMapper.FolderToDynamoItem(folder);
+                            await PutItemAsync(dynamoItem, _folderTableName);
+                            _logger.LogInformation("Backfilled type field for folder {FolderId}: {Type}", folder.Id, folder.Type);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Failed to backfill type for folder {FolderId}", folder.Id);
+                            // Continue - folder still has default type set
+                        }
+                    }
+                    
+                    folders.Add(folder);
+                }
+                
+                return folders;
             }
             catch (Exception ex)
             {

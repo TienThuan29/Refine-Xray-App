@@ -5,7 +5,6 @@ using DoctorService.Services.ChatSession;
 using DoctorService.Services.CliniAI;
 using DoctorService.Libs;
 using DoctorService.Models;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace DoctorService.Web.Controllers
 {
@@ -75,6 +74,31 @@ namespace DoctorService.Web.Controllers
             }
         }
 
+        [HttpPost("create-text-chatsession")]
+        public async Task<ActionResult<ApiResponse<ChatSessionResponse>>> CreateTextChatSession([FromBody] CreateTextChatSessionRequest request)
+        {
+            try
+            {
+                _logger.LogInformation("Creating text chat session, Title: {Title}, FolderId: {FolderId}", request.Title, request.FolderId);
+
+                var serviceResponse = await _chatSessionService.CreateTextChatSessionAsync(request);
+                
+                if (serviceResponse.Success)
+                {
+                    return ResponseUtil.Success(serviceResponse.DataResponse, serviceResponse.Message);
+                }
+                else
+                {
+                    return ResponseUtil.Error<ChatSessionResponse>(serviceResponse.Message, 400, serviceResponse.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating text chat session");
+                return ResponseUtil.Error<ChatSessionResponse>("Internal Server Error", 500);
+            }
+        }
+
         [HttpGet("{chatSessionId}")]
         public async Task<ActionResult<ApiResponse<ChatSessionResponse>>> GetChatSessionById(string chatSessionId)
         {
@@ -101,21 +125,32 @@ namespace DoctorService.Web.Controllers
             }
         }
 
-        /// <summary>
-        /// Send a chat message to the AI chatbot
-        /// </summary>
-        /// <param name="chatSessionId">Chat session ID</param>
-        /// <param name="request">Chat message request</param>
-        /// <returns>Chatbot response</returns>
         [HttpPost("{chatSessionId}/chat")]
         public async Task<ActionResult<ApiResponse<ChatbotResponse>>> SendChatMessage(string chatSessionId, [FromBody] ChatbotRequest request)
         {
             try
             {
+                _logger.LogInformation("Received chat message request. Route chatSessionId: {ChatSessionId}, Request: Message={Message}, Action={Action}", 
+                    chatSessionId, request?.Message, request?.Action);
+
+                // Validate request
+                if (request == null)
+                {
+                    _logger.LogWarning("ChatbotRequest is null");
+                    return ResponseUtil.Error<ChatbotResponse>("Request body is required", 400, "Request body cannot be null");
+                }
+
+                if (string.IsNullOrEmpty(request.Message))
+                {
+                    _logger.LogWarning("Message is null or empty");
+                    return ResponseUtil.Error<ChatbotResponse>("Message is required", 400, "Message cannot be null or empty");
+                }
+
                 // Set chat session ID from route parameter
                 request.ChatSessionId = chatSessionId;
 
-                _logger.LogInformation("Processing chat message for session: {ChatSessionId}", chatSessionId);
+                _logger.LogInformation("Processing chat message for session: {ChatSessionId}, Message length: {MessageLength}", 
+                    chatSessionId, request.Message?.Length ?? 0);
 
                 var serviceResponse = await _chatSessionService.SendChatMessageAsync(request);
                 
@@ -136,11 +171,6 @@ namespace DoctorService.Web.Controllers
             }
         }
 
-        /// <summary>
-        /// Get all chat sessions for a folder
-        /// </summary>
-        /// <param name="folderId">Folder ID</param>
-        /// <returns>List of chat sessions</returns>
         [HttpGet("folder/{folderId}")]
         public async Task<ActionResult<ApiResponse<List<ChatSessionResponse>>>> GetChatSessionsByFolderId(string folderId)
         {
@@ -166,11 +196,6 @@ namespace DoctorService.Web.Controllers
             }
         }
 
-        /// <summary>
-        /// Delete a chat session
-        /// </summary>
-        /// <param name="chatSessionId">Chat session ID</param>
-        /// <returns>Success status</returns>
         [HttpDelete("{chatSessionId}")]
         public async Task<ActionResult<ApiResponse<bool>>> DeleteChatSession(string chatSessionId)
         {
@@ -221,6 +246,31 @@ namespace DoctorService.Web.Controllers
             {
                 _logger.LogError(ex, "Error testing GradCam processing");
                 return StatusCode(500, new { success = false, error = ex.Message });
+            }
+        }
+
+        [HttpPost("query-pubmed-rag")]
+        public async Task<ActionResult<ApiResponse<PubMedRAGResponse>>> QueryPubMedRAG([FromBody] PubMedRAGRequest request)
+        {
+            try
+            {
+                _logger.LogInformation("Querying PubMed RAG API with question: {Question}", request.Question);
+
+                var serviceResponse = await _chatSessionService.QueryPubMedRAGAsync(request);
+                
+                if (serviceResponse.Success)
+                {
+                    return ResponseUtil.Success(serviceResponse.DataResponse, serviceResponse.Message);
+                }
+                else
+                {
+                    return ResponseUtil.Error<PubMedRAGResponse>(serviceResponse.Message, 400, serviceResponse.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error querying PubMed RAG API");
+                return ResponseUtil.Error<PubMedRAGResponse>("Internal Server Error", 500);
             }
         }
     }

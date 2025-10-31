@@ -11,7 +11,6 @@ namespace DoctorService.Services.CliniAI
 
         private readonly string _analyzeUrl = "/radiology/analyze-only";
         private readonly string _gradCamAnalysisUrl = "/radiology/gradcam-llm";
-        private readonly string _xrayDetectionUrl = "/xray/detect";
 
         public CliniAiService(
             HttpClient httpClient,
@@ -19,7 +18,6 @@ namespace DoctorService.Services.CliniAI
         ){
             _httpClient = httpClient;
             _logger = logger;
-            // BaseUrl is now set in HttpClient configuration, so we don't need to store it here
         }
 
         public async Task<bool> IsServiceAvailableAsync()

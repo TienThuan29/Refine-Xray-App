@@ -31,7 +31,7 @@ import {
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { UserProfile } from '@/types/user';
-import { useUserService, CreateUserData, UpdateUserData } from '@/hooks/useUserService';
+import { useUserManagement, CreateUserData, UpdateUserData } from '@/hooks/useUserManagement';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRoleValidator, validateUserRole } from '@/hooks/useRoleValidator';
 import dayjs from 'dayjs';
@@ -56,7 +56,7 @@ const UserManagement: React.FC<UserManagementProps> = () => {
   const [isStatusModalVisible, setIsStatusModalVisible] = useState(false);
   const [userToToggle, setUserToToggle] = useState<UserProfile | null>(null);
   const { isPatient, isDoctor, isAdmin } = useRoleValidator(useAuth().user);
-  const { getAllUsers, createUser, updateUser, deleteUser, updateUserStatus } = useUserService();
+  const { getAllUsers, createUser, updateUser, deleteUser, updateUserStatus } = useUserManagement();
 
   // Removed mock data - now using real API calls
 
@@ -107,6 +107,7 @@ const UserManagement: React.FC<UserManagementProps> = () => {
     form.setFieldsValue({
       ...user,
       dateOfBirth: user.dateOfBirth ? dayjs(user.dateOfBirth) : null,
+      role: user.role, // Include role when editing
     });
     setIsModalVisible(true);
   };
@@ -184,13 +185,13 @@ const UserManagement: React.FC<UserManagementProps> = () => {
         toast.success('User updated successfully');
       } else {
         // Add new user
+        // Only send required fields: email, fullname, password, role
+        // phone and dateOfBirth are optional and can be updated later
         const createData: CreateUserData = {
           fullname: values.fullname,
           email: values.email,
           password: values.password,
-          phone: values.phone,
-          dateOfBirth: values.dateOfBirth ? values.dateOfBirth.format('YYYY-MM-DD') : undefined,
-          role: 'user', // Default role for new users
+          role: values.role || 'PATIENT', // Default role if not specified
         };
         
         const newUser = await createUser(createData, authTokens);
@@ -230,6 +231,12 @@ const UserManagement: React.FC<UserManagementProps> = () => {
   };
 
   const filteredUsers = users.filter(user => {
+    // Exclude users with fullname that is "admin" or contains "admin"
+    const fullnameLower = user.fullname?.toLowerCase() || '';
+    if (fullnameLower === 'admin' || fullnameLower.includes('admin')) {
+      return false;
+    }
+
     const matchesSearch = 
       user.fullname.toLowerCase().includes(searchText.toLowerCase()) ||
       user.email.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -504,6 +511,36 @@ const UserManagement: React.FC<UserManagementProps> = () => {
                 ]}
               >
                 <Input placeholder="Enter email" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                label="Password"
+                name="password"
+                rules={[
+                  { required: !editingUser, message: 'Please enter password' },
+                  { min: 5, message: 'Password must be at least 5 characters' },
+                ]}
+              >
+                <Input.Password placeholder="Enter password" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                label="Role"
+                name="role"
+                rules={[
+                  { required: !editingUser, message: 'Please select role' },
+                ]}
+              >
+                <Select placeholder="Select role">
+                  <Option value="PATIENT">Patient</Option>
+                  <Option value="DOCTOR">Doctor</Option>
+                  <Option value="ADMIN">Admin</Option>
+                </Select>
               </Form.Item>
             </Col>
           </Row>

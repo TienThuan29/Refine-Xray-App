@@ -53,6 +53,26 @@ export interface FolderManagerActions {
 
 export type UseFolderManagerReturn = FolderManagerState & FolderManagerActions;
 
+// Helper function to map backend folder type to frontend Type enum
+const mapFolderType = (backendType: any): Type | undefined => {
+    if (backendType === undefined || backendType === null) {
+        return undefined;
+    }
+    
+    // Handle both string and numeric enum values
+    if (backendType === 'ANALYZE' || backendType === 0 || backendType === '0') {
+        return Type.ANALYZE;
+    } else if (backendType === 'TEXT' || backendType === 1 || backendType === '1') {
+        return Type.TEXT;
+    } else if (typeof backendType === 'string') {
+        // Try to parse as string (case-insensitive)
+        const upperType = backendType.toUpperCase();
+        return upperType === 'TEXT' ? Type.TEXT : Type.ANALYZE;
+    }
+    
+    return Type.ANALYZE; // Default fallback
+};
+
 const useFolderManager = (): UseFolderManagerReturn => {
     const axios = useAxios();
     const { user } = useAuth();
@@ -108,14 +128,20 @@ const useFolderManager = (): UseFolderManagerReturn => {
             const newFolder = response.data.dataResponse;
             console.log('Parsed newFolder:', newFolder);
             
+            // Map folder type from backend enum to frontend enum
+            const mappedFolder = {
+                ...newFolder,
+                type: mapFolderType(newFolder.type)
+            };
+            
             // Update folders list
             setState(prev => ({
                 ...prev,
-                folders: [...prev.folders, newFolder],
+                folders: [...prev.folders, mappedFolder],
                 isCreating: false,
             }));
             
-            return newFolder;
+            return mappedFolder;
         } catch (error: any) {
             console.error('Error creating folder:', error);
             console.error('Error response:', error.response?.data);
@@ -158,19 +184,30 @@ const useFolderManager = (): UseFolderManagerReturn => {
                 `${Api.Folder.UPDATE_PATIENT_PROFILE}/${folderId}`, 
                 data
             );
-            const updatedFolder = response.data.data;
+            
+            if (!response.data.success) {
+                throw new Error(response.data.message || 'Failed to update patient profile');
+            }
+            
+            const updatedFolder = response.data.dataResponse;
+            
+            // Map folder type
+            const mappedFolder = {
+                ...updatedFolder,
+                type: mapFolderType(updatedFolder.type)
+            };
             
             // Update current folder if it's the one being updated
             setState(prev => ({
                 ...prev,
-                currentFolder: prev.currentFolder?.id === folderId ? updatedFolder : prev.currentFolder,
+                currentFolder: prev.currentFolder?.id === folderId ? mappedFolder : prev.currentFolder,
                 folders: prev.folders.map(folder => 
-                    folder.id === folderId ? updatedFolder : folder
+                    folder.id === folderId ? mappedFolder : folder
                 ),
                 isUpdating: false,
             }));
             
-            return updatedFolder;
+            return mappedFolder;
         } catch (error) {
             handleError(error, 'update patient profile');
             updateState({ isUpdating: false });
@@ -190,13 +227,24 @@ const useFolderManager = (): UseFolderManagerReturn => {
             
             const userFolders = response.data.dataResponse;
 
-            console.log(userFolders);
+            // Map folder types from backend enum to frontend enum
+            const mappedFolders = userFolders?.map((folder: any) => ({
+                ...folder,
+                type: mapFolderType(folder.type)
+            }));
+
+            console.log('Raw folders from API:', userFolders);
+            console.log('Mapped folders with types:', mappedFolders);
+            // Debug: Log type mapping for each folder
+            mappedFolders?.forEach((folder: Folder, index: number) => {
+                console.log(`Folder ${index} (${folder.title}): rawType=${userFolders?.[index]?.type}, mappedType=${folder.type}`);
+            });
             updateState({
-                folders: userFolders,
+                folders: mappedFolders || [],
                 isFetchingUserFolders: false,
             });
             
-            return userFolders;
+            return mappedFolders;
         } catch (error) {
             handleError(error, 'fetch user folders');
             updateState({ isFetchingUserFolders: false });
@@ -237,17 +285,23 @@ const useFolderManager = (): UseFolderManagerReturn => {
             
             const updatedFolder = response.data.dataResponse;
             
+            // Map folder type
+            const mappedFolder = {
+                ...updatedFolder,
+                type: mapFolderType(updatedFolder.type)
+            };
+            
             // Update folders list
             setState(prev => ({
                 ...prev,
                 folders: prev.folders.map(folder => 
-                    folder.id === folderId ? updatedFolder : folder
+                    folder.id === folderId ? mappedFolder : folder
                 ),
-                currentFolder: prev.currentFolder?.id === folderId ? updatedFolder : prev.currentFolder,
+                currentFolder: prev.currentFolder?.id === folderId ? mappedFolder : prev.currentFolder,
                 isRenaming: false,
             }));
             
-            return updatedFolder;
+            return mappedFolder;
         } catch (error: any) {
             console.error('Error renaming folder:', error);
             handleError(error, 'rename folder');

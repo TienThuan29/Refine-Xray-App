@@ -15,5 +15,11 @@ namespace DoctorService.Web.Requests
         [Required]
         public FolderType Type { get; set; } = FolderType.ANALYZE;
     }
+
+    public class UpdatePatientProfileIdRequest
+    {
+        [Required]
+        public string PatientProfileId { get; set; } = string.Empty;
+    }
 }
 

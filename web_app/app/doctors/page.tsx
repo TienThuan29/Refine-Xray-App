@@ -75,8 +75,8 @@ export default function Page() {
   const [isLoadingPatient, setIsLoadingPatient] = useState(false);
 
   // Pipeline data
-  const [folderData, setFolderData] = useState<{ id: string; title: string; description?: string; type?: Type } | null>(null);
-  const [patientData, setPatientData] = useState<{ fullname: string; gender: string } | null>(null);
+  const [folderData, setFolderData] = useState<{ id: string; title: string; description?: string; type?: Type; patientProfileId?: string | null } | null>(null);
+  const [patientData, setPatientData] = useState<{ fullname: string; gender: string; id?: string } | null>(null);
 
   // Hooks for data management
   const {
@@ -86,6 +86,7 @@ export default function Page() {
     error: folderError,
     renameFolder,
     deleteFolder,
+    updatePatientProfile,
     isRenaming,
     isDeleting
   } = useFolderManager();
@@ -115,14 +116,20 @@ export default function Page() {
     clearError: clearChatbotError
   } = useChatbot();
 
+  // Get selected folder ID for TEXT type folders
+  const selectedFolderForTextChat = folders.find(f => f.id === selectedKey);
+  const selectedTextFolderId = selectedFolderForTextChat?.type === Type.TEXT ? selectedFolderForTextChat.id : undefined;
+
   const {
     chatItems: textChatItems,
     isSending: isSendingTextMessage,
     error: textChatError,
     sendMessage: sendTextMessage,
-    clearError: clearTextChatError
+    createTextChatSession,
+    clearError: clearTextChatError,
+    clearChat: clearTextChat
   } = useTextChat(async (sessionId) => {
-    // Refresh folders to show the new folde in sidebar
+    // Refresh folders to show the new folder in sidebar
     await getFoldersOfUser();
     
     // Set the selected key to navigate to the new session
@@ -134,7 +141,20 @@ export default function Page() {
     } catch (error) {
       console.error('Error loading chat session:', error);
     }
-  });
+  }, selectedTextFolderId);
+
+  // Clear text chat when switching between folders
+  useEffect(() => {
+    // Clear text chat when switching folders to ensure StartSection shows for new conversations
+    // This ensures each TEXT folder starts with a clean state
+    if (selectedFolderForTextChat?.type === Type.TEXT && selectedKey !== 'new-chat') {
+      // When clicking on a TEXT folder, clear previous chat to show StartSection
+      // The chat items will be populated when user sends first message or loads existing session
+      if (textChatItems.length === 0) {
+        // Already cleared or no items, StartSection will show
+      }
+    }
+  }, [selectedKey, selectedFolderForTextChat, clearTextChat, textChatItems.length]);
   
   // Fetch folders when user is logged in
   useEffect(() => {
@@ -183,6 +203,11 @@ export default function Page() {
 
     const folder = folders.find(f => f.id === key);
     if (folder) {
+      // Clear text chat when switching to a TEXT folder to show StartSection
+      if (folder.type === Type.TEXT) {
+        clearTextChat();
+      }
+      
       // Toggle folder expansion
       toggleFolder(key);
       setSelectedKey(key);
@@ -284,10 +309,24 @@ export default function Page() {
     getFoldersOfUser();
   };
 
-  const handlePatientCreated = (data: { patientProfile: { fullname: string; gender: string } }) => {
+  const handlePatientCreated = async (data: { patientProfile: { fullname: string; gender: string; id?: string } }) => {
+    // Update folder's PatientProfileId after patient profile is created
+    if (folderData && data.patientProfile.id) {
+      try {
+        await updatePatientProfile(folderData.id, { patientProfileId: data.patientProfile.id });
+        console.log('Folder updated with patient profile ID:', data.patientProfile.id);
+        // Refresh folders to get updated patientProfileId
+        await getFoldersOfUser();
+      } catch (error) {
+        console.error('Error updating folder with patient profile ID:', error);
+        // Continue anyway - the folder will be updated when chat session is created
+      }
+    }
+
     setPatientData({
       fullname: data.patientProfile.fullname,
-      gender: data.patientProfile.gender
+      gender: data.patientProfile.gender,
+      id: data.patientProfile.id
     });
     setPatientModalVisible(false);
     setChatSessionModalVisible(true);
@@ -389,9 +428,27 @@ export default function Page() {
     setDeleteConfirmVisible(true);
   };
 
+  const handleNewTextChat = async (folder: { id: string; title: string; description?: string; type?: Type }) => {
+    try {
+      // Create a new text chat session in the specified folder
+      const sessionId = await createTextChatSession(folder.id);
+      if (sessionId) {
+        await getFoldersOfUser();
+        setSelectedKey(sessionId);
+        await getChatSession(sessionId);
+        toast.success('Text chat session created successfully!');
+      }
+    } catch (error) {
+      console.error('Error creating text chat session:', error);
+      toast.error('Failed to create text chat session');
+    }
+  };
+
   const handleNewAnalysis = async (folder: { id: string; title: string; description?: string; type?: Type; patientProfileId?: string | null }) => {
     setPatientModalVisible(false);
     setChatSessionModalVisible(false);
+    
+    // Check if folder has patient profile ID
     if (!folder.patientProfileId) {
       toast.warning('No patient profile found. Please create a patient profile first.');
       setFolderData({ id: folder.id, title: folder.title, description: folder.description, type: folder.type });
@@ -399,28 +456,40 @@ export default function Page() {
       setPatientModalVisible(true);
       return;
     }
+
     setIsLoadingPatient(true);
+    setFolderData({ id: folder.id, title: folder.title, description: folder.description, type: folder.type });
+
     try {
+      console.log('Fetching patient profile by ID:', folder.patientProfileId);
+      
+      // Call API to get patient profile by ID
       const patientProfile = await getPatientProfile(folder.patientProfileId);
-      if (patientProfile) {
-        const newFolderData = { id: folder.id, title: folder.title, description: folder.description, type: folder.type };
-        const newPatientData = { fullname: patientProfile.fullname, gender: patientProfile.gender };
-        setFolderData(newFolderData);
+      
+      if (patientProfile && patientProfile.id) {
+        console.log('Patient profile loaded successfully:', patientProfile);
+        const newPatientData = { 
+          fullname: patientProfile.fullname, 
+          gender: patientProfile.gender,
+          id: patientProfile.id
+        };
         setPatientData(newPatientData);
         setIsLoadingPatient(false);
         toast.success('Patient information loaded successfully!');
         setTimeout(() => setChatSessionModalVisible(true), 50);
       } else {
+        console.error('Patient profile not found or invalid response:', patientProfile);
         setIsLoadingPatient(false);
-        toast.error('Failed to load patient information');
-        setFolderData({ id: folder.id, title: folder.title, description: folder.description, type: folder.type });
+        toast.error('Patient profile not found. Please create a patient profile first.');
         setPatientData(null);
         setPatientModalVisible(true);
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error calling API to get patient profile:', error);
       setIsLoadingPatient(false);
-      toast.error('Error loading patient information');
-      setFolderData({ id: folder.id, title: folder.title, description: folder.description, type: folder.type });
+      
+      const errorMessage = error.response?.data?.message || error.message || 'Error loading patient information';
+      toast.error(`Failed to load patient profile: ${errorMessage}`);
       setPatientData(null);
       setPatientModalVisible(true);
     }
@@ -557,6 +626,14 @@ export default function Page() {
                                   icon: <PlusOutlined />,
                                   onClick: () => {
                                     handleNewAnalysis(folder);
+                                  }
+                                }] : []),
+                                ...(folder.type === Type.TEXT ? [{
+                                  key: 'new-chat',
+                                  label: 'New chat',
+                                  icon: <MessageOutlined />,
+                                  onClick: () => {
+                                    handleNewTextChat(folder);
                                   }
                                 }] : []),
                                 {
@@ -762,6 +839,29 @@ export default function Page() {
                       const selectedFolder = folders.find(f => f.id === selectedKey);
                       
                       if (selectedFolder?.type === Type.TEXT) {
+                        // Show StartSection if no chat items, otherwise show TextChatbox
+                        const hasChatItems = textChatItems && textChatItems.length > 0;
+                        
+                        if (!hasChatItems) {
+                          // Show StartSection for TEXT folders when beginning a conversation
+                          return (
+                            <StartSection 
+                              onSendMessage={async (message) => {
+                                try {
+                                  // Ensure we have a folder for the text chat
+                                  if (selectedFolder?.id) {
+                                    await sendTextMessage(message);
+                                  }
+                                } catch (error) {
+                                  console.error('Error sending text message:', error);
+                                  toast.error('Failed to send message');
+                                }
+                              }}
+                              isSending={isSendingTextMessage}
+                            />
+                          );
+                        }
+                        
                         return (
                           <div className="h-full flex flex-col">
                             <div className="h-full flex flex-col">

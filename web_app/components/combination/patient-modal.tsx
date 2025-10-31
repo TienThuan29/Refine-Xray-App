@@ -11,7 +11,7 @@ import usePatientProfileManager from '../../hooks/usePatientProfileManager';
 interface PatientModalProps {
   visible: boolean;
   onClose: () => void;
-  onComplete: (data: { patientProfile: PatientProfileRequest }) => void;
+  onComplete: (data: { patientProfile: PatientProfileRequest & { id?: string } }) => void;
   folderData: { id: string; title: string; description?: string };
 }
 
@@ -49,7 +49,7 @@ const PatientModal: React.FC<PatientModalProps> = ({ visible, onClose, onComplet
       
       const createdPatientProfile = await createPatientProfile(patientProfileData, folderData.id);
       
-      if (createdPatientProfile) {
+      if (createdPatientProfile && createdPatientProfile.id) {
         // console.log('Patient profile created successfully:', createdPatientProfile);
         const patientProfile: PatientProfileRequest = {
           fullname: createdPatientProfile.fullname,
@@ -63,7 +63,10 @@ const PatientModal: React.FC<PatientModalProps> = ({ visible, onClose, onComplet
         
         console.log('Calling onComplete with patient profile:', patientProfile);
         onComplete({
-          patientProfile
+          patientProfile: {
+            ...patientProfile,
+            id: createdPatientProfile.id // Include patient profile ID
+          }
         });
         
         toast.success('Patient profile created successfully');

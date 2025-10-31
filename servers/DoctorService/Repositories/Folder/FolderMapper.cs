@@ -42,7 +42,9 @@ namespace DoctorService.Repositories.Folder
                 Id = item["id"].S,
                 Title = item["title"].S,
                 CreatedBy = item["createdBy"].S,
-                Type = Enum.Parse<FolderType>(item["type"].S),
+                Type = item.ContainsKey("type") && !string.IsNullOrEmpty(item["type"].S) 
+                    ? Enum.Parse<FolderType>(item["type"].S) 
+                    : FolderType.ANALYZE,
                 IsDeleted = item["isDeleted"].BOOL
             };
 

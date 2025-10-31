@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import SystemSidebar from '@/components/system/SystemSidebar';
 import UserManagement from '@/components/system/UserManagement';
 import SystemDashboard from '@/components/system/SystemDashboard';
-import SystemReports from '@/components/system/SystemReports';
+import ReportTemplateManagement from '@/components/system/ReportTemplateManagement';
 import SystemAnalytics from '@/components/system/SystemAnalytics';
 
 const { Content } = Layout;
@@ -27,7 +27,7 @@ export default function SystemPage() {
     const handleMenuSelect = (key: string) => {
         setSelectedKey(key);
         // Update URL with query parameter
-        router.push(`/system?section=${key}`);
+        router.push(`/admin?section=${key}`);
     };
 
     const renderContent = () => {
@@ -36,15 +36,15 @@ export default function SystemPage() {
                 return <SystemDashboard />;
             case 'users':
                 return <UserManagement />;
-            case 'reports':
-                return <SystemReports />;
+            case 'report-templates':
+                return <ReportTemplateManagement />;
             case 'analytics':
                 return <SystemAnalytics />;
-            case 'audit-logs':
+            case 'blogs':
                 return (
                     <div style={{ padding: '24px' }}>
-                        <h1>Audit Logs</h1>
-                        <p>Audit logs will be implemented here.</p>
+                        <h1>Blogs</h1>
+                        <p>Blogs crud here</p>
                     </div>
                 );
             case 'system-settings':
