@@ -22,9 +22,19 @@ namespace DoctorService.Models
         [Required]
         public bool IsDeleted { get; set; }
         
+        [Required]
+        public FolderType Type { get; set; } = FolderType.ANALYZE;
+        
         public DateTime? CreatedDate { get; set; }
         
         public DateTime? UpdatedDate { get; set; }
     }
+
+    public enum FolderType
+    {
+        ANALYZE = 0,
+        TEXT = 1
+    }
+
 }
 

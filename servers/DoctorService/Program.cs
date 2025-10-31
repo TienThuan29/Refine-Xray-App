@@ -11,6 +11,7 @@ using DoctorService.Services.Folder;
 using DoctorService.Services.ChatSession;
 using DoctorService.Services.CliniAI;
 using DoctorService.Services.GradCam;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 Env.Load();
@@ -55,7 +56,12 @@ builder.Services.AddScoped<IGradCamImageService, GradCamImageService>();
 // Add HTTP client for CliniAI service
 builder.Services.AddHttpClient<ICliniAiService, CliniAiService>(client =>
 {
-    var baseUrl = builder.Configuration["CliniAI:BaseUrl"] ?? "http://localhost:8000";
+    var baseUrl = builder.Configuration["CliniAI:BaseUrl"];
+    if (string.IsNullOrEmpty(baseUrl) || baseUrl.Contains("${") || baseUrl == "${CLINI_BASE_URL:}")
+    {
+        baseUrl = "http://localhost:8000";
+    }
+    
     var timeout = builder.Configuration.GetValue("CliniAI:Timeout", 1200); // 20 minutes default
     
     client.BaseAddress = new Uri(baseUrl);
@@ -75,6 +81,8 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.WriteIndented = false;
     });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>

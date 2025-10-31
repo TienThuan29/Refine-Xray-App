@@ -55,7 +55,7 @@ const UserManagement: React.FC<UserManagementProps> = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isStatusModalVisible, setIsStatusModalVisible] = useState(false);
   const [userToToggle, setUserToToggle] = useState<UserProfile | null>(null);
-  const { isSystem, isAdmin, isDoctor } = useRoleValidator(useAuth().user);
+  const { isPatient, isDoctor, isAdmin } = useRoleValidator(useAuth().user);
   const { getAllUsers, createUser, updateUser, deleteUser, updateUserStatus } = useUserService();
 
   // Removed mock data - now using real API calls
@@ -85,7 +85,7 @@ const UserManagement: React.FC<UserManagementProps> = () => {
 
   const handleAdd = () => {
     // Check if user has permission to add users
-    if (!isSystem && !isAdmin) {
+    if (!isAdmin) {
       toast.error('You do not have permission to add users');
       return;
     }
@@ -97,7 +97,7 @@ const UserManagement: React.FC<UserManagementProps> = () => {
 
   const handleEdit = (user: UserProfile) => {
     // Check if user has permission to edit users
-    if (!isSystem && !isAdmin) {
+    if (!isAdmin) {
       toast.error('You do not have permission to edit users');
       return;
     }
@@ -113,7 +113,7 @@ const UserManagement: React.FC<UserManagementProps> = () => {
 
   const handleDelete = async (user: UserProfile) => {
     // Check if user has permission to delete users
-    if (!isSystem && !isAdmin) {
+    if (!isAdmin) {
       toast.error('You do not have permission to delete users');
       return;
     }
@@ -130,7 +130,7 @@ const UserManagement: React.FC<UserManagementProps> = () => {
 
   const handleToggleStatusClick = (user: UserProfile) => {
     // Check if user has permission to toggle user status
-    if (!isSystem && !isAdmin) {
+    if (!isAdmin) {
       toast.error('You do not have permission to change user status');
       return;
     }
@@ -338,7 +338,7 @@ const UserManagement: React.FC<UserManagementProps> = () => {
       width: 180,
       render: (_, record) => (
         <Space>
-          {(isSystem || isAdmin) && (
+          {isAdmin && (
             <Tooltip title="Edit">
               <Button
                 type="primary"
@@ -348,7 +348,7 @@ const UserManagement: React.FC<UserManagementProps> = () => {
               />
             </Tooltip>
           )}
-          {(isSystem || isAdmin) && (
+          {isAdmin && (
             <Tooltip title={record.isEnable ? "Deactivate User" : "Activate User"}>
               <Button
                 type={record.isEnable ? "default" : "primary"}
@@ -360,7 +360,7 @@ const UserManagement: React.FC<UserManagementProps> = () => {
               </Button>
             </Tooltip>
           )}
-          {(isSystem || isAdmin) && (
+          {isAdmin && (
             <Popconfirm
               title="Confirm Delete"
               description="Are you sure you want to delete this user?"
@@ -388,10 +388,9 @@ const UserManagement: React.FC<UserManagementProps> = () => {
         {/* Display current user role info */}
         <div style={{ marginBottom: 16, padding: '8px 12px', backgroundColor: '#f0f2f5', borderRadius: '6px' }}>
           <span style={{ fontWeight: 'bold' }}>Your Role: </span>
-          {isSystem && <Tag color="purple">System</Tag>}
           {isAdmin && <Tag color="red">Admin</Tag>}
           {isDoctor && <Tag color="blue">Doctor</Tag>}
-          {!isSystem && !isAdmin && !isDoctor && <Tag color="default">User</Tag>}
+          {!isAdmin && !isDoctor && <Tag color="default">User</Tag>}
         </div>
         <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
           <Col xs={24} sm={12} md={8}>
@@ -431,7 +430,7 @@ const UserManagement: React.FC<UserManagementProps> = () => {
           </Col>
           <Col xs={24} sm={12} md={8}>
             <Space>
-              {(isSystem || isAdmin) && (
+              {isAdmin && (
                 <Button
                   type="primary"
                   icon={<PlusOutlined />}

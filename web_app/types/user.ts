@@ -1,9 +1,10 @@
 export type UserProfile = {
+    id: string;
     email: string;
     fullname: string;
     phone?: string;
     dateOfBirth?: Date;
-    role: string; // hased role
+    role: string; 
     isEnable: boolean;
     lastLoginDate?: Date;
     createdDate?: Date;

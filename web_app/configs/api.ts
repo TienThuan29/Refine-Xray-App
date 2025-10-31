@@ -20,29 +20,30 @@ export const Api = {
     },
 
     Folder: {
-        CREATE_FOLDER: '',
-        GET_FOLDER: '',
+        CREATE_FOLDER: '/api/doctors/v1/folders',
+        GET_FOLDER: '/api/doctors/v1/folders',
         UPDATE_PATIENT_PROFILE: '',
-        GET_FOLDER_OF_USER: '',
-        RENAME_FOLDER: '',
-        DELETE_FOLDER: ''
+        GET_FOLDER_OF_USER: '/api/doctors/v1/folders/created-by',
+        RENAME_FOLDER: '/api/doctors/v1/folders',
+        DELETE_FOLDER: '/api/doctors/v1/folders'
     },
 
     Patient: {
-        CREATE_PATIENT_PROFILE: '',
-        GET_PATIENT_PROFILE: '',
-        UPDATE_PATIENT_PROFILE: '',
-        DELETE_PATIENT_PROFILE: '',
-        LIST_PATIENT_PROFILES: ''
+        CREATE_PATIENT_PROFILE: '/api/patients/v1/patient-profiles', // POST ?folderId=xxx
+        GET_PATIENT_PROFILE: '/api/patients/v1/patient-profiles',    // GET /:id
+        UPDATE_PATIENT_PROFILE: '/api/patients/v1/patient-profiles', // PUT /:id
+        DELETE_PATIENT_PROFILE: '/api/patients/v1/patient-profiles', // DELETE /:id
+        LIST_PATIENT_PROFILES: '/api/patients/v1/patient-profiles'
     },
 
     ChatSession: {
-        CREATE_CHAT_SESSION: '',
+        CREATE_CHAT_SESSION: '/api/doctors/v1/chatsessions/analyze-and-create-chatsession',
         CREATE_TEXT_CHAT_SESSION: '',
-        GET_CHAT_SESSION: '',
-        SEND_CHAT_MESSAGE: '',
+        GET_CHAT_SESSION: '/api/doctors/v1/chatsessions',
+        GET_CHAT_SESSIONS_BY_FOLDER: '/api/doctors/v1/chatsessions/folder',
+        SEND_CHAT_MESSAGE: '/api/doctors/v1/chatsessions',
         RENAME_CHAT_SESSION: '',
-        DELETE_CHAT_SESSION: ''
+        DELETE_CHAT_SESSION: '/api/doctors/v1/chatsessions'
     },
 
     ThirdParty: {

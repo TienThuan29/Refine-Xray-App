@@ -20,7 +20,8 @@ namespace DoctorService.Services.Folder
             {
                 Title = folderRequest.Title,
                 Description = folderRequest.Description,
-                CreatedBy = createdBy
+                CreatedBy = createdBy,
+                Type = folderRequest.Type
             };
 
             return await _folderRepository.CreateFolderAsync(folder);
@@ -62,6 +63,16 @@ namespace DoctorService.Services.Folder
             }).ToList() ?? new List<FolderResponse>();
 
             return folderResponses;
+        }
+
+        public async Task<Models.Folder?> UpdateFolderAsync(string folderId, UpdateFolderRequest request)
+        {
+            return await _folderRepository.UpdateFolderAsync(folderId, request.Title, request.Description);
+        }
+
+        public async Task<bool> DeleteFolderAsync(string folderId)
+        {
+            return await _folderRepository.SoftDeleteFolderAsync(folderId);
         }
     }
 }

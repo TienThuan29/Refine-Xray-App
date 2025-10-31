@@ -50,8 +50,9 @@ namespace DoctorService.Web.Controllers
         }
 
         [HttpPost("analyze-and-create-chatsession")]
-        public async Task<ActionResult<ApiResponse<ChatSessionResponse>>> AnalyzeAndCreateChatSession([FromForm] ChatSessionRequest request)
-        {
+        public async Task<ActionResult<ApiResponse<ChatSessionResponse>>> AnalyzeAndCreateChatSession(
+            [FromForm] ChatSessionRequest request
+        ){
             try
             {
                 _logger.LogInformation("Creating chat session, Title: {Title}", request.Title);
@@ -74,12 +75,7 @@ namespace DoctorService.Web.Controllers
             }
         }
 
-        /// <summary>
-        /// Get chat session by ID
-        /// </summary>
-        /// <param name="chatSessionId">Chat session ID</param>
-        /// <returns>Chat session details</returns>
-        [HttpGet("get/{chatSessionId}")]
+        [HttpGet("{chatSessionId}")]
         public async Task<ActionResult<ApiResponse<ChatSessionResponse>>> GetChatSessionById(string chatSessionId)
         {
             try

@@ -15,9 +15,7 @@ import {
 const { Sider } = Layout;
 import { FaRegFolderOpen, FaFolderPlus } from "react-icons/fa6";
 import { MenuItem } from '../../types/folder';
-import { mockFolders } from '../../mocks/folderData';
 import { GoGear } from "react-icons/go";
-import { useLanguage } from '../../contexts/LanguageContext';
 import SettingsModal from './setting';
 import NewChatModal from './newchat';
 import { FaEllipsisH } from "react-icons/fa";
@@ -31,7 +29,7 @@ interface SidebarProps {
 
 
 const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse, onItemSelect }) => {
-  const { t } = useLanguage();
+  // Language support removed; using static English strings
   const [selectedKey, setSelectedKey] = useState('');
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [settingsVisible, setSettingsVisible] = useState(false);
@@ -41,17 +39,17 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse, onItem
     {
       key: 'new-chat',
       icon: <EditOutlined />,
-      label: t('sidebar.newChat'),
+      label: 'New Chat',
     },
     {
       key: 'search',
       icon: <SearchOutlined />,
-      label: t('sidebar.searchChats'),
+      label: 'Search Chats',
     },
     {
       key: 'settings',
       icon: <GoGear />,
-      label: t('sidebar.setting'),
+      label: 'Settings',
     }
   ];
 
@@ -71,12 +69,13 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse, onItem
       // {
       //   key: 'new-project',
       //   icon: <FaFolderPlus />,
-      //   label: t('sidebar.newProject'),
+      //   label: 'New Project',
       //   isNew: true,
       // }
     ];
-
-    mockFolders.forEach(folder => {
+    const folders: Array<{ id: string; title: string; chatSessions: Array<{ id: string; title: string }> }>
+      = [];
+    folders.forEach(folder => {
       const isExpanded = expandedFolders.has(folder.id);
       // Add folder
       items.push({
@@ -104,7 +103,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse, onItem
     items.push({
       key: 'see-more',
       icon: <FaEllipsisH />,
-      label: t('sidebar.seeMore'),
+      label: 'See more',
       isNew: false,
     });
 
@@ -122,16 +121,14 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse, onItem
       return;
     }
     
-    const folder = mockFolders.find(f => f.id === key);
+    const folder = undefined;
     if (folder) {
       toggleFolder(key);
     } 
     else {
       setSelectedKey(key);
       // Find the chat session item and pass it to parent
-      const chatSession = mockFolders
-        .flatMap(f => f.chatSessions)
-        .find(session => session.id === key);
+      const chatSession = undefined;
       
       if (chatSession && onItemSelect) {
         onItemSelect(chatSession);
@@ -157,9 +154,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse, onItem
         <div className="p-4 h-full flex flex-col">
 
           <div className="mb-1">
-              <div className="text-center text-gray-800 font-bold text-lg">
-                {t('app.title')}
-              </div>
+              <div className="text-center text-gray-800 font-bold text-lg">Clini AI</div>
           </div>
 
           <Divider/>
@@ -226,7 +221,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse, onItem
             {!collapsed && (
               <div>
                 <div className=" ml-2 text-sm font-bold text-gray-800">
-                  {t('user.name')}
+                  User
                 </div>
               </div>
             )}

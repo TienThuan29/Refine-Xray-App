@@ -90,6 +90,10 @@ const useChatSessionManager = (): UseChatSessionManagerReturn => {
                 },
             });
             
+            if (!response.data.success) {
+                throw new Error(response.data.message || 'Failed to create chat session');
+            }
+            
             const chatSession = response.data.dataResponse;
 
             console.log('chatSession', chatSession);

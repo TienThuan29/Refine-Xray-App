@@ -56,9 +56,13 @@ const useFolderChatSessions = (): UseFolderChatSessionsReturn => {
         try {
             updateState({ isFetching: true, error: null });
             
-            // For now, we'll return empty array since we don't have a specific endpoint
-            // In the future, you might want to add an endpoint like /api/v1/folder/{folderId}/chat-sessions
-            const chatSessions: ChatSession[] = [];
+            const response = await axios.get(`${Api.ChatSession.GET_CHAT_SESSIONS_BY_FOLDER}/${folderId}`);
+            
+            if (!response.data.success) {
+                throw new Error(response.data.message || 'Failed to fetch folder chat sessions');
+            }
+            
+            const chatSessions: ChatSession[] = response.data.dataResponse || [];
             
             // Update state with the chat sessions for this folder
             setState(prev => ({
@@ -76,7 +80,7 @@ const useFolderChatSessions = (): UseFolderChatSessionsReturn => {
             updateState({ isFetching: false });
             return null;
         }
-    }, [updateState, handleError]);
+    }, [axios, updateState, handleError]);
 
     // Add a chat session to a folder (for when we create a new one)
     const addChatSessionToFolder = useCallback((folderId: string, chatSession: ChatSession) => {

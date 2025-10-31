@@ -5,24 +5,34 @@ namespace DoctorService.Web.Responses
 {
     public class ChatSessionResponse
     {
+        [JsonPropertyName("id")]
         public string Id { get; set; } = string.Empty;
         
+        [JsonPropertyName("sessionId")]
         public string SessionId { get; set; } = string.Empty;
         
+        [JsonPropertyName("title")]
         public string Title { get; set; } = string.Empty;
         
+        [JsonPropertyName("result")]
         public Result? Result { get; set; }
         
+        [JsonPropertyName("xrayImageUrl")]
         public string? XrayImageUrl { get; set; }
         
+        [JsonPropertyName("chatItems")]
         public List<ChatItem>? ChatItems { get; set; }
         
+        [JsonPropertyName("reports")]
         public List<Report>? Reports { get; set; }
         
+        [JsonPropertyName("isDeleted")]
         public bool IsDeleted { get; set; }
         
+        [JsonPropertyName("createdDate")]
         public DateTime? CreatedDate { get; set; }
         
+        [JsonPropertyName("updatedDate")]
         public DateTime? UpdatedDate { get; set; }
     }
 
@@ -59,7 +69,7 @@ namespace DoctorService.Web.Responses
         public List<DiseasePrediction> Top5Diseases { get; set; } = new();
         
         [JsonPropertyName("gradcam_analyses")]
-        public GradcamAnalyses GradcamAnalyses { get; set; } = new(); // base64 encoded images
+        public GradcamAnalyses? GradcamAnalyses { get; set; } // base64 encoded images
         
         [JsonPropertyName("individual_analyses")]
         public IndividualAnalyses IndividualAnalyses { get; set; } = new();

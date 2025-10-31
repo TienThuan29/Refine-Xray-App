@@ -48,7 +48,7 @@ export const useUserService = () => {
 
   const getAllUsers = useCallback(async (authTokens: AuthTokens | null): Promise<UserProfile[]> => {
     try {
-      const response = await fetch(`${Api.BASE_API}${Api.System.GET_ALL_USERS}`, {
+      const response = await fetch(`${Api.BASE_API}${Api.Admin.GET_ALL_USERS}`, {
         method: 'GET',
         headers: getAuthHeaders(authTokens),
       });
@@ -69,7 +69,7 @@ export const useUserService = () => {
 
   const getUserByEmail = useCallback(async (email: string, authTokens: AuthTokens | null): Promise<UserProfile> => {
     try {
-      const response = await fetch(`${Api.BASE_API}${Api.System.GET_USER_BY_EMAIL}`, {
+      const response = await fetch(`${Api.BASE_API}${Api.Admin.GET_USER_BY_EMAIL}`, {
         method: 'POST',
         headers: getAuthHeaders(authTokens),
         body: JSON.stringify({ email }),
@@ -91,7 +91,7 @@ export const useUserService = () => {
 
   const createUser = useCallback(async (userData: CreateUserData, authTokens: AuthTokens | null): Promise<UserProfile> => {
     try {
-      const response = await fetch(`${Api.BASE_API}${Api.System.CREATE_ACCOUNT}`, {
+      const response = await fetch(`${Api.BASE_API}${Api.Admin.CREATE_ACCOUNT}`, {
         method: 'POST',
         headers: getAuthHeaders(authTokens),
         body: JSON.stringify(userData),
@@ -113,7 +113,7 @@ export const useUserService = () => {
 
   const updateUser = useCallback(async (email: string, userData: UpdateUserData, authTokens: AuthTokens | null): Promise<UserProfile> => {
     try {
-      const response = await fetch(`${Api.BASE_API}${Api.System.UPDATE_USER}`, {
+      const response = await fetch(`${Api.BASE_API}${Api.Admin.UPDATE_USER}`, {
         method: 'PUT',
         headers: getAuthHeaders(authTokens),
         body: JSON.stringify({ email, ...userData }),
@@ -135,7 +135,7 @@ export const useUserService = () => {
 
   const deleteUser = useCallback(async (email: string, authTokens: AuthTokens | null): Promise<boolean> => {
     try {
-      const response = await fetch(`${Api.BASE_API}${Api.System.DELETE_USER}`, {
+      const response = await fetch(`${Api.BASE_API}${Api.Admin.DELETE_USER}`, {
         method: 'DELETE',
         headers: getAuthHeaders(authTokens),
         body: JSON.stringify({ email }),
@@ -157,7 +157,7 @@ export const useUserService = () => {
 
   const updateUserStatus = useCallback(async (email: string, statusData: UpdateUserStatusData, authTokens: AuthTokens | null): Promise<UserProfile> => {
     try {
-      const response = await fetch(`${Api.BASE_API}${Api.System.UPDATE_USER_STATUS}`, {
+      const response = await fetch(`${Api.BASE_API}${Api.Admin.UPDATE_USER_STATUS}`, {
         method: 'PATCH',
         headers: getAuthHeaders(authTokens),
         body: JSON.stringify({ email, ...statusData }),

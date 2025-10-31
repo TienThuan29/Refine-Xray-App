@@ -126,6 +126,56 @@ namespace DoctorService.Repositories.Folder
                 return null;
             }
         }
+
+        public async Task<Models.Folder?> UpdateFolderAsync(string folderId, string title, string? description)
+        {
+            try
+            {
+                var folder = await FindByIdAsync(folderId);
+                if (folder == null)
+                {
+                    return null;
+                }
+                folder.Title = title;
+                folder.Description = description;
+                folder.UpdatedDate = DateTime.UtcNow;
+
+                var dynamoItem = DynamoMapper.FolderToDynamoItem(folder);
+                var response = await PutItemAsync(dynamoItem, _folderTableName);
+                if (response.HttpStatusCode == System.Net.HttpStatusCode.OK)
+                {
+                    return await FindByIdAsync(folderId);
+                }
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating folder: {FolderId}", folderId);
+                return null;
+            }
+        }
+
+        public async Task<bool> SoftDeleteFolderAsync(string folderId)
+        {
+            try
+            {
+                var folder = await FindByIdAsync(folderId);
+                if (folder == null)
+                {
+                    return false;
+                }
+                folder.IsDeleted = true;
+                folder.UpdatedDate = DateTime.UtcNow;
+                var dynamoItem = DynamoMapper.FolderToDynamoItem(folder);
+                var response = await PutItemAsync(dynamoItem, _folderTableName);
+                return response.HttpStatusCode == System.Net.HttpStatusCode.OK;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error soft-deleting folder: {FolderId}", folderId);
+                return false;
+            }
+        }
     }
 }
 

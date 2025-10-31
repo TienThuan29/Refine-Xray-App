@@ -165,6 +165,9 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
                 const userProfile = response.data.dataResponse.userProfile;
                 // console.log(userProfile);
+                // Persist user profile immediately so UI can consume it
+                setUser(userProfile);
+                localStorage.setItem(USER_PROFILE_KEY, JSON.stringify(userProfile));
                 const roleValidator = await validateUserRole(userProfile);
 
                 if (roleValidator.isSystem) {

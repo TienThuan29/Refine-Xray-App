@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import useAxios from './useAxios';
+import { useAuth } from '@/contexts/AuthContext';
 import { Api } from '@/configs/api';
 import { Folder, Type } from '@/types/folder';
 
@@ -54,6 +55,7 @@ export type UseFolderManagerReturn = FolderManagerState & FolderManagerActions;
 
 const useFolderManager = (): UseFolderManagerReturn => {
     const axios = useAxios();
+    const { user } = useAuth();
     
     // State
     const [state, setState] = useState<FolderManagerState>({
@@ -85,8 +87,17 @@ const useFolderManager = (): UseFolderManagerReturn => {
     const createFolder = useCallback(async (data: CreateFolderRequest): Promise<Folder | null> => {
         try {
             updateState({ isCreating: true, error: null });
+            if (!user?.id) {
+                throw new Error('User not authenticated');
+            }
+            const payload = {
+                Title: data.title,
+                Description: data.description,
+                CreatedBy: user?.id,
+                Type: data.type ?? Type.ANALYZE,
+            };
             
-            const response = await axios.post(Api.Folder.CREATE_FOLDER, data);
+            const response = await axios.post(Api.Folder.CREATE_FOLDER, payload);
             console.log('Folder creation response:', response.data);
             console.log('Response status:', response.status);
             
@@ -112,7 +123,7 @@ const useFolderManager = (): UseFolderManagerReturn => {
             updateState({ isCreating: false });
             return null;
         }
-    }, [axios, updateState, handleError]);
+    }, [axios, updateState, handleError, user]);
 
     // Get folder by ID
     const getFolder = useCallback(async (folderId: string): Promise<Folder | null> => {
@@ -171,8 +182,11 @@ const useFolderManager = (): UseFolderManagerReturn => {
     const getFoldersOfUser = useCallback(async (): Promise<Folder[] | null> => {
         try {
             updateState({ isFetchingUserFolders: true, error: null });
-            
-            const response = await axios.get(Api.Folder.GET_FOLDER_OF_USER);
+            const createdBy = user?.id || '';
+            if (!createdBy) {
+                throw new Error('User not authenticated');
+            }
+            const response = await axios.get(`${Api.Folder.GET_FOLDER_OF_USER}?userId=${encodeURIComponent(createdBy)}`);
             
             const userFolders = response.data.dataResponse;
 
@@ -188,7 +202,7 @@ const useFolderManager = (): UseFolderManagerReturn => {
             updateState({ isFetchingUserFolders: false });
             return null;
         }
-    }, [axios, updateState, handleError]);
+    }, [axios, updateState, handleError, user]);
 
     // Set current folder
     const setCurrentFolder = useCallback((folder: Folder | null) => {

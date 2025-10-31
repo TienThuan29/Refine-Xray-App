@@ -1,5 +1,6 @@
 using DoctorService.Web.Responses;
 using System.Text.Json;
+using System.Linq;
 
 namespace DoctorService.Services.CliniAI
 {
@@ -8,7 +9,8 @@ namespace DoctorService.Services.CliniAI
         private readonly HttpClient _httpClient;
         private readonly ILogger<CliniAiService> _logger;
 
-        private readonly string _analyzeUrl = "/radiology/analyze";
+        private readonly string _analyzeUrl = "/radiology/analyze-only";
+        private readonly string _gradCamAnalysisUrl = "/radiology/gradcam-llm";
         private readonly string _xrayDetectionUrl = "/xray/detect";
 
         public CliniAiService(
@@ -19,11 +21,6 @@ namespace DoctorService.Services.CliniAI
             _logger = logger;
             // BaseUrl is now set in HttpClient configuration, so we don't need to store it here
         }
-
-        // public async Task<CliniAiResponse?> GetXrayDetectionResultAsync(byte[] xrayImage)
-        // {
-            
-        // }
 
         public async Task<bool> IsServiceAvailableAsync()
         {
@@ -56,45 +53,16 @@ namespace DoctorService.Services.CliniAI
             try
             {
                 var hyperParams = GetHyperParams();
-                
                 // Create multipart form data
                 using var formData = new MultipartFormDataContent();
-                
                 // Add the image file
                 var imageContent = new ByteArrayContent(xrayImage);
                 imageContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/png");
                 formData.Add(imageContent, "image", "xray_image.png");
                 
-                _logger.LogInformation("Image size: {ImageSize} bytes", xrayImage.Length);
-                
-                // Add form fields
-                // formData.Add(
-                //     new StringContent(
-                //         hyperParams.ConfidenceThreshold.ToString(
-                //             System.Globalization.CultureInfo.InvariantCulture)
-                //         ), 
-                //         "confidence_threshold"
-                // );
-                if (!string.IsNullOrEmpty(hyperParams.ModelPath))
-                {
-                    formData.Add(new StringContent(hyperParams.ModelPath), "model_path");
-                }
-                _logger.LogInformation("Making request to CliniAI: {Url}", _analyzeUrl);
-                _logger.LogInformation("Form data content type: {ContentType}", formData.Headers.ContentType);
-                _logger.LogInformation("Form data boundary: {Boundary}", formData.Headers.ContentType?.Parameters?.FirstOrDefault(p => p.Name == "boundary")?.Value);
-                _logger.LogInformation("HttpClient timeout: {Timeout}", _httpClient.Timeout);
-                _logger.LogInformation("HttpClient BaseAddress: {BaseAddress}", _httpClient.BaseAddress);
-                
                 // Add a cancellation token with timeout
                 using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(25));
-                _logger.LogInformation("Starting HTTP request to CliniAI service...");
-                
                 var response = await _httpClient.PostAsync(_analyzeUrl, formData, cts.Token);
-                
-                _logger.LogInformation("HTTP request completed successfully");
-                
-                _logger.LogInformation("CliniAI response status: {StatusCode}", response.StatusCode);
-                _logger.LogInformation("CliniAI response headers: {Headers}", string.Join(", ", response.Headers.Select(h => $"{h.Key}={string.Join(",", h.Value)}")));
                 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -104,7 +72,34 @@ namespace DoctorService.Services.CliniAI
                 }
                 
                 var responseContent = await response.Content.ReadAsStringAsync();
-                _logger.LogInformation("CliniAI response received: {ResponseLength} characters", responseContent.Length);
+                if (string.IsNullOrEmpty(responseContent))
+                {
+                    _logger.LogError("CliniAI response content is null or empty");
+                    return null;
+                }
+                
+                _logger.LogInformation("CliniAI raw response length: {Length} characters", responseContent.Length);
+                
+                // Log just the gradcam_analyses section for debugging (might be very long)
+                try
+                {
+                    using (var jsonDoc = JsonDocument.Parse(responseContent))
+                    {
+                        if (jsonDoc.RootElement.TryGetProperty("gradcam_analyses", out var gradcamElement))
+                        {
+                            var gradcamKeys = gradcamElement.EnumerateObject().Select(p => p.Name).ToList();
+                            _logger.LogInformation("Found gradcam_analyses with {Count} keys: {Keys}", gradcamKeys.Count, string.Join(", ", gradcamKeys));
+                        }
+                        else
+                        {
+                            _logger.LogWarning("gradcam_analyses property not found in response!");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error parsing JSON for debugging");
+                }
                 
                 var cliniAiResponse = JsonSerializer.Deserialize<CliniAiResponse>(responseContent, new JsonSerializerOptions
                 {
@@ -115,6 +110,20 @@ namespace DoctorService.Services.CliniAI
                 {
                     _logger.LogError("Failed to deserialize CliniAI response");
                     return null;
+                }
+                
+                // Log gradcam_analyses to debug
+                if (cliniAiResponse.GradcamAnalyses != null)
+                {
+                    var dynamicKeysCount = cliniAiResponse.GradcamAnalyses.DynamicKeys?.Count ?? 0;
+                    _logger.LogInformation("CliniAI GradcamAnalyses - DynamicKeys count: {Count}", dynamicKeysCount);
+                    if (cliniAiResponse.GradcamAnalyses.DynamicKeys != null)
+                    {
+                        foreach (var key in cliniAiResponse.GradcamAnalyses.DynamicKeys.Keys)
+                        {
+                            _logger.LogInformation("GradcamAnalyses key: {Key}", key);
+                        }
+                    }
                 }
                 
                 _logger.LogInformation("CliniAI analysis completed successfully");
@@ -147,7 +156,6 @@ namespace DoctorService.Services.CliniAI
             return new HyperParams
             {
                 ConfidenceThreshold = 0.4,
-                ModelPath = string.Empty
             };
         }
 

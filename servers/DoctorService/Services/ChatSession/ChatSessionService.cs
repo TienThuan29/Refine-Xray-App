@@ -2,6 +2,7 @@ using DoctorService.Models;
 using DoctorService.Web.Requests;
 using DoctorService.Web.Responses;
 using DoctorService.Repositories.ChatSession;
+using DoctorService.Repositories.S3;
 using DoctorService.Services.CliniAI;
 using DoctorService.Services.GradCam;
 using DoctorService.Libs;
@@ -13,27 +14,32 @@ namespace DoctorService.Services.ChatSession
         private readonly IChatSessionRepository _chatSessionRepository;
         private readonly ICliniAiService _cliniAiService;
         private readonly IGradCamImageService _gradCamImageService;
+        private readonly IS3Repository _s3Repository;
         private readonly ILogger<ChatSessionService> _logger;
+
+
         public ChatSessionService(
             IChatSessionRepository chatSessionRepository,
             ICliniAiService cliniAiService,
             IGradCamImageService gradCamImageService,
+            IS3Repository s3Repository,
             ILogger<ChatSessionService> logger,
             IConfiguration configuration)
         {
             _chatSessionRepository = chatSessionRepository;
             _cliniAiService = cliniAiService;
             _gradCamImageService = gradCamImageService;
+            _s3Repository = s3Repository;
             _logger = logger;
             _ = configuration; // Suppress unused parameter warning
         }
 
-        public async Task<ApiResponse<ChatSessionResponse>> AnalyzeAndCreateChatSessionAsync(ChatSessionRequest request)
-        {
+        public async Task<ApiResponse<ChatSessionResponse>> AnalyzeAndCreateChatSessionAsync(
+            ChatSessionRequest request
+        ){
             Console.WriteLine("Analyzing and creating chat session ....");
             try
             {
-                // Validate required fields
                 if (string.IsNullOrEmpty(request.Title))
                 {
                     return new ApiResponse<ChatSessionResponse>
@@ -56,7 +62,6 @@ namespace DoctorService.Services.ChatSession
 
                 // Generate unique ID for the chat session
                 var chatSessionId = Guid.NewGuid().ToString();
-                
                 // Convert IFormFile to byte array for CliniAI service
                 byte[] imageBytes;
                 using (var memoryStream = new MemoryStream())
@@ -84,19 +89,42 @@ namespace DoctorService.Services.ChatSession
                     Id = chatSessionId,
                     SessionId = chatSessionId, // Use the same ID as sessionId for N8N
                     Title = request.Title,
+                    FolderId = request.FolderId,
                     XrayImageUrl = xrayImageUrl,
                     Result = result
                 };
 
-                var savedChatSession = await _chatSessionRepository.CreateChatSessionAsync(chatSession);
+                _logger.LogInformation("Creating chat session with Result size: {ResultSize} bytes, FolderId: {FolderId}", 
+                    result != null ? System.Text.Json.JsonSerializer.Serialize(result).Length : 0, 
+                    request.FolderId);
 
-                if (savedChatSession == null)
+                DoctorService.Models.ChatSession? savedChatSession;
+                try
                 {
+                    savedChatSession = await _chatSessionRepository.CreateChatSessionAsync(chatSession);
+                    
+                    if (savedChatSession == null)
+                    {
+                        _logger.LogError("Failed to save chat session to DynamoDB. CreateChatSessionAsync returned null. ChatSessionId: {ChatSessionId}", chatSessionId);
+                        return new ApiResponse<ChatSessionResponse>
+                        {
+                            Success = false,
+                            Message = "Failed to create chat session",
+                            Error = "Database operation returned null. Check logs for details."
+                        };
+                    }
+                    
+                    _logger.LogInformation("Chat session saved successfully. ChatSessionId: {ChatSessionId}, HasResult: {HasResult}, HasFolderId: {HasFolderId}", 
+                        savedChatSession.Id, savedChatSession.Result != null, !string.IsNullOrEmpty(savedChatSession.FolderId));
+                }
+                catch (Exception dbEx)
+                {
+                    _logger.LogError(dbEx, "Exception while saving chat session to DynamoDB. ChatSessionId: {ChatSessionId}", chatSessionId);
                     return new ApiResponse<ChatSessionResponse>
                     {
                         Success = false,
                         Message = "Failed to create chat session",
-                        Error = "Database operation failed"
+                        Error = $"Database operation failed: {dbEx.Message}. Check logs for details."
                     };
                 }
 
@@ -391,20 +419,30 @@ namespace DoctorService.Services.ChatSession
             }
         }
 
-        private Task<string> UploadXrayImageToS3Async(byte[] _, string chatSessionId)
+        private async Task<string> UploadXrayImageToS3Async(byte[] imageBytes, string chatSessionId)
         {
             try
             {
-                // Placeholder for S3 upload
-                // This should be implemented to upload to S3
-                _logger.LogInformation("Uploading image to S3 for chat session: {ChatSessionId}", chatSessionId);
+                _logger.LogInformation("Uploading X-ray image to S3 for chat session: {ChatSessionId}, Image size: {Size} bytes", chatSessionId, imageBytes.Length);
                 
-                // For now, return a mock URL
-                return Task.FromResult($"https://s3.amazonaws.com/bucket/{chatSessionId}/xray_image.png");
+                // Generate file path for the X-ray image
+                var fileName = $"xray/{chatSessionId}/xray_image.png";
+                
+                // Upload to S3
+                var s3Url = await _s3Repository.UploadFileAsync(imageBytes, fileName, "image/png");
+                
+                if (string.IsNullOrEmpty(s3Url))
+                {
+                    _logger.LogError("S3 upload returned empty URL for chat session: {ChatSessionId}", chatSessionId);
+                    throw new InvalidOperationException("Failed to upload X-ray image to S3: Empty URL returned");
+                }
+                
+                _logger.LogInformation("X-ray image uploaded successfully to S3: {Url}", s3Url);
+                return s3Url;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error uploading image to S3");
+                _logger.LogError(ex, "Error uploading X-ray image to S3 for chat session: {ChatSessionId}", chatSessionId);
                 throw;
             }
         }
@@ -415,13 +453,29 @@ namespace DoctorService.Services.ChatSession
             {
                 _logger.LogInformation("Converting CliniAI response to Result for chat session: {ChatSessionId}", chatSessionId);
                 
+                // Check if GradcamAnalyses is null
+                if (cliniAiResponse.GradcamAnalyses == null)
+                {
+                    _logger.LogError("GradcamAnalyses is null in CliniAI response!");
+                    throw new InvalidOperationException("GradcamAnalyses is null in CliniAI response");
+                }
+                
                 // Log the original GradCam data
-                _logger.LogInformation("Original GradCam data - Top1Pneumothorax: {Length1}, Top2Atelectasis: {Length2}, Top3Edema: {Length3}, Top4Pneumonia: {Length4}, Top5PleuralThickening: {Length5}", 
-                    cliniAiResponse.GradcamAnalyses.Top1Pneumothorax?.Length ?? 0,
-                    cliniAiResponse.GradcamAnalyses.Top2Atelectasis?.Length ?? 0,
-                    cliniAiResponse.GradcamAnalyses.Top3Edema?.Length ?? 0,
-                    cliniAiResponse.GradcamAnalyses.Top4Pneumonia?.Length ?? 0,
-                    cliniAiResponse.GradcamAnalyses.Top5PleuralThickening?.Length ?? 0);
+                var dynamicKeysCount = cliniAiResponse.GradcamAnalyses.DynamicKeys?.Count ?? 0;
+                _logger.LogInformation("Original GradCam data - Dynamic keys count: {Count}", dynamicKeysCount);
+                
+                if (cliniAiResponse.GradcamAnalyses.DynamicKeys != null && cliniAiResponse.GradcamAnalyses.DynamicKeys.Any())
+                {
+                    foreach (var kvp in cliniAiResponse.GradcamAnalyses.DynamicKeys)
+                    {
+                        var valueStr = kvp.Value.GetString() ?? string.Empty;
+                        _logger.LogInformation("GradCam key: {Key}, value length: {Length}", kvp.Key, valueStr.Length);
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("GradcamAnalyses.DynamicKeys is null or empty! The gradcam_analyses object might not have been deserialized correctly.");
+                }
 
                 // Process and upload GradCam images to S3
                 var processedGradcamAnalyses = await _gradCamImageService.ProcessAndUploadGradCamImagesAsync(

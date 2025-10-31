@@ -1,17 +1,25 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace DoctorService.Web.Requests
 {
     public class ChatSessionRequest
     {
         [Required]
+        [FromForm(Name = "folderId")]
+        [JsonPropertyName("folderId")]
         public string FolderId { get; set; } = string.Empty;
         
         [Required]
+        [FromForm(Name = "title")]
+        [JsonPropertyName("title")]
         public string Title { get; set; } = string.Empty;
         
         [Required]
+        [FromForm(Name = "xrayImage")]
+        [JsonPropertyName("xrayImage")]
         public IFormFile Image { get; set; } = null!;
     }
 

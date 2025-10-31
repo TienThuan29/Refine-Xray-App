@@ -38,7 +38,7 @@ import UserProfile from '@/components/combination/user-profile';
 import RenameModal from '@/components/combination/rename-modal';
 import DeleteConfirmModal from '@/components/combination/delete-confirm-modal';
 import { Type } from '@/types/folder';
-import { ChatItem, Report } from '@/types/chatsession';
+import { ChatSession, ChatItem, Report } from '@/types/chatsession';
 import { FaRegQuestionCircle } from "react-icons/fa";
 import Footer from '@/components/single/footer';
 import { PageUrl } from '@/configs/page.url';
@@ -186,40 +186,58 @@ export default function Page() {
       // Toggle folder expansion
       toggleFolder(key);
       setSelectedKey(key);
+      
+      // Fetch chat sessions for this folder if expanding
+      if (!expandedFolders.has(key)) {
+        // Folder is being expanded, fetch chat sessions
+        try {
+          await getChatSessionsForFolder(key);
+        } catch (error) {
+          console.error('Error fetching chat sessions for folder:', error);
+        }
+      }
     } else {
       // Check if it's a chat session - look in all folders for the chat session
-      console.log('Looking for chat session with key:', key);
-      console.log('Current folderChatSessions:', folderChatSessions);
-      console.log('Current folders:', folders);
+      let chatSession: ChatSession | null = null;
 
-      let chatSession = null;
-
-      // First check local state
+      // First check local state (from folderChatSessions)
       chatSession = Object.values(folderChatSessions)
         .flat()
-        .find(session => session.id === key);
+        .find(session => session.id === key) || null;
 
-      // If not found in local state, check backend data
+      // If not found in local state, check backend data (from folder.chatSessionsInfo)
+      // Note: ChatSessionInfo only has basic info, we'll fetch full ChatSession by ID
+      let chatSessionId: string | null = null;
       if (!chatSession) {
         for (const folder of folders) {
           const backendChatSessions = folder.chatSessionsInfo || [];
-          chatSession = backendChatSessions.find(session => session.id === key);
-          if (chatSession) break;
+          const foundSession = backendChatSessions.find(session => session.id === key);
+          if (foundSession) {
+            chatSessionId = foundSession.id;
+            break;
+          }
         }
+      } else {
+        chatSessionId = chatSession.id;
       }
 
-      if (chatSession) {
+      if (chatSessionId) {
         setSelectedKey(key);
-        // Fetch the full chat session data
+        // Fetch the full chat session data with Result
         try {
-          await getChatSession(chatSession.id);
+          const fullChatSession = await getChatSession(chatSessionId);
+          if (fullChatSession) {
+            // The getChatSession hook already updates currentChatSession
+            console.log('Chat session loaded:', fullChatSession);
+            console.log('X-ray image URL:', fullChatSession.xrayImageUrl);
+          }
         }
         catch (error) {
           console.error('Error fetching chat session:', error);
         }
       }
       else {
-        console.log('No chat session found with key:', key);
+        console.warn('No chat session found with key:', key);
       }
     }
 
@@ -775,18 +793,6 @@ export default function Page() {
                         </div>
                       ) : currentChatSession ? (
                         <div className="mx-auto">
-                          <div className="p-4 bg-gray-50 rounded-lg">
-                            {currentChatSession.xrayImageUrl && (
-                              <div className="mt-2">
-                                <img
-                                  src={currentChatSession.xrayImageUrl}
-                                  alt="X-ray Image"
-                                  className="max-w-full h-auto rounded-lg shadow-sm"
-                                  style={{ maxHeight: '300px' }}
-                                />
-                              </div>
-                            )}
-                          </div>
 
                           {(() => {
                             const parentFolder = folders.find(folder => 
@@ -822,6 +828,29 @@ export default function Page() {
                               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                 <div className="space-y-6">
                                   <div className="sticky top-6">
+                                    {/* X-ray Image Section */}
+                                    {currentChatSession.xrayImageUrl && (
+                                      <div className="mb-6">
+                                        <Title level={4} className="text-gray-900 mb-4 flex items-center">
+                                          <FileTextOutlined className="mr-2 text-orange-500" />
+                                          X-ray Image
+                                        </Title>
+                                        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                                          <img
+                                            src={currentChatSession.xrayImageUrl}
+                                            alt="X-ray Image"
+                                            className="w-full h-auto rounded-lg shadow-sm"
+                                            style={{ maxHeight: '500px', objectFit: 'contain' }}
+                                            onError={(e) => {
+                                              console.error('Failed to load X-ray image:', currentChatSession.xrayImageUrl);
+                                              (e.target as HTMLImageElement).style.display = 'none';
+                                            }}
+                                          />
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Analysis Results Section */}
                                     <Title level={4} className="text-gray-900 mb-4 flex items-center">
                                       <FileTextOutlined className="mr-2 text-orange-500" />
                                       Analysis Results
@@ -829,10 +858,10 @@ export default function Page() {
 
                                     {currentChatSession.result && (
                                       <div className="space-y-4">
-                                        {currentChatSession.result.gradcam_analyses && (
+                                        {currentChatSession.result.gradcamAnalyses && (
                                           <Card title="GradCAM Analysis" size="small">
                                             <div className="grid grid-cols-2 gap-2">
-                                              {Object.entries(currentChatSession.result.gradcam_analyses).map(([key, url]) => (
+                                              {Object.entries(currentChatSession.result.gradcamAnalyses).map(([key, url]) => (
                                                 <div key={key} className="text-center">
                                                   <img
                                                     src={url}
@@ -848,12 +877,12 @@ export default function Page() {
                                           </Card>
                                         )}
 
-                                        {currentChatSession.result.predicted_diseases && (
+                                        {currentChatSession.result.predictedDiseases && (
                                           <Card title="Disease Predictions" size="small">
                                             <div className="space-y-2">
                                               {(showAllDiseases
-                                                ? currentChatSession.result.predicted_diseases
-                                                : currentChatSession.result.predicted_diseases.slice(0, 5)
+                                                ? currentChatSession.result.predictedDiseases
+                                                : currentChatSession.result.predictedDiseases.slice(0, 5)
                                               ).map((disease, index) => (
                                                 <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded text-sm">
                                                   <span className="font-medium">{disease.disease}</span>
@@ -862,7 +891,7 @@ export default function Page() {
                                                   </span>
                                                 </div>
                                               ))}
-                                              {currentChatSession.result.predicted_diseases.length > 5 && (
+                                              {currentChatSession.result.predictedDiseases.length > 5 && (
                                                 <div className="flex justify-center mt-2">
                                                   <Button
                                                     type="link"
@@ -870,7 +899,7 @@ export default function Page() {
                                                     onClick={() => setShowAllDiseases(!showAllDiseases)}
                                                     className="text-blue-600 hover:text-blue-800 p-0 h-auto"
                                                   >
-                                                    {showAllDiseases ? 'Show Less' : `Show More (${currentChatSession.result.predicted_diseases.length - 5} more)`}
+                                                    {showAllDiseases ? 'Show Less' : `Show More (${currentChatSession.result.predictedDiseases.length - 5} more)`}
                                                   </Button>
                                                 </div>
                                               )}
@@ -878,18 +907,18 @@ export default function Page() {
                                           </Card>
                                         )}
 
-                                        {currentChatSession.result.concise_conclusion && (
+                                        {currentChatSession.result.conciseConclusion && (
                                           <Card title="Concise Conclusion" size="small">
                                             <Text className="text-gray-700 text-sm">
-                                              {currentChatSession.result.concise_conclusion}
+                                              {currentChatSession.result.conciseConclusion}
                                             </Text>
                                           </Card>
                                         )}
 
-                                        {currentChatSession.result.comprehensive_analysis && (
+                                        {currentChatSession.result.comprehensiveAnalysis && (
                                           <Card title="Comprehensive Analysis" size="small">
                                             <Text className="text-gray-700 whitespace-pre-wrap text-sm">
-                                              {currentChatSession.result.comprehensive_analysis}
+                                              {currentChatSession.result.comprehensiveAnalysis}
                                             </Text>
                                           </Card>
                                         )}

@@ -12,6 +12,7 @@ namespace DoctorService.Repositories.Folder
             {
                 ["id"] = new AttributeValue { S = folder.Id },
                 ["title"] = new AttributeValue { S = folder.Title },
+                ["type"] = new AttributeValue { S = folder.Type.ToString() },
                 ["createdBy"] = new AttributeValue { S = folder.CreatedBy },
                 ["isDeleted"] = new AttributeValue { BOOL = folder.IsDeleted }
             };
@@ -41,6 +42,7 @@ namespace DoctorService.Repositories.Folder
                 Id = item["id"].S,
                 Title = item["title"].S,
                 CreatedBy = item["createdBy"].S,
+                Type = Enum.Parse<FolderType>(item["type"].S),
                 IsDeleted = item["isDeleted"].BOOL
             };
 

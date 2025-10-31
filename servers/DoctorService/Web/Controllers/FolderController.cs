@@ -43,7 +43,7 @@ namespace DoctorService.Web.Controllers
             }
         }
 
-         [HttpGet("{folderId}")]
+        [HttpGet("{folderId}")]
         public async Task<ActionResult<ApiResponse<Models.Folder>>> FindFolderById([FromRoute] string folderId)
         {
             try
@@ -86,7 +86,7 @@ namespace DoctorService.Web.Controllers
         // }
 
        
-        [HttpGet("created-by/{userId}")]
+        [HttpGet("created-by")]
         public async Task<ActionResult<ApiResponse<List<FolderResponse>>>> GetFolderOfUser([FromQuery] string userId)
         {
             try
@@ -108,6 +108,44 @@ namespace DoctorService.Web.Controllers
             {
                 _logger.LogError(ex, "Error getting folder of user");
                 return ResponseUtil.Error<List<FolderResponse>>("Internal Server Error", 500);
+            }
+        }
+
+        [HttpPut("{folderId}")]
+        public async Task<ActionResult<ApiResponse<Folder>>> UpdateFolder([FromRoute] string folderId, [FromBody] UpdateFolderRequest request)
+        {
+            try
+            {
+                var updated = await _folderService.UpdateFolderAsync(folderId, request);
+                if (updated == null)
+                {
+                    return ResponseUtil.Error<Folder>("Folder not found or update failed", 404);
+                }
+                return ResponseUtil.Success(updated, "Folder updated successfully", 200);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating folder");
+                return ResponseUtil.Error<Folder>("Internal Server Error", 500);
+            }
+        }
+
+        [HttpDelete("{folderId}")]
+        public async Task<ActionResult<ApiResponse<object>>> DeleteFolder([FromRoute] string folderId)
+        {
+            try
+            {
+                var deleted = await _folderService.DeleteFolderAsync(folderId);
+                if (!deleted)
+                {
+                    return ResponseUtil.Error<object>("Folder not found or deletion failed", 404);
+                }
+                return ResponseUtil.Success((object)new { deleted = true }, "Folder deleted successfully", 200);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting folder");
+                return ResponseUtil.Error<object>("Internal Server Error", 500);
             }
         }
     }

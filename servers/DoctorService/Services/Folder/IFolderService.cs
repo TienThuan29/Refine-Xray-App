@@ -10,6 +10,8 @@ namespace DoctorService.Services.Folder
         Task<Models.Folder?> UpdatePatientProfileIdAsync(string folderId, string patientProfileId);
         Task<Models.Folder?> FindByIdAsync(string folderId);
         Task<List<FolderResponse>?> GetFolderOfUserAsync(string userId);
+        Task<Models.Folder?> UpdateFolderAsync(string folderId, UpdateFolderRequest request);
+        Task<bool> DeleteFolderAsync(string folderId);
     }
 }
 

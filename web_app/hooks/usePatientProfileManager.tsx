@@ -98,7 +98,7 @@ const usePatientProfileManager = (): UsePatientProfileManagerReturn => {
         try {
             updateState({ isCreating: true, error: null });
             
-            const response = await axios.post(`${Api.Patient.CREATE_PATIENT_PROFILE}/${folderId}`, data);
+            const response = await axios.post(`${Api.Patient.CREATE_PATIENT_PROFILE}?folderId=${encodeURIComponent(folderId)}`, data);
             const newPatientProfile = response.data.dataResponse;
             
             // Update patient profiles list

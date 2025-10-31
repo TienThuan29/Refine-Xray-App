@@ -54,6 +54,8 @@ const useXrayDetection = (): UseXrayDetectionReturn => {
             // Create FormData and append the image
             const formData = new FormData();
             formData.append('image', imageFile);
+
+            console.log("validating xray ....")
             
             // Make the API call using plain axios (no auth needed for X-ray detection)
             const response = await axios.post(
@@ -65,6 +67,8 @@ const useXrayDetection = (): UseXrayDetectionReturn => {
                     },
                 }
             );
+
+            console.log(response.data)
             
             const detectionResult: XrayDetectionResponse = response.data;
             
@@ -75,6 +79,7 @@ const useXrayDetection = (): UseXrayDetectionReturn => {
             
             return detectionResult;
         } catch (error) {
+            console.log("Error in detect x-ray image")
             handleError(error, 'detect X-ray image');
             updateState({ isDetecting: false });
             return null;

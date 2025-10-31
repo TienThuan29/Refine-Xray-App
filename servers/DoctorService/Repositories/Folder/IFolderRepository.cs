@@ -8,6 +8,8 @@ namespace DoctorService.Repositories.Folder
         Task<Models.Folder?> UpdatePatientProfileIdAsync(string folderId, string patientProfileId);
         Task<Models.Folder?> FindByIdAsync(string folderId);
         Task<List<Models.Folder>?> FindFoldersByCreatedByAsync(string createdBy);
+        Task<Models.Folder?> UpdateFolderAsync(string folderId, string title, string? description);
+        Task<bool> SoftDeleteFolderAsync(string folderId);
     }
 }
 

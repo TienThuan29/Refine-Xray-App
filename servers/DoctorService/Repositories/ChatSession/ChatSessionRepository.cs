@@ -2,6 +2,7 @@ using DoctorService.Models;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
 using System.Text.Json;
+using System.Linq;
 
 namespace DoctorService.Repositories.ChatSession
 {
@@ -36,6 +37,11 @@ namespace DoctorService.Repositories.ChatSession
                     ["updatedDate"] = new AttributeValue { S = chatSession.UpdatedDate.Value.ToString("O") }
                 };
 
+                if (!string.IsNullOrEmpty(chatSession.FolderId))
+                {
+                    item["folderId"] = new AttributeValue { S = chatSession.FolderId };
+                }
+
                 if (!string.IsNullOrEmpty(chatSession.XrayImageUrl))
                 {
                     item["xrayImageUrl"] = new AttributeValue { S = chatSession.XrayImageUrl };
@@ -43,7 +49,30 @@ namespace DoctorService.Repositories.ChatSession
 
                 if (chatSession.Result != null)
                 {
-                    item["result"] = new AttributeValue { S = JsonSerializer.Serialize(chatSession.Result) };
+                    try
+                    {
+                        // Use JsonSerializerOptions to ensure JsonIgnore attributes are respected
+                        var serializerOptions = new JsonSerializerOptions
+                        {
+                            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+                            WriteIndented = false
+                        };
+                        var resultJson = JsonSerializer.Serialize(chatSession.Result, serializerOptions);
+                        var resultSize = resultJson.Length;
+                        _logger.LogInformation("Serializing Result object. Size: {Size} bytes ({SizeKB} KB)", resultSize, resultSize / 1024);
+                        
+                        if (resultSize > 400 * 1024) // 400KB DynamoDB item size limit
+                        {
+                            _logger.LogWarning("Result object size ({SizeKB} KB) exceeds DynamoDB recommended limit. Some data may not be saved.", resultSize / 1024);
+                        }
+                        
+                        item["result"] = new AttributeValue { S = resultJson };
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error serializing Result object for chat session: {ChatSessionId}", chatSession.Id);
+                        throw; // Re-throw to prevent saving incomplete data
+                    }
                 }
 
                 if (chatSession.ChatItems?.Any() == true)
@@ -62,15 +91,35 @@ namespace DoctorService.Repositories.ChatSession
                     Item = item
                 };
 
-                await _dynamoDb.PutItemAsync(request);
-                _logger.LogInformation("Chat session created successfully: {ChatSessionId}", chatSession.Id);
+                _logger.LogInformation("Saving chat session to DynamoDB table: {TableName}, ChatSessionId: {ChatSessionId}, Item size: {ItemSize} bytes", 
+                    _tableName, chatSession.Id, item.Values.Sum(v => v.S?.Length ?? 0));
 
-                return await GetByIdAsync(chatSession.Id);
+                await _dynamoDb.PutItemAsync(request);
+                _logger.LogInformation("Chat session saved to DynamoDB successfully: {ChatSessionId}", chatSession.Id);
+
+                // Try to retrieve the saved item, but don't fail if it's not immediately available (eventual consistency)
+                var savedChatSession = await GetByIdAsync(chatSession.Id);
+                if (savedChatSession == null)
+                {
+                    _logger.LogWarning("Chat session was saved but could not be retrieved immediately. ChatSessionId: {ChatSessionId}. This may be due to DynamoDB eventual consistency.", chatSession.Id);
+                    // Return the original chatSession if GetByIdAsync fails (eventual consistency)
+                    return chatSession;
+                }
+
+                return savedChatSession;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating chat session: {ChatSessionId}", chatSession.Id);
-                return null;
+                _logger.LogError(ex, "Error creating chat session: {ChatSessionId}. Exception: {ExceptionMessage}, StackTrace: {StackTrace}", 
+                    chatSession.Id, ex.Message, ex.StackTrace);
+                
+                // Log inner exception if present
+                if (ex.InnerException != null)
+                {
+                    _logger.LogError("Inner exception: {InnerException}", ex.InnerException.Message);
+                }
+                
+                throw; // Re-throw to let the caller handle it properly
             }
         }
 
@@ -133,6 +182,13 @@ namespace DoctorService.Repositories.ChatSession
                     expressionAttributeValues[":title"] = new AttributeValue { S = updates.Title };
                 }
 
+                if (!string.IsNullOrEmpty(updates.FolderId))
+                {
+                    updateExpressions.Add("#folderId = :folderId");
+                    expressionAttributeNames["#folderId"] = "folderId";
+                    expressionAttributeValues[":folderId"] = new AttributeValue { S = updates.FolderId };
+                }
+
                 if (!string.IsNullOrEmpty(updates.XrayImageUrl))
                 {
                     updateExpressions.Add("#xrayImageUrl = :xrayImageUrl");
@@ -144,7 +200,13 @@ namespace DoctorService.Repositories.ChatSession
                 {
                     updateExpressions.Add("#result = :result");
                     expressionAttributeNames["#result"] = "result";
-                    expressionAttributeValues[":result"] = new AttributeValue { S = JsonSerializer.Serialize(updates.Result) };
+                    // Use JsonSerializerOptions to ensure JsonIgnore attributes are respected
+                    var serializerOptions = new JsonSerializerOptions
+                    {
+                        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+                        WriteIndented = false
+                    };
+                    expressionAttributeValues[":result"] = new AttributeValue { S = JsonSerializer.Serialize(updates.Result, serializerOptions) };
                 }
 
                 if (updates.ChatItems != null)
@@ -274,6 +336,7 @@ namespace DoctorService.Repositories.ChatSession
                     Id = item.GetValueOrDefault("id")?.S ?? string.Empty,
                     SessionId = item.GetValueOrDefault("sessionId")?.S ?? string.Empty,
                     Title = item.GetValueOrDefault("title")?.S ?? string.Empty,
+                    FolderId = item.GetValueOrDefault("folderId")?.S,
                     XrayImageUrl = item.GetValueOrDefault("xrayImageUrl")?.S,
                     IsDeleted = item.GetValueOrDefault("isDeleted")?.BOOL ?? false
                 };
@@ -290,7 +353,11 @@ namespace DoctorService.Repositories.ChatSession
 
                 if (!string.IsNullOrEmpty(item.GetValueOrDefault("result")?.S))
                 {
-                    chatSession.Result = JsonSerializer.Deserialize<Result>(item["result"].S);
+                    var serializerOptions = new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    };
+                    chatSession.Result = JsonSerializer.Deserialize<Result>(item["result"].S, serializerOptions);
                 }
 
                 if (!string.IsNullOrEmpty(item.GetValueOrDefault("chatItems")?.S))

@@ -4,11 +4,12 @@ using PatientService.Models;
 using PatientService.Services.PatientProfile;
 using PatientService.Web.Requests;
 using PatientService.Web.Responses;
+using System.Text.Json;
 
 namespace PatientService.Web.Controllers
 {
     [ApiController]
-    [Route("api/patient-profiles")]
+    [Route("api/v1/patient-profiles")]
     public class PatientProfileController : ControllerBase
     {
         private readonly IPatientProfileService _patientProfileService;

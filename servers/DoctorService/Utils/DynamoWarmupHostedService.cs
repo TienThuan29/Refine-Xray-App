@@ -7,7 +7,7 @@ namespace DoctorService.Utils
     {
         private readonly IAmazonDynamoDB _dynamoDb;
         private readonly ILogger<DynamoWarmupHostedService> _logger;
-        private readonly string _tableName;
+        private readonly IConfiguration _configuration;
 
         public DynamoWarmupHostedService(
             IAmazonDynamoDB dynamoDb,
@@ -16,7 +16,7 @@ namespace DoctorService.Utils
         {
             _dynamoDb = dynamoDb;
             _logger = logger;
-            _tableName = configuration["DynamoDB:UserTable"] ?? "prm392-users";
+            _configuration = configuration;
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
@@ -24,19 +24,40 @@ namespace DoctorService.Utils
             using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
 
-            try
+            // Get tables that belong to this service (DoctorService)
+            var tablesToWarmUp = new List<string>
             {
-                _logger.LogInformation("Warming up DynamoDB by describing table: {Table}", _tableName);
-                await _dynamoDb.DescribeTableAsync(new DescribeTableRequest { TableName = _tableName }, linkedCts.Token);
-                _logger.LogInformation("DynamoDB warm-up completed");
+                _configuration["DynamoDB:FolderTable"] ?? "prm392-folders",
+                _configuration["DynamoDB:ChatSessionTable"] ?? "prm392-chatsessions"
+            };
+
+            // Optionally warm up ReportTable if it exists in this service
+            var reportTable = _configuration["DynamoDB:ReportTable"];
+            if (!string.IsNullOrEmpty(reportTable))
+            {
+                tablesToWarmUp.Add(reportTable);
             }
-            catch (OperationCanceledException)
+
+            foreach (var tableName in tablesToWarmUp)
             {
-                _logger.LogWarning("DynamoDB warm-up timed out; continuing startup");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "DynamoDB warm-up failed; will retry on first real call");
+                try
+                {
+                    _logger.LogInformation("Warming up DynamoDB table: {Table}", tableName);
+                    await _dynamoDb.DescribeTableAsync(new DescribeTableRequest { TableName = tableName }, linkedCts.Token);
+                    _logger.LogInformation("DynamoDB table warm-up completed: {Table}", tableName);
+                }
+                catch (ResourceNotFoundException)
+                {
+                    _logger.LogWarning("DynamoDB table not found (may be in another service): {Table}", tableName);
+                }
+                catch (OperationCanceledException)
+                {
+                    _logger.LogWarning("DynamoDB warm-up timed out for table: {Table}; continuing startup", tableName);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "DynamoDB warm-up failed for table: {Table}; will retry on first real call", tableName);
+                }
             }
         }
 

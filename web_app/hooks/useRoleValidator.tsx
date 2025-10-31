@@ -8,7 +8,8 @@ export const validateUserRole = async (user: UserProfile | null) => {
             isSystem: false,
             isAdmin: false,
             isDoctor: false,
-            hasRole: (role: string) => false,
+            isPatient: false,
+            hasRole: (_role: string) => false,
             getUserRole: () => null
         };
     }
@@ -25,6 +26,7 @@ export const validateUserRole = async (user: UserProfile | null) => {
         isAdmin: await hasRole(Constant.ROLES.ADMIN),
         isDoctor: await hasRole(Constant.ROLES.DOCTOR),
         isPatient: await hasRole(Constant.ROLES.PATIENT),
+        isSystem: false,
         hasRole: hasRole,
         getUserRole: () => user.role
     };
@@ -32,13 +34,17 @@ export const validateUserRole = async (user: UserProfile | null) => {
 
 export const useRoleValidator = (user: UserProfile | null) => {
     const [roleValidator, setRoleValidator] = useState<{
+        isPatient: boolean;
         isAdmin: boolean;
         isDoctor: boolean;
+        isSystem: boolean;
         hasRole: (role: string) => boolean | Promise<boolean>;
         getUserRole: () => string | null;
     }>({
+        isPatient: false,
         isAdmin: false,
         isDoctor: false,
+        isSystem: false,
         hasRole: (role: string) => false,
         getUserRole: () => null
     });
