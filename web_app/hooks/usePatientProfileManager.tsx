@@ -121,8 +121,24 @@ const usePatientProfileManager = (): UsePatientProfileManagerReturn => {
         try {
             updateState({ isFetching: true, error: null });
             
+            console.log(`[API Call] GET Patient Profile by ID: ${Api.Patient.GET_PATIENT_PROFILE}/${patientId}`);
             const response = await axios.get(`${Api.Patient.GET_PATIENT_PROFILE}/${patientId}`);
+            
+            // Validate response structure
+            if (!response.data || !response.data.success) {
+                console.error('Invalid API response:', response.data);
+                throw new Error(response.data?.message || 'Invalid response from patient profile API');
+            }
+            
             const patientProfile = response.data.dataResponse;
+            
+            // Validate patient profile data
+            if (!patientProfile || !patientProfile.id) {
+                console.error('Invalid patient profile data:', patientProfile);
+                throw new Error('Patient profile data is invalid');
+            }
+            
+            console.log('Patient profile received:', patientProfile);
             
             updateState({
                 currentPatientProfile: patientProfile,
@@ -130,7 +146,13 @@ const usePatientProfileManager = (): UsePatientProfileManagerReturn => {
             });
             
             return patientProfile;
-        } catch (error) {
+        } catch (error: any) {
+            console.error('Error fetching patient profile:', error);
+            console.error('Error details:', {
+                message: error.message,
+                response: error.response?.data,
+                status: error.response?.status
+            });
             handleError(error, 'fetch patient profile');
             updateState({ isFetching: false });
             return null;

@@ -38,7 +38,7 @@ builder.Services.AddHttpClient<AdminService.Services.IUserService   , AdminServi
     var baseUrl = builder.Configuration["UserService:BaseUrl"] ?? "http://localhost:8082";
     client.BaseAddress = new Uri(baseUrl);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
-    client.DefaultRequestHeaders.Add("System-Secret", builder.Configuration["SystemSecret:Value"]);
+    client.DefaultRequestHeaders.Add("x-system-secret", builder.Configuration["SystemSecret:Value"]);
 });
 
 builder.Services.AddControllers()

@@ -8,7 +8,7 @@ const { Title } = Typography;
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
-const SystemReports: React.FC = () => {
+const ReportTemplates: React.FC = () => {
     const mockReports = [
         {
             key: '1',
@@ -120,4 +120,4 @@ const SystemReports: React.FC = () => {
     );
 };
 
-export default SystemReports;
+export default ReportTemplates;

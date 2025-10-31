@@ -80,5 +80,14 @@ namespace DoctorService.Web.Responses
         [JsonPropertyName("comprehensive_analysis")]
         public string ComprehensiveAnalysis { get; set; } = string.Empty;
     }
+
+    public class PubMedRAGResponse
+    {
+        public string Answer { get; set; } = string.Empty;
+        
+        public int SourcesCount { get; set; }
+        
+        public bool AutoFetched { get; set; }
+    }
 }
 

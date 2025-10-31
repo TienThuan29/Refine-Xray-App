@@ -24,7 +24,7 @@ const StartSection: React.FC<StartSectionProps> = ({
           <div className="w-12 h-12 bg-white rounded-lg"></div>
         </div>
         <Title level={2} className="text-center text-gray-900 mb-8">
-          Let&apos;s start a analysis with Clini AI
+          Let&apos;s start a conversation with Clini AI
         </Title>
       </div>
 

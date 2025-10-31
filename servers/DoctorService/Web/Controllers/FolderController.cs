@@ -63,27 +63,32 @@ namespace DoctorService.Web.Controllers
             }
         }
 
-        // [HttpPut("patient-profile/{folderId}")]
-        // public async Task<ActionResult<ApiResponse<Folder>>> UpdatePatientProfileId(
-        //     [FromRoute] string folderId, 
-        //     [FromBody] UpdatePatientProfileIdRequest request)
-        // {
-        //     try
-        //     {
-        //         var updatedFolder = await _folderService.UpdatePatientProfileIdAsync(folderId, request.PatientProfileId);
-        //         if (updatedFolder == null)
-        //         {
-        //             return ResponseUtil.Error<Models.Folder>("Folder not found or patient profile not found", 404);
-        //         }
+        [HttpPut("patient-profile/{folderId}")]
+        public async Task<ActionResult<ApiResponse<Folder>>> UpdatePatientProfileId(
+            [FromRoute] string folderId, 
+            [FromBody] UpdatePatientProfileIdRequest request)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(request.PatientProfileId))
+                {
+                    return ResponseUtil.Error<Models.Folder>("PatientProfileId is required", 400);
+                }
 
-        //         return ResponseUtil.Success(updatedFolder, "Patient profile updated successfully", 200);
-        //     }
-        //     catch (Exception ex)
-        //     {
-        //         _logger.LogError(ex, "Error updating patient profile");
-        //         return ResponseUtil.Error<Models.Folder>("Internal Server Error", 500);
-        //     }
-        // }
+                var updatedFolder = await _folderService.UpdatePatientProfileIdAsync(folderId, request.PatientProfileId);
+                if (updatedFolder == null)
+                {
+                    return ResponseUtil.Error<Models.Folder>("Folder not found", 404);
+                }
+
+                return ResponseUtil.Success(updatedFolder, "Patient profile ID updated successfully", 200);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating patient profile ID for folder {FolderId}", folderId);
+                return ResponseUtil.Error<Models.Folder>("Internal Server Error", 500);
+            }
+        }
 
        
         [HttpGet("created-by")]

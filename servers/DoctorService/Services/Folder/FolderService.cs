@@ -2,16 +2,19 @@ using DoctorService.Models;
 using DoctorService.Repositories.Folder;
 using DoctorService.Web.Requests;
 using DoctorService.Web.Responses;
+using Microsoft.Extensions.Logging;
 
 namespace DoctorService.Services.Folder
 {
     public class FolderService : IFolderService
     {
         private readonly IFolderRepository _folderRepository;
+        private readonly ILogger<FolderService> _logger;
 
-        public FolderService(IFolderRepository folderRepository)
+        public FolderService(IFolderRepository folderRepository, ILogger<FolderService> logger)
         {
             _folderRepository = folderRepository;
+            _logger = logger;
         }
 
         public async Task<Models.Folder?> CreateFolderAsync(FolderRequest folderRequest, string createdBy)
@@ -48,18 +51,27 @@ namespace DoctorService.Services.Folder
             }
 
             // Map folders to folder responses
-            var folderResponses = folders?.Select(folder => new FolderResponse
+            var folderResponses = folders?.Select(folder => 
             {
-                Id = folder.Id,
-                Title = folder.Title,
-                Description = folder.Description,
-                ChatSessionIds = folder.ChatSessionIds,
-                PatientProfileId = folder.PatientProfileId,
-                CreatedBy = folder.CreatedBy,
-                IsDeleted = folder.IsDeleted,
-                CreatedDate = folder.CreatedDate,
-                UpdatedDate = folder.UpdatedDate,
-                ChatSessionsInfo = new List<ChatSessionInfo>() // TODO: Implement chat session info retrieval
+                var response = new FolderResponse
+                {
+                    Id = folder.Id,
+                    Title = folder.Title,
+                    Description = folder.Description,
+                    ChatSessionIds = folder.ChatSessionIds,
+                    PatientProfileId = folder.PatientProfileId,
+                    CreatedBy = folder.CreatedBy,
+                    IsDeleted = folder.IsDeleted,
+                    Type = folder.Type, // This will be ANALYZE for old folders without type field
+                    CreatedDate = folder.CreatedDate,
+                    UpdatedDate = folder.UpdatedDate,
+                    ChatSessionsInfo = new List<ChatSessionInfo>() // TODO: Implement chat session info retrieval
+                };
+                
+                // Log to verify Type is set
+                _logger.LogInformation("Folder {FolderId} ({Title}): Type={Type}", response.Id, response.Title, response.Type);
+                
+                return response;
             }).ToList() ?? new List<FolderResponse>();
 
             return folderResponses;

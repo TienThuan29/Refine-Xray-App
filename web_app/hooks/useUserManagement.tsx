@@ -25,7 +25,8 @@ export interface UpdateUserStatusData {
   isEnable: boolean;
 }
 
-export const useUserService = () => {
+export const useUserManagement = () => {
+  
   const getAuthHeaders = useCallback((authTokens: AuthTokens | null) => {
     if (!authTokens?.accessToken) {
       throw new Error('No authentication token found');
@@ -91,10 +92,17 @@ export const useUserService = () => {
 
   const createUser = useCallback(async (userData: CreateUserData, authTokens: AuthTokens | null): Promise<UserProfile> => {
     try {
+      const requestBody = {
+        email: userData.email,
+        fullname: userData.fullname,
+        password: userData.password,
+        role: userData.role,
+      };
+
       const response = await fetch(`${Api.BASE_API}${Api.Admin.CREATE_ACCOUNT}`, {
         method: 'POST',
         headers: getAuthHeaders(authTokens),
-        body: JSON.stringify(userData),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -104,7 +112,7 @@ export const useUserService = () => {
       }
 
       const data = await response.json();
-      return data.dataResponse.userProfile;
+      return data.dataResponse;
     } catch (error) {
       console.error('Error creating user:', error);
       throw error;
@@ -148,7 +156,7 @@ export const useUserService = () => {
       }
 
       const data = await response.json();
-      return data.dataResponse.deleted;
+      return data.dataResponse?.deleted ?? true;
     } catch (error) {
       console.error('Error deleting user:', error);
       throw error;

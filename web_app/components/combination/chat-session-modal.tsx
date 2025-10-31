@@ -7,6 +7,7 @@ import type { UploadFile } from 'antd';
 import { toast } from "sonner";
 import useChatSessionManager from '../../hooks/useChatSessionManager';
 import useXrayDetection from '../../hooks/useXrayDetection';
+import { Type } from '@/types/folder';
 
 const { Dragger } = Upload;
 
@@ -14,8 +15,8 @@ interface ChatSessionModalProps {
   visible: boolean;
   onClose: () => void;
   onComplete: (data: { chatSession: { id: string; title: string }; title: string; files: File[] }) => void;
-  folderData: { id: string; title: string; description?: string };
-  patientData: { fullname: string; gender: string };
+  folderData: { id: string; title: string; description?: string; type?: Type; patientProfileId?: string | null };
+  patientData: { fullname: string; gender: string; id?: string } | null;
   onRefreshFolders?: () => void;
 }
 
@@ -95,10 +96,14 @@ const ChatSessionModal: React.FC<ChatSessionModalProps> = ({
         return;
       }
 
+      // Get patientProfileId from patientData or folderData
+      const patientProfileId = patientData?.id || folderData.patientProfileId || null;
+      
       const chatSession = await createChatSession({
         title: values.title,
         xrayImage: fileList[0],
-        folderId: folderData.id
+        folderId: folderData.id,
+        patientProfileId: patientProfileId
       });
 
       if (chatSession) {
@@ -175,9 +180,11 @@ const ChatSessionModal: React.FC<ChatSessionModalProps> = ({
             <strong>Description:</strong> {folderData.description}
           </div>
         )}
-        <div className="text-sm text-gray-600">
-          <strong>Patient:</strong> {patientData.fullname} ({patientData.gender})
-        </div>
+        {patientData && (
+          <div className="text-sm text-gray-600">
+            <strong>Patient:</strong> {patientData.fullname} ({patientData.gender})
+          </div>
+        )}
       </div>
 
       <Form

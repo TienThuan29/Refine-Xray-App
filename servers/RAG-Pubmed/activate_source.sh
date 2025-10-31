@@ -1,0 +1,1 @@
+source /home/tienthuan29/workspaces/environments/.venv/bin/activate

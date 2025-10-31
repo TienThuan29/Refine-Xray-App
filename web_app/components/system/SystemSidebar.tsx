@@ -50,19 +50,19 @@ const SystemSidebar: React.FC<SystemSidebarProps> = ({
       label: 'User Management',
     },
     {
-      key: 'reports',
+      key: 'report-templates',
       icon: <FileTextOutlined />,
-      label: 'Reports',
+      label: 'Report Templates',
     },
+    // {
+    //   key: 'analytics',
+    //   icon: <BarChartOutlined />,
+    //   label: 'Analytics',
+    // },
     {
-      key: 'analytics',
-      icon: <BarChartOutlined />,
-      label: 'Analytics',
-    },
-    {
-      key: 'audit-logs',
-      icon: <AuditOutlined />,
-      label: 'Audit Logs',
+      key: 'blogs',
+      icon: <FileTextOutlined />,
+      label: 'Blogs',
     },
     {
       key: 'system-settings',
@@ -74,11 +74,11 @@ const SystemSidebar: React.FC<SystemSidebarProps> = ({
       icon: <DatabaseOutlined />,
       label: 'Database Management',
     },
-    {
-      key: 'security',
-      icon: <SecurityScanOutlined />,
-      label: 'Security',
-    },
+    // {
+    //   key: 'security',
+    //   icon: <SecurityScanOutlined />,
+    //   label: 'Security',
+    // },
   ];
 
   const handleMenuClick = ({ key }: { key: string }) => {

@@ -11,18 +11,18 @@ export const Api = {
     },
 
     Admin: {
-        CREATE_ACCOUNT: '/api/v1/admin/users/create-account',
-        GET_ALL_USERS: '',
-        GET_USER_BY_EMAIL: '',
-        UPDATE_USER: '',
-        DELETE_USER: '',
-        UPDATE_USER_STATUS: ''
+        CREATE_ACCOUNT: '/api/admin/v1/users/create-account',
+        GET_ALL_USERS: '/api/admin/v1/users',
+        GET_USER_BY_EMAIL: '/api/admin/v1/users/by-email',
+        UPDATE_USER: '/api/admin/v1/users',
+        DELETE_USER: '/api/admin/v1/users',
+        UPDATE_USER_STATUS: '/api/admin/v1/users/status'
     },
 
     Folder: {
         CREATE_FOLDER: '/api/doctors/v1/folders',
         GET_FOLDER: '/api/doctors/v1/folders',
-        UPDATE_PATIENT_PROFILE: '',
+        UPDATE_PATIENT_PROFILE: '/api/doctors/v1/folders/patient-profile',
         GET_FOLDER_OF_USER: '/api/doctors/v1/folders/created-by',
         RENAME_FOLDER: '/api/doctors/v1/folders',
         DELETE_FOLDER: '/api/doctors/v1/folders'
@@ -38,10 +38,11 @@ export const Api = {
 
     ChatSession: {
         CREATE_CHAT_SESSION: '/api/doctors/v1/chatsessions/analyze-and-create-chatsession',
-        CREATE_TEXT_CHAT_SESSION: '',
+        CREATE_TEXT_CHAT_SESSION: '/api/doctors/v1/chatsessions/create-text-chatsession',
         GET_CHAT_SESSION: '/api/doctors/v1/chatsessions',
         GET_CHAT_SESSIONS_BY_FOLDER: '/api/doctors/v1/chatsessions/folder',
         SEND_CHAT_MESSAGE: '/api/doctors/v1/chatsessions',
+        QUERY_PUBMED_RAG: '/api/doctors/v1/chatsessions/query-pubmed-rag',
         RENAME_CHAT_SESSION: '',
         DELETE_CHAT_SESSION: '/api/doctors/v1/chatsessions'
     },

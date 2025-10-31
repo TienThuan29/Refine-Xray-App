@@ -125,7 +125,8 @@ app.UseSwaggerUI();
 // Apply middleware
 app.MapWhen(context => 
     context.Request.Path.StartsWithSegments("/api/v1/profile") ||
-    context.Request.Path.StartsWithSegments("/api/v1/users"),
+    (context.Request.Path.StartsWithSegments("/api/v1/users") && 
+     !context.Request.Path.StartsWithSegments("/api/v1/users/create-account")),
     appBuilder => 
     {
         appBuilder.UseJwtValidationMiddleware();
@@ -134,7 +135,8 @@ app.MapWhen(context =>
     });
 
 app.MapWhen(context => 
-    context.Request.Path.StartsWithSegments("/api/v1/register"),
+    context.Request.Path.StartsWithSegments("/api/v1/register") ||
+    context.Request.Path.StartsWithSegments("/api/v1/users/create-account"),
     appBuilder => 
     {
         appBuilder.UseSystemSecretMiddleware();

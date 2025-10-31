@@ -26,13 +26,17 @@ export interface TextChatState {
 
 export interface TextChatActions {
   sendMessage: (message: string) => Promise<void>;
+  createTextChatSession: (folderId?: string) => Promise<string>;
   clearError: () => void;
   clearChat: () => void;
 }
 
 export type UseTextChatReturn = TextChatState & TextChatActions;
 
-const useTextChat = (onSessionCreated?: (sessionId: string) => void): UseTextChatReturn => {
+const useTextChat = (
+  onSessionCreated?: (sessionId: string) => void,
+  folderId?: string
+): UseTextChatReturn => {
   const axios = useAxios();
   const { createFolder, getFoldersOfUser, folders } = useFolderManager();
 
@@ -87,14 +91,15 @@ const useTextChat = (onSessionCreated?: (sessionId: string) => void): UseTextCha
   }, [createFolder, getFoldersOfUser, folders]);
 
   // Create a text-only chat session
-  const createTextChatSession = useCallback(async (): Promise<string> => {
+  const createTextChatSession = useCallback(async (targetFolderId?: string): Promise<string> => {
     try {
-      const folderId = await findOrCreateTextChatFolder();
+      // Use provided folderId parameter, or the hook's folderId, or find/create text chat folder
+      const finalFolderId = targetFolderId || folderId || await findOrCreateTextChatFolder();
       
       // Create a simple chat session without X-ray image
       const chatSessionData = {
         title: `Text Chat ${new Date().toLocaleString()}`,
-        folderId: folderId,
+        folderId: finalFolderId,
         // We'll create a minimal chat session for text-only conversations
       };
 
@@ -103,7 +108,9 @@ const useTextChat = (onSessionCreated?: (sessionId: string) => void): UseTextCha
       const response = await axios.post(Api.ChatSession.CREATE_TEXT_CHAT_SESSION, chatSessionData);
       
       if (response.data.success) {
-        return response.data.dataResponse.id;
+        const sessionId = response.data.dataResponse.id;
+        updateState({ textChatSessionId: sessionId });
+        return sessionId;
       }
       
       throw new Error(response.data.message || 'Failed to create text chat session');
@@ -111,7 +118,7 @@ const useTextChat = (onSessionCreated?: (sessionId: string) => void): UseTextCha
       console.error('Error creating text chat session:', error);
       throw error; // Don't return mock ID, let the error propagate
     }
-  }, [axios, findOrCreateTextChatFolder]);
+    }, [axios, findOrCreateTextChatFolder, updateState, folderId]);
 
   // Send message to N8N chatbot
   const sendMessage = useCallback(async (message: string) => {
@@ -122,7 +129,8 @@ const useTextChat = (onSessionCreated?: (sessionId: string) => void): UseTextCha
       let sessionId = state.textChatSessionId;
       let isNewSession = false;
       if (!sessionId) {
-        sessionId = await createTextChatSession();
+        // Use the folderId from hook props if available, otherwise let createTextChatSession figure it out
+        sessionId = await createTextChatSession(folderId);
         updateState({ textChatSessionId: sessionId });
         isNewSession = true;
       }
@@ -176,7 +184,7 @@ const useTextChat = (onSessionCreated?: (sessionId: string) => void): UseTextCha
       handleError(error, 'send text message');
       updateState({ isSending: false });
     }
-  }, [axios, state.chatItems, state.textChatSessionId, updateState, handleError, createTextChatSession, onSessionCreated]);
+    }, [axios, state.chatItems, state.textChatSessionId, updateState, handleError, createTextChatSession, onSessionCreated, folderId]);
 
   const clearError = useCallback(() => {
     updateState({ error: null });
@@ -193,6 +201,7 @@ const useTextChat = (onSessionCreated?: (sessionId: string) => void): UseTextCha
   return {
     ...state,
     sendMessage,
+    createTextChatSession,
     clearError,
     clearChat,
   };

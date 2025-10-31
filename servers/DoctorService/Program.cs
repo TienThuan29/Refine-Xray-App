@@ -77,6 +77,28 @@ builder.Services.AddHttpClient<ICliniAiService, CliniAiService>(client =>
     MaxRequestContentBufferSize = 1024 * 1024 * 100 // 100MB buffer
 });
 
+// Add HTTP client for PubMed RAG API
+builder.Services.AddHttpClient("PubMedRAG", client =>
+{
+    var baseUrl = builder.Configuration["PubMedRAG:BaseUrl"];
+    if (string.IsNullOrEmpty(baseUrl) || baseUrl.Contains("${"))
+    {
+        baseUrl = "http://localhost:8001";
+    }
+    
+    var timeout = builder.Configuration.GetValue("PubMedRAG:Timeout", 300); // 5 minutes default
+    
+    client.BaseAddress = new Uri(baseUrl);
+    client.Timeout = TimeSpan.FromSeconds(timeout);
+    client.DefaultRequestHeaders.Add("User-Agent", "DoctorService/1.0");
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+})
+.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler()
+{
+    UseCookies = false,
+    AllowAutoRedirect = true
+});
+
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {

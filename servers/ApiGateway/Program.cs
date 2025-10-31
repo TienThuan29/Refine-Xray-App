@@ -40,19 +40,8 @@ var app = builder.Build();
 
 app.UseCors();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "API Gateway");
-        c.SwaggerEndpoint("/swagger/auth/swagger.json", "Auth Service");
-        c.SwaggerEndpoint("/swagger/doctors/swagger.json", "Doctor Service");
-        c.SwaggerEndpoint("/swagger/patients/swagger.json", "Patient Service");
-        c.SwaggerEndpoint("/swagger/admin/swagger.json", "Admin Service");
-        c.RoutePrefix = "swagger";
-    });
-}
+// Add routing first
+app.UseRouting();
 
 // Add middleware to handle health checks before Ocelot
 app.Use(async (context, next) =>
@@ -68,16 +57,56 @@ app.Use(async (context, next) =>
     
     await next();
 });
-// System secret validation middleware
-app.UseMiddleware<ApiGateway.Middleware.SystemSecretValidationMiddleware>();
 
-// doctor service validation middleware
+// System secret validation middleware (exclude Swagger paths)
 app.UseWhen(
-    context => context.Request.Path.StartsWithSegments("/api/doctors"),
+    context => !context.Request.Path.StartsWithSegments("/swagger"),
+    subApp => { subApp.UseMiddleware<ApiGateway.Middleware.SystemSecretValidationMiddleware>(); }
+);
+
+// doctor service validation middleware (exclude Swagger paths)
+app.UseWhen(
+    context => context.Request.Path.StartsWithSegments("/api/doctors") && 
+               !context.Request.Path.StartsWithSegments("/swagger"),
     subApp => { subApp.UseMiddleware<ApiGateway.Middleware.JwtDoctorValidationMiddleware>(); }
 );
 
+// Map Swagger endpoints before Ocelot to ensure proper routing
 app.MapGet("/health", () => Results.Ok("OK"));
+
+// Swagger configuration - only handle local Swagger endpoint and UI
+if (app.Environment.IsDevelopment())
+{
+    // Only apply Swagger JSON middleware to the local endpoint
+    app.MapWhen(
+        context => context.Request.Path == "/swagger/v1/swagger.json",
+        subApp =>
+        {
+            subApp.UseSwagger(c =>
+            {
+                c.RouteTemplate = "swagger/v1/swagger.json";
+            });
+        }
+    );
+    
+    // Apply SwaggerUI only to UI paths, not JSON endpoints
+    app.MapWhen(
+        context => context.Request.Path.StartsWithSegments("/swagger") && 
+                   !(context.Request.Path.Value?.EndsWith(".json", StringComparison.OrdinalIgnoreCase) ?? false),
+        subApp =>
+        {
+            subApp.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "API Gateway");
+                c.SwaggerEndpoint("/swagger/auth/swagger.json", "Auth Service");
+                c.SwaggerEndpoint("/swagger/doctors/swagger.json", "Doctor Service");
+                c.SwaggerEndpoint("/swagger/patients/swagger.json", "Patient Service");
+                c.SwaggerEndpoint("/swagger/admin/swagger.json", "Admin Service");
+                c.RoutePrefix = "swagger";
+            });
+        }
+    );
+}
 
 await app.UseOcelot();
 

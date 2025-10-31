@@ -142,7 +142,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
         const checkInterval = setInterval(() => {
             checkTokenExpiration();
-        }, 60000); // Check every minute
+        }, 60000);
 
         return () => clearInterval(checkInterval);
     }, [authTokens]);
@@ -164,13 +164,12 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                 localStorage.setItem(AUTH_TOKENS_KEY, JSON.stringify(tokens));
 
                 const userProfile = response.data.dataResponse.userProfile;
-                // console.log(userProfile);
-                // Persist user profile immediately so UI can consume it
+
                 setUser(userProfile);
                 localStorage.setItem(USER_PROFILE_KEY, JSON.stringify(userProfile));
                 const roleValidator = await validateUserRole(userProfile);
 
-                if (roleValidator.isSystem) {
+                if (roleValidator.isPatient) {
                     router.push(PageUrl.HOME_PAGE);
                 }
                 else if (roleValidator.isAdmin) {

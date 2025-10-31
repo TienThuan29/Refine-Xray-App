@@ -10,6 +10,7 @@ export interface CreateChatSessionRequest {
     title: string;
     xrayImage: File;
     folderId: string;
+    patientProfileId?: string | null;
 }
 
 export interface RenameChatSessionRequest {
@@ -25,6 +26,20 @@ export interface ChatSessionManagerState {
     isFetching: boolean;
     isRenaming: boolean;
     isDeleting: boolean;
+    isQueryingRAG: boolean;
+}
+
+export interface PubMedRAGRequest {
+    question: string;
+    nResults?: number; // 1-10, default: 3
+    autoFetch?: boolean; // default: true
+    autoFetchCount?: number; // 1-100, default: 30
+}
+
+export interface PubMedRAGResponse {
+    answer: string;
+    sourcesCount: number;
+    autoFetched: boolean;
 }
 
 export interface ChatSessionManagerActions {
@@ -33,6 +48,9 @@ export interface ChatSessionManagerActions {
     getChatSession: (chatSessionId: string) => Promise<ChatSession | null>;
     renameChatSession: (chatSessionId: string, data: RenameChatSessionRequest) => Promise<ChatSession | null>;
     deleteChatSession: (chatSessionId: string) => Promise<boolean>;
+    
+    // PubMed RAG Query
+    queryPubMedRAG: (request: PubMedRAGRequest) => Promise<PubMedRAGResponse | null>;
     
     // State Management
     setCurrentChatSession: (chatSession: ChatSession | null) => void;
@@ -56,6 +74,7 @@ const useChatSessionManager = (): UseChatSessionManagerReturn => {
         isFetching: false,
         isRenaming: false,
         isDeleting: false,
+        isQueryingRAG: false,
     });
 
 
@@ -83,6 +102,9 @@ const useChatSessionManager = (): UseChatSessionManagerReturn => {
             formData.append('title', data.title);
             formData.append('xrayImage', data.xrayImage);
             formData.append('folderId', data.folderId);
+            if (data.patientProfileId) {
+                formData.append('patientProfileId', data.patientProfileId);
+            }
             
             const response = await axios.post(Api.ChatSession.CREATE_CHAT_SESSION, formData, {
                 headers: {
@@ -208,6 +230,34 @@ const useChatSessionManager = (): UseChatSessionManagerReturn => {
         }
     }, [axios, updateState, handleError]);
 
+    // Query PubMed RAG API directly
+    const queryPubMedRAG = useCallback(async (request: PubMedRAGRequest): Promise<PubMedRAGResponse | null> => {
+        try {
+            updateState({ isQueryingRAG: true, error: null });
+            
+            const response = await axios.post(Api.ChatSession.QUERY_PUBMED_RAG, {
+                question: request.question,
+                nResults: request.nResults ?? 3,
+                autoFetch: request.autoFetch ?? true,
+                autoFetchCount: request.autoFetchCount ?? 30
+            });
+            
+            if (!response.data.success) {
+                throw new Error(response.data.message || 'Failed to query PubMed RAG');
+            }
+            
+            const ragResponse = response.data.dataResponse;
+            
+            updateState({ isQueryingRAG: false });
+            return ragResponse;
+        } catch (error: any) {
+            console.error('Error querying PubMed RAG:', error);
+            handleError(error, 'query PubMed RAG');
+            updateState({ isQueryingRAG: false });
+            return null;
+        }
+    }, [axios, updateState, handleError]);
+
     // Memoized return value to prevent unnecessary re-renders
     const returnValue = useMemo(() => ({
         // State
@@ -219,12 +269,14 @@ const useChatSessionManager = (): UseChatSessionManagerReturn => {
         isFetching: state.isFetching,
         isRenaming: state.isRenaming,
         isDeleting: state.isDeleting,
+        isQueryingRAG: state.isQueryingRAG,
         
         // Actions
         createChatSession,
         getChatSession,
         renameChatSession,
         deleteChatSession,
+        queryPubMedRAG,
         setCurrentChatSession,
         clearError,
     }), [
@@ -233,6 +285,7 @@ const useChatSessionManager = (): UseChatSessionManagerReturn => {
         getChatSession,
         renameChatSession,
         deleteChatSession,
+        queryPubMedRAG,
         setCurrentChatSession,
         clearError,
     ]);
