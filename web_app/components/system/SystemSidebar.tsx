@@ -12,10 +12,8 @@ import {
   SettingOutlined,
   DashboardOutlined,
   FileTextOutlined,
-  BarChartOutlined,
   DatabaseOutlined,
-  SecurityScanOutlined,
-  AuditOutlined,
+  ExportOutlined,
 } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../contexts/AuthContext';
@@ -54,11 +52,6 @@ const SystemSidebar: React.FC<SystemSidebarProps> = ({
       icon: <FileTextOutlined />,
       label: 'Report Templates',
     },
-    // {
-    //   key: 'analytics',
-    //   icon: <BarChartOutlined />,
-    //   label: 'Analytics',
-    // },
     {
       key: 'blogs',
       icon: <FileTextOutlined />,
@@ -74,11 +67,6 @@ const SystemSidebar: React.FC<SystemSidebarProps> = ({
       icon: <DatabaseOutlined />,
       label: 'Database Management',
     },
-    // {
-    //   key: 'security',
-    //   icon: <SecurityScanOutlined />,
-    //   label: 'Security',
-    // },
   ];
 
   const handleMenuClick = ({ key }: { key: string }) => {
@@ -142,6 +130,19 @@ const SystemSidebar: React.FC<SystemSidebarProps> = ({
             }))}
             onClick={handleMenuClick}
           />
+        </div>
+
+        <Divider/>
+
+        {/* Logout Button Section */}
+        <div className="px-2 py-2">
+          <button 
+            onClick={handleLogout}
+            className="flex items-center justify-center w-full h-10 text-red-500 hover:text-red-600 transition-colors text-base font-medium bg-transparent border-none cursor-pointer"
+          >
+            <ExportOutlined className={collapsed ? '' : 'mr-2'} />
+            {!collapsed && <span>Logout</span>}
+          </button>
         </div>
 
         {/* User Account Section */}

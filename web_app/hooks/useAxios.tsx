@@ -24,6 +24,11 @@ const useAxios = () => {
         });
 
         instance.interceptors.request.use(async req => {
+            // Always set Authorization header, even if headers are overridden
+            if (authTokens?.accessToken) {
+                req.headers.Authorization = `Bearer ${authTokens.accessToken}`;
+            }
+
             const user = jwtDecode(authTokens?.accessToken || '{}');
             const isExpired = user.exp ? dayjs.unix(user.exp).diff(dayjs()) < 1 : true;
             if (!isExpired) return req;

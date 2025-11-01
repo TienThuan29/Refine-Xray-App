@@ -7,9 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="DocX" Version="5.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.7" />
+    <PackageReference Include="PdfPig" Version="0.1.11" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
     <PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.400.1" />
+    <PackageReference Include="AWSSDK.S3" Version="3.7.400.1" />
     <PackageReference Include="AWSSDK.Extensions.NETCore.Setup" Version="3.7.300" />
     <PackageReference Include="DotNetEnv" Version="3.1.1" />
   </ItemGroup>
