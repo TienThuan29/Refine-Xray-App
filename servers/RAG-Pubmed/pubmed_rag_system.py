@@ -287,8 +287,11 @@ class VectorDatabase:
         
         genai.configure(api_key=self.api_key)
         self.embedding_model_name = embedding_model
+        # Initialize Gemini model for text generation
+        self.generation_model = genai.GenerativeModel('gemini-2.5-flash')
         
         print(f"Đã cấu hình Gemini embedding model: {embedding_model}")
+        print(f"Đã cấu hình Gemini generation model: gemini-2.5-flash")
         
         # Get or create collection
         try:
@@ -418,6 +421,8 @@ class MedicalRAG:
             chroma_host=chroma_host,
             chroma_port=chroma_port
         )
+        # Store generation model for easy access
+        self.generation_model = self.vectordb.generation_model
         print("Đã khởi tạo Medical RAG System")
     
     def index_topic(self, query: str, max_results: int = 50):
@@ -513,29 +518,103 @@ class MedicalRAG:
             else:
                 return "Không tìm thấy thông tin liên quan trong database."
         
-        # Format câu trả lời
-        response = "Dựa trên các nghiên cứu y học, tôi tìm thấy:\n\n"
-        
+        # Chuẩn bị context từ các nguồn đã tìm được
+        context_sources = []
         for i, (doc, metadata, distance) in enumerate(zip(
             results['documents'][0],
             results['metadatas'][0],
             results['distances'][0]
         ), 1):
-            response += f"   Nguồn {i}: {metadata['title']}\n"
-            response += f"   Tác giả: {metadata['authors']}\n"
-            response += f"   Journal: {metadata['journal']} ({metadata['publication_date']})\n"
-            response += f"   Độ liên quan: {1 - distance:.2%}\n"
+            # Tính relevance score (normalize distance)
+            # ChromaDB thường dùng cosine distance (0-2), chuyển thành similarity (0-1)
+            similarity = max(0, 1 - distance / 2) if distance <= 2 else max(0, 1 - distance)
+            relevance_percent = similarity * 100
             
-            # Trích xuất abstract (giới hạn độ dài)
-            abstract = doc.split("Abstract: ")[1] if "Abstract: " in doc else doc
-            if len(abstract) > 300:
-                abstract = abstract[:300] + "..."
-            response += f"   {abstract}\n\n"
+            # Lấy abstract từ document
+            if "Abstract: " in doc:
+                abstract = doc.split("Abstract: ")[1].strip()
+            else:
+                abstract = doc.strip()
+            
+            source_info = {
+                "number": i,
+                "title": metadata.get('title', 'Unknown'),
+                "authors": metadata.get('authors', 'Unknown'),
+                "journal": metadata.get('journal', 'Unknown'),
+                "date": metadata.get('publication_date', 'Unknown'),
+                "abstract": abstract,
+                "relevance": relevance_percent
+            }
+            context_sources.append(source_info)
         
-        response += "\nLưu ý: Đây là thông tin từ các nghiên cứu khoa học. "
-        response += "Vui lòng tham khảo ý kiến bác sĩ cho tình huống cụ thể của bạn."
+        # Tạo prompt để LLM tổng hợp thông tin
+        context_text = "Các nghiên cứu y học liên quan:\n\n"
+        for source in context_sources:
+            context_text += f"Nguồn {source['number']}: {source['title']}\n"
+            context_text += f"- Tác giả: {source['authors']}\n"
+            context_text += f"- Tạp chí: {source['journal']} ({source['date']})\n"
+            context_text += f"- Độ liên quan: {source['relevance']:.1f}%\n"
+            context_text += f"- Tóm tắt: {source['abstract']}\n\n"
         
-        return response
+        prompt = f"""Bạn là một trợ lý y tế chuyên nghiệp, có nhiệm vụ trả lời câu hỏi y học dựa trên các nghiên cứu khoa học từ PubMed.
+
+Câu hỏi của người dùng: {question}
+
+{context_text}
+
+Yêu cầu:
+1. Hãy tổng hợp thông tin từ các nghiên cứu trên để trả lời câu hỏi một cách chi tiết, dễ hiểu
+2. Ưu tiên các nguồn có độ liên quan cao hơn
+3. Trả lời bằng tiếng Việt một cách tự nhiên, như một bác sĩ đang giải thích cho bệnh nhân
+4. Nếu có nhiều quan điểm khác nhau, hãy trình bày đầy đủ
+5. Cuối cùng, hãy liệt kê các nguồn tham khảo với format:
+   [Nguồn X] Tên bài báo - Tác giả, Journal (Năm)
+
+Lưu ý: Đây là thông tin từ các nghiên cứu khoa học. Vui lòng tham khảo ý kiến bác sĩ cho tình huống cụ thể.
+
+Hãy bắt đầu trả lời:"""
+        
+        try:
+            # Generate answer using Gemini
+            print("Đang tạo câu trả lời bằng LLM...")
+            response_obj = self.generation_model.generate_content(prompt)
+            answer = response_obj.text.strip()
+            
+            # Thêm danh sách nguồn chi tiết vào cuối
+            answer += "\n\n---\n\n📚 Nguồn tham khảo:\n"
+            for source in context_sources:
+                answer += f"\n[{source['number']}] {source['title']}\n"
+                answer += f"   Tác giả: {source['authors']}\n"
+                answer += f"   Tạp chí: {source['journal']} ({source['date']})\n"
+                answer += f"   Độ liên quan: {source['relevance']:.1f}%\n"
+            
+            return answer
+            
+        except Exception as e:
+            print(f"Lỗi khi tạo câu trả lời bằng LLM: {e}")
+            print("Trả về kết quả dạng danh sách nguồn...")
+            import traceback
+            traceback.print_exc()
+            
+            # Fallback: trả về format cũ nếu LLM lỗi
+            response = f"Dựa trên các nghiên cứu y học, tôi tìm thấy thông tin liên quan đến câu hỏi của bạn:\n\n"
+            
+            for source in context_sources:
+                response += f"Nguồn {source['number']}: {source['title']}\n"
+                response += f"   Tác giả: {source['authors']}\n"
+                response += f"   Tạp chí: {source['journal']} ({source['date']})\n"
+                response += f"   Độ liên quan: {source['relevance']:.1f}%\n"
+                
+                # Trích xuất abstract (giới hạn độ dài)
+                abstract = source['abstract']
+                if len(abstract) > 400:
+                    abstract = abstract[:400] + "..."
+                response += f"   {abstract}\n\n"
+            
+            response += "\nLưu ý: Đây là thông tin từ các nghiên cứu khoa học. "
+            response += "Vui lòng tham khảo ý kiến bác sĩ cho tình huống cụ thể của bạn."
+            
+            return response
     
     def get_stats(self) -> Dict:
         """Lấy thống kê về database"""
