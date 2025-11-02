@@ -484,11 +484,20 @@ export default function Page() {
         setPatientData(null);
         setPatientModalVisible(true);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error calling API to get patient profile:', error);
       setIsLoadingPatient(false);
       
-      const errorMessage = error.response?.data?.message || error.message || 'Error loading patient information';
+      let errorMessage = 'Error loading patient information';
+      if (error && typeof error === 'object') {
+        if ('response' in error && error.response && typeof error.response === 'object') {
+          const response = error.response as { data?: { message?: string } };
+          errorMessage = response.data?.message || errorMessage;
+        } else if ('message' in error && typeof error.message === 'string') {
+          errorMessage = error.message;
+        }
+      }
+      
       toast.error(`Failed to load patient profile: ${errorMessage}`);
       setPatientData(null);
       setPatientModalVisible(true);

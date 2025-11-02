@@ -53,6 +53,14 @@
               "target": "Package",
               "version": "[3.7.300, )"
             },
+            "AWSSDK.S3": {
+              "target": "Package",
+              "version": "[3.7.400.1, )"
+            },
+            "DocX": {
+              "target": "Package",
+              "version": "[5.0.0, )"
+            },
             "DotNetEnv": {
               "target": "Package",
               "version": "[3.1.1, )"
@@ -60,6 +68,10 @@
             "Microsoft.AspNetCore.OpenApi": {
               "target": "Package",
               "version": "[9.0.7, )"
+            },
+            "PdfPig": {
+              "target": "Package",
+              "version": "[0.1.11, )"
             },
             "Swashbuckle.AspNetCore": {
               "target": "Package",

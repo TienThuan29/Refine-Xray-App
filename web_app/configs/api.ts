@@ -16,7 +16,12 @@ export const Api = {
         GET_USER_BY_EMAIL: '/api/admin/v1/users/by-email',
         UPDATE_USER: '/api/admin/v1/users',
         DELETE_USER: '/api/admin/v1/users',
-        UPDATE_USER_STATUS: '/api/admin/v1/users/status'
+        UPDATE_USER_STATUS: '/api/admin/v1/users/status',
+
+        GET_ALL_REPORT_TEMPLATES: '/api/admin/v1/report-templates',
+        GET_REPORT_TEMPLATE_BY_ID: '/api/admin/v1/report-templates', // GET /:id
+        CREATE_REPORT_TEMPLATE: '/api/admin/v1/report-templates',
+        UPDATE_REPORT_TEMPLATE: '/api/admin/v1/report-templates' // PUT /:id
     },
 
     Folder: {
