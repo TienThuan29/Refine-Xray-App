@@ -5,6 +5,8 @@ using Amazon.Extensions.NETCore.Setup;
 using Microsoft.AspNetCore.Mvc;
 using PatientService.Repositories.PatientProfile;
 using PatientService.Services.PatientProfile;
+using PatientService.Repositories.Blog;
+using PatientService.Services.Blog;
 using DotNetEnv;
 using System.Text.Json.Serialization;
 
@@ -60,6 +62,8 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 
 builder.Services.AddScoped<IPatientProfileRepository, PatientProfileRepository>();
 builder.Services.AddScoped<IPatientProfileService, PatientProfileService>();
+builder.Services.AddScoped<IBlogRepository, BlogRepository>();
+builder.Services.AddScoped<IBlogService, BlogService>();
 
 var app = builder.Build();
 
