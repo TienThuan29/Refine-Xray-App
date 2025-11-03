@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'forgot_password.dart';
 import '../model/auth/login_request.dart';
 import '../service/auth_service.dart';
-import 'welcome_page.dart';
+import 'patient_home_page.dart';
 import '../../core/widgets/enhanced_button.dart';
 import '../../core/widgets/background.dart';
 import '../../core/widgets/text_field.dart';
@@ -107,7 +107,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               context,
               PageRouteBuilder(
                 pageBuilder: (context, animation, secondaryAnimation) =>
-                    WelcomePage(
+                    PatientHomePage(
                       userProfile: userProfile,
                       accessToken: accessToken,
                     ),
