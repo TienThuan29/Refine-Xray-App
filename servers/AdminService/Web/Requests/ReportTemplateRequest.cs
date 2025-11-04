@@ -4,6 +4,9 @@ namespace AdminService.Web.Requests
 {
     public class UpdateReportTemplateRequest
     {
+        [JsonPropertyName("name")]
+        public string? Name { get; set; }
+        
         [JsonPropertyName("template")]
         public string? Template { get; set; }
         

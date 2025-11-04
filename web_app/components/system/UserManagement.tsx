@@ -33,7 +33,7 @@ import type { ColumnsType } from 'antd/es/table';
 import type { UserProfile } from '@/types/user';
 import { useUserManagement, CreateUserData, UpdateUserData } from '@/hooks/useUserManagement';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRoleValidator, validateUserRole } from '@/hooks/useRoleValidator';
+import { useRoleValidator } from '@/hooks/useRoleValidator';
 import dayjs from 'dayjs';
 
 const { Option } = Select;

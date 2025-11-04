@@ -4,8 +4,12 @@ using Ocelot.DependencyInjection;
 using Ocelot.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Load Ocelot configuration based on environment
+var env = builder.Environment.EnvironmentName;
+var ocelotConfigFile = $"ocelot{(env == "Production" ? ".Production" : "")}.json";
 builder.Configuration.AddJsonFile(
-    "ocelot.json",
+    ocelotConfigFile,
     optional: false, reloadOnChange: false
 );
 

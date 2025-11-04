@@ -6,4 +6,6 @@ export const config = {
 
     XRAY_DETECTION_API: process.env.NEXT_PUBLIC_XRAY_DETECTION_API || '',
 
+    GEMINI_API_KEY: process.env.NEXT_PUBLIC_GEMINI_API_KEY || '',
+
 } as const;

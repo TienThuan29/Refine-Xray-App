@@ -1,0 +1,277 @@
+services:
+
+  redis:
+    image: redis:7-alpine
+    container_name: prm392-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - prm392-network
+    command: redis-server --appendonly yes
+
+  # Identity Service
+  identity-service:
+    build:
+      context: ./servers/IdentityService
+      dockerfile: Dockerfile
+    container_name: prm392-identity-service
+    ports:
+      - "${IDENTITY_SERVICE_PORT:-8082}:8082"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8082
+      - AWS__Region=${AWS_REGION:-ap-southeast-1}
+      - AWS__AccessKey=${AWS_ACCESS_KEY}
+      - AWS__SecretKey=${AWS_SECRET_KEY}
+      - DynamoDB__UserTable=${DYNAMODB_USER_TABLE:-prm392-users}
+      - Jwt__JwtSecret=${JWT_SECRET}
+      - Jwt__JwtAccessTokenExpiration=${JWT_ACCESS_TOKEN_EXPIRATION:-1d}
+      - Jwt__JwtRefreshTokenExpiration=${JWT_REFRESH_TOKEN_EXPIRATION:-7d}
+      - Jwt__BcryptSaltRounds=${BCRYPT_SALT_ROUNDS:-12}
+      - SystemSecret=${SYSTEM_SECRET}
+      - HashingSecretKey=${HASHING_SECRET_KEY}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - prm392-network
+    depends_on:
+      - redis
+
+  # Patient Service
+  patient-service:
+    build:
+      context: ./servers/PatientService
+      dockerfile: Dockerfile
+    container_name: prm392-patient-service
+    ports:
+      - "${PATIENT_SERVICE_PORT:-8085}:8085"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8085
+      - AWS__Region=${AWS_REGION:-ap-northeast-1}
+      - AWS__AccessKey=${AWS_ACCESS_KEY}
+      - AWS__SecretKey=${AWS_SECRET_KEY}
+      - DynamoDB__PatientProfileTable=${DYNAMODB_PATIENT_PROFILE_TABLE:-prm392-patient-profiles}
+      - Jwt__JwtSecret=${JWT_SECRET}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - prm392-network
+    depends_on:
+      - redis
+      - identity-service
+
+  # Doctor Service
+  doctor-service:
+    build:
+      context: ./servers/DoctorService
+      dockerfile: Dockerfile
+    container_name: prm392-doctor-service
+    ports:
+      - "${DOCTOR_SERVICE_PORT:-8083}:8083"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8083
+      - AWS__Region=${AWS_REGION:-ap-southeast-2}
+      - AWS__AccessKey=${AWS_ACCESS_KEY}
+      - AWS__SecretKey=${AWS_SECRET_KEY}
+      - DynamoDB__FolderTable=${DYNAMODB_FOLDER_TABLE:-prm392-folders}
+      - DynamoDB__ChatSessionTable=${DYNAMODB_CHAT_SESSION_TABLE:-prm392-chatsessions}
+      - DynamoDB__ReportTable=${DYNAMODB_REPORT_TABLE:-prm392-reports}
+      - S3__BucketName=${S3_BUCKET_NAME:-prm392-storage}
+      - CliniAI__BaseUrl=${CLINIAI_BASE_URL:-http://clinisearch:8000}
+      - CliniAI__Timeout=${CLINIAI_TIMEOUT:-1200}
+      - PubMedRAG__BaseUrl=${PUBMEDRAG_BASE_URL:-http://rag-pubmed:8001}
+      - PubMedRAG__Timeout=${PUBMEDRAG_TIMEOUT:-300}
+      - Jwt__JwtSecret=${JWT_SECRET}
+      - SystemSecret=${SYSTEM_SECRET}
+      - HashingSecretKey=${HASHING_SECRET_KEY}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - prm392-network
+    depends_on:
+      - redis
+      - identity-service
+      - clinisearch
+      - rag-pubmed
+
+  # Admin Service
+  admin-service:
+    build:
+      context: ./servers/AdminService
+      dockerfile: Dockerfile
+    container_name: prm392-admin-service
+    ports:
+      - "${ADMIN_SERVICE_PORT:-8086}:8086"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8086
+      - AWS__Region=${AWS_REGION:-ap-southeast-2}
+      - AWS__AccessKey=${AWS_ACCESS_KEY}
+      - AWS__SecretKey=${AWS_SECRET_KEY}
+      - DynamoDB__ReportTemplateTable=${DYNAMODB_REPORT_TEMPLATE_TABLE:-prm392-report-templates}
+      - S3__BucketName=${S3_BUCKET_NAME:-prm392-storage}
+      - UserService__BaseUrl=http://identity-service:8082
+      - SystemSecret=${SYSTEM_SECRET}
+      - Jwt__JwtSecret=${JWT_SECRET}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8086/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - prm392-network
+    depends_on:
+      - redis
+      - identity-service
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./servers/ApiGateway
+      dockerfile: Dockerfile
+    container_name: prm392-api-gateway
+    ports:
+      - "${API_GATEWAY_PORT:-8080}:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      - SystemSecret__Value=${SYSTEM_SECRET}
+      - IdentityService__Url=http://identity-service:8082
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - prm392-network
+    depends_on:
+      - identity-service
+      - patient-service
+      - doctor-service
+      - admin-service
+
+  # RAG-Pubmed Service (Python/FastAPI)
+  rag-pubmed:
+    build:
+      context: ./servers/RAG-Pubmed
+      dockerfile: Dockerfile
+    container_name: prm392-rag-pubmed
+    ports:
+      - "${RAG_PUBMED_PORT:-8001}:8001"
+    environment:
+      - API_HOST=0.0.0.0
+      - API_PORT=8001
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - PUBMED_EMAIL=${PUBMED_EMAIL:-nguyentienthuan9595@gmail.com}
+      - CHROMA_HOST=${CHROMA_HOST:-localhost}
+      - CHROMA_PORT=${CHROMA_PORT:-7000}
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - prm392-network
+
+  # CliniSearch AI Service (External Image)
+  clinisearch:
+    image: tienthuan29/clinisearch:latest
+    container_name: prm392-clinisearch
+    ports:
+      - "${CLINISEARCH_PORT:-8000}:8000"
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - NCBI_EMAIL=${NCBI_EMAIL}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GEMINI_MODEL_NAME=${GEMINI_MODEL_NAME}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+    volumes:
+      - model_cache:/app/.cache
+      - ./servers/logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - prm392-network
+
+  # Web Application (Next.js)
+  web-app:
+    build:
+      context: ./web_app
+      dockerfile: Dockerfile
+      target: production
+      args:
+        - NEXT_PUBLIC_HASHING_SECRET_KEY=${NEXT_PUBLIC_HASHING_SECRET_KEY}
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+        - NEXT_PUBLIC_XRAY_DETECTION_API=${NEXT_PUBLIC_XRAY_DETECTION_API}
+    container_name: prm392-web-app
+    ports:
+      - "${WEB_APP_PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+      - NEXT_PUBLIC_HASHING_SECRET_KEY=${NEXT_PUBLIC_HASHING_SECRET_KEY}
+      - NEXT_PUBLIC_XRAY_DETECTION_API=${NEXT_PUBLIC_XRAY_DETECTION_API}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)}).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - prm392-network
+    depends_on:
+      - api-gateway
+
+volumes:
+  redis_data:
+    driver: local
+  model_cache:
+    driver: local
+
+networks:
+  prm392-network:
+    driver: bridge
+

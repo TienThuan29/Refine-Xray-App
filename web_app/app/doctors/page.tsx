@@ -37,6 +37,8 @@ import StartSection from '@/components/combination/start-section';
 import UserProfile from '@/components/combination/user-profile';
 import RenameModal from '@/components/combination/rename-modal';
 import DeleteConfirmModal from '@/components/combination/delete-confirm-modal';
+import ReportTemplateSelectionModal from '@/components/combination/report-template-selection-modal';
+import { ReportTemplate } from '@/hooks/useReportTemplateManagement';
 import { Type } from '@/types/folder';
 import { ChatSession, ChatItem, Report } from '@/types/chatsession';
 import { FaRegQuestionCircle } from "react-icons/fa";
@@ -60,6 +62,7 @@ export default function Page() {
   const [collapsed, setCollapsed] = useState(false);
   const [chatInputValue, setChatInputValue] = useState('');
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const [loadingFolders, setLoadingFolders] = useState<Set<string>>(new Set());
   const [selectedKey, setSelectedKey] = useState('new-chat');
   const [showAllDiseases, setShowAllDiseases] = useState(false);
 
@@ -70,6 +73,7 @@ export default function Page() {
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [renameModalVisible, setRenameModalVisible] = useState(false);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+  const [reportTemplateModalVisible, setReportTemplateModalVisible] = useState(false);
   const [selectedFolderForEdit, setSelectedFolderForEdit] = useState<{ id: string; title: string; description?: string } | null>(null);
   const [editingType, setEditingType] = useState<'folder' | 'chatSession'>('folder');
   const [isLoadingPatient, setIsLoadingPatient] = useState(false);
@@ -83,7 +87,6 @@ export default function Page() {
     folders,
     getFoldersOfUser,
     isFetchingUserFolders,
-    error: folderError,
     renameFolder,
     deleteFolder,
     updatePatientProfile,
@@ -215,10 +218,17 @@ export default function Page() {
       // Fetch chat sessions for this folder if expanding
       if (!expandedFolders.has(key)) {
         // Folder is being expanded, fetch chat sessions
+        setLoadingFolders(prev => new Set(prev).add(key));
         try {
           await getChatSessionsForFolder(key);
         } catch (error) {
           console.error('Error fetching chat sessions for folder:', error);
+        } finally {
+          setLoadingFolders(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(key);
+            return newSet;
+          });
         }
       }
     } else {
@@ -298,8 +308,7 @@ export default function Page() {
   };
 
   const {
-    getPatientProfile,
-    isFetching: isFetchingPatient
+    getPatientProfile
   } = usePatientProfileManager();
 
   const handleFolderCreated = (data: { id: string; title: string; description?: string; type?: Type }) => {
@@ -374,14 +383,14 @@ export default function Page() {
   const handleRenameSubmit = async (newTitle: string, newDescription?: string) => {
     if (editingType === 'folder') {
       if (selectedFolderForEdit?.id) {
-        const success = await renameFolder(selectedFolderForEdit.id, {
+        await renameFolder(selectedFolderForEdit.id, {
           title: newTitle,
           description: newDescription
         });
       }
     } else {
       if (selectedFolderForEdit?.id) {
-        const success = await renameChatSession(selectedFolderForEdit.id, {
+        await renameChatSession(selectedFolderForEdit.id, {
           title: newTitle
         });
         getFoldersOfUser();
@@ -394,11 +403,11 @@ export default function Page() {
   const handleDeleteConfirm = async () => {
     if (editingType === 'folder') {
       if (selectedFolderForEdit?.id) {
-        const success = await deleteFolder(selectedFolderForEdit.id);
+        await deleteFolder(selectedFolderForEdit.id);
       }
     } else {
       if (selectedFolderForEdit?.id) {
-        const success = await deleteChatSession(selectedFolderForEdit.id);
+        await deleteChatSession(selectedFolderForEdit.id);
         getFoldersOfUser();
       }
     }
@@ -441,6 +450,54 @@ export default function Page() {
     } catch (error) {
       console.error('Error creating text chat session:', error);
       toast.error('Failed to create text chat session');
+    }
+  };
+
+  const handleGenerateReport = () => {
+    if (!currentChatSession) {
+      toast.error('No chat session selected');
+      return;
+    }
+    setReportTemplateModalVisible(true);
+  };
+
+  const handleReportTemplateSelect = async (template: ReportTemplate) => {
+    if (!currentChatSession) {
+      toast.error('No chat session selected');
+      return;
+    }
+
+    try {
+      // Import generateReport dynamically
+      const { generateReport } = await import('@/services/gemini');
+      
+      toast.loading('Generating report...', { id: 'generating-report' });
+      
+      // Generate report using Gemini
+      const reportResponse = await generateReport(currentChatSession, template);
+      
+      // Navigate to reports page with the generated report
+      const reportData = {
+        chatSessionId: currentChatSession.id,
+        templateId: template.id,
+        templateName: template.name || template.fileLink || 'Untitled',
+        reportContent: reportResponse.reportContent,
+        gradcamImages: reportResponse.gradcamImages || [],
+        chatSession: currentChatSession,
+        createdAt: new Date().toISOString(),
+      };
+
+      // Store report data in sessionStorage
+      sessionStorage.setItem('generatedReport', JSON.stringify(reportData));
+      
+      toast.success('Report generated successfully!', { id: 'generating-report' });
+      
+      // Navigate to reports page
+      router.push(`/doctors/reports/${currentChatSession.id}`);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      console.error('Error generating report:', error);
+      toast.error(error.message || 'Failed to generate report', { id: 'generating-report' });
     }
   };
 
@@ -605,7 +662,9 @@ export default function Page() {
                         <div className={`transition-transform duration-200 ${expandedFolders.has(folder.id) ? 'rotate-90' : ''}`}>
                           <ArrowLeftOutlined className="text-xs text-gray-500" />
                         </div>
-                        {expandedFolders.has(folder.id) ? (
+                        {loadingFolders.has(folder.id) ? (
+                          <Spin size="small" />
+                        ) : expandedFolders.has(folder.id) ? (
                           folder.type === Type.TEXT ? (
                             <MessageOutlined className="text-blue-500" />
                           ) : (
@@ -947,10 +1006,24 @@ export default function Page() {
                                     {/* X-ray Image Section */}
                                     {currentChatSession.xrayImageUrl && (
                                       <div className="mb-6">
-                                        <Title level={4} className="text-gray-900 mb-4 flex items-center">
-                                          <FileTextOutlined className="mr-2 text-orange-500" />
-                                          X-ray Image
-                                        </Title>
+                                        <div className="flex items-center justify-between mb-4">
+                                          <Title level={4} className="text-gray-900 mb-0 flex items-center">
+                                            <FileTextOutlined className="mr-2 text-orange-500" />
+                                            X-ray Image
+                                          </Title>
+                                        <div className="flex items-center space-x-2">
+                                          <Button type="default" className="bg-orange-500 hover:bg-orange-600">
+                                              View report
+                                            </Button>
+                                            <Button 
+                                              type="primary" 
+                                              className="bg-orange-500 hover:bg-orange-600"
+                                              onClick={handleGenerateReport}
+                                            >
+                                              Generate report
+                                            </Button>
+                                        </div>
+                                        </div>
                                         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
                                           <img
                                             src={currentChatSession.xrayImageUrl}
@@ -963,6 +1036,7 @@ export default function Page() {
                                             }}
                                           />
                                         </div>
+                                        
                                       </div>
                                     )}
 
@@ -1164,6 +1238,13 @@ export default function Page() {
         isDeletingChatSession={isDeletingChatSession}
         onCancel={handleDeleteCancel}
         onConfirm={handleDeleteConfirm}
+      />
+
+      {/* Report Template Selection Modal */}
+      <ReportTemplateSelectionModal
+        visible={reportTemplateModalVisible}
+        onClose={() => setReportTemplateModalVisible(false)}
+        onSelect={handleReportTemplateSelect}
       />
 
       <SessionExpiredWrapper />
