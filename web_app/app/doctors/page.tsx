@@ -792,6 +792,13 @@ export default function Page() {
                 <div className="flex items-center space-x-3">
                   <Button type="text" icon={<FaRegQuestionCircle />} className="text-gray-500" />
                   <Button type="text" icon={<LinkOutlined />} className="text-gray-500" />
+                  <Button 
+                    type="text" 
+                    icon={<FileTextOutlined />} 
+                    className="text-gray-500 hover:text-orange-500"
+                    onClick={() => router.push(PageUrl.Doctor.BLOG_PAGE)}
+                    title="Blog Management"
+                  />
                   {isLoggedIn() && user ? (
                     <div className="flex items-center space-x-2">
                       <span className="text-sm text-gray-600">Welcome, {user.fullname}</span>

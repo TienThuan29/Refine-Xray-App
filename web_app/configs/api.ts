@@ -56,5 +56,13 @@ export const Api = {
 
     XrayDetection: {
         DETECT_XRAY: config.XRAY_DETECTION_API,
+    },
+
+    Blog: {
+        CREATE_BLOG: '/api/patients/v1/blogs',                    // POST (DOCTOR only)
+        GET_BLOG: '/api/patients/v1/blogs',                       // GET /:id (Public)
+        UPDATE_BLOG: '/api/patients/v1/blogs',                    // PUT /:id (DOCTOR only)
+        DELETE_BLOG: '/api/patients/v1/blogs',                    // DELETE /:id (DOCTOR only)
+        LIST_BLOGS: '/api/patients/v1/blogs'                      // GET (Public - all blogs)
     }
 }

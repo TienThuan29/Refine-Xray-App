@@ -71,6 +71,13 @@ app.UseWhen(
     subApp => { subApp.UseMiddleware<ApiGateway.Middleware.JwtDoctorValidationMiddleware>(); }
 );
 
+// blog validation middleware - only for POST, PUT, DELETE (exclude Swagger paths)
+app.UseWhen(
+    context => context.Request.Path.StartsWithSegments("/api/patients/v1/blogs") && 
+               !context.Request.Path.StartsWithSegments("/swagger"),
+    subApp => { subApp.UseMiddleware<ApiGateway.Middleware.JwtBlogValidationMiddleware>(); }
+);
+
 // Map Swagger endpoints before Ocelot to ensure proper routing
 app.MapGet("/health", () => Results.Ok("OK"));
 
