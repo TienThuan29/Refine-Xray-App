@@ -6,6 +6,8 @@ export const PageUrl = {
 
     Doctor: {
         HOME_PAGE: '/doctors',
+        BLOG_PAGE: '/doctors/blog',
+        BLOG_DETAIL: (id: string) => `/doctors/blog/${id}`,
     },
 
     Admin: {
