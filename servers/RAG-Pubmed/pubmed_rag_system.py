@@ -8,18 +8,15 @@ import chromadb
 from chromadb.config import Settings
 from datetime import datetime
 from dotenv import load_dotenv
+import google.generativeai as genai
 
-# Suppress warnings from Google Cloud libraries (gRPC, ALTS, etc.)
 os.environ['GRPC_PYTHON_LOG_LEVEL'] = 'ERROR'
 os.environ['GRPC_VERBOSITY'] = 'ERROR'
 warnings.filterwarnings('ignore', category=UserWarning)
 warnings.filterwarnings('ignore', message='.*ALTS creds ignored.*')
 
-# Load environment variables from .env file
 load_dotenv()
 
-# Import google.generativeai after setting environment variables
-import google.generativeai as genai
 
 @dataclass
 class PubMedArticle:
@@ -465,9 +462,9 @@ class MedicalRAG:
             import traceback
             traceback.print_exc()
     
-    def query(self, question: str, n_results: int = 3, auto_fetch: bool = True, auto_fetch_count: int = 30) -> str:
+    def retrieve_context(self, question: str, n_results: int = 3, auto_fetch: bool = True, auto_fetch_count: int = 30) -> Dict:
         """
-        Trả lời câu hỏi dựa trên knowledge base
+        Retrieve context sources from knowledge base (without LLM generation)
         
         Args:
             question: Câu hỏi từ người dùng
@@ -476,7 +473,7 @@ class MedicalRAG:
             auto_fetch_count: Số lượng bài báo fetch tự động nếu database trống (mặc định: 30)
             
         Returns:
-            Câu trả lời với context từ các bài báo
+            Dictionary chứa context_sources và metadata
         """
         print(f"\n{'='*60}")
         print(f"Câu hỏi: {question}")
@@ -493,7 +490,7 @@ class MedicalRAG:
         else:
             print("Database đang trống")
         
-        # Nếu database trống và auto_fetch = True, tự động index dữ liệu
+        # if database is empty and auto fetch = True
         if db_count == 0 and auto_fetch:
             print("\n Database đang trống. Đang tự động crawl dữ liệu từ PubMed...")
             print(f"Đang tìm kiếm và index {auto_fetch_count} bài báo liên quan đến: '{question}'")
@@ -506,17 +503,19 @@ class MedicalRAG:
                 print(f" Không thể tự động fetch dữ liệu: {e}")
                 print("Bạn có thể thử index thủ công bằng option 1 trong menu.\n")
         
-        # Tìm kiếm trong vector database
+        # retrieve vector database
         results = self.vectordb.search(question, n_results=n_results)
         
         if not results['documents'][0]:
-            if db_count == 0:
-                return ("Không tìm thấy thông tin liên quan.\n"
-                       "Đã cố gắng crawl dữ liệu từ PubMed nhưng không tìm thấy bài báo nào "
-                       f"liên quan đến: '{question}'\n"
-                       "Vui lòng thử query khác hoặc index thủ công bằng option 1.")
-            else:
-                return "Không tìm thấy thông tin liên quan trong database."
+            return {
+                "success": False,
+                "context_sources": [],
+                "error_message": ("Không tìm thấy thông tin liên quan.\n"
+                               "Đã cố gắng crawl dữ liệu từ PubMed nhưng không tìm thấy bài báo nào "
+                               f"liên quan đến: '{question}'\n"
+                               "Vui lòng thử query khác hoặc index thủ công bằng option 1.")
+                if db_count == 0 else "Không tìm thấy thông tin liên quan trong database."
+            }
         
         # Chuẩn bị context từ các nguồn đã tìm được
         context_sources = []
@@ -547,7 +546,49 @@ class MedicalRAG:
             }
             context_sources.append(source_info)
         
-        # Tạo prompt để LLM tổng hợp thông tin
+        return {
+            "success": True,
+            "context_sources": context_sources,
+            "question": question
+        }
+    
+    def query(self, question: str, n_results: int = 3, auto_fetch: bool = True, auto_fetch_count: int = 30) -> str:
+        """
+        Trả lời câu hỏi dựa trên knowledge base (backward compatibility)
+        Sử dụng retrieve_context và LLM generation internally
+        
+        Args:
+            question: Câu hỏi từ người dùng
+            n_results: Số lượng bài báo liên quan để tham khảo
+            auto_fetch: Tự động fetch dữ liệu từ PubMed nếu database trống (mặc định: True)
+            auto_fetch_count: Số lượng bài báo fetch tự động nếu database trống (mặc định: 30)
+            
+        Returns:
+            Câu trả lời với context từ các bài báo
+        """
+        # Retrieve context
+        context_result = self.retrieve_context(question, n_results, auto_fetch, auto_fetch_count)
+        
+        if not context_result["success"]:
+            return context_result["error_message"]
+        
+        context_sources = context_result["context_sources"]
+        
+        # Generate answer using LLM
+        return self._generate_answer_with_llm(question, context_sources)
+    
+    def _generate_answer_with_llm(self, question: str, context_sources: List[Dict]) -> str:
+        """
+        Generate answer using LLM based on context sources
+        
+        Args:
+            question: Câu hỏi từ người dùng
+            context_sources: List các nguồn context
+            
+        Returns:
+            Câu trả lời được generate bởi LLM
+        """
+        # Prepare context text
         context_text = "Các nghiên cứu y học liên quan:\n\n"
         for source in context_sources:
             context_text += f"Nguồn {source['number']}: {source['title']}\n"
@@ -558,21 +599,29 @@ class MedicalRAG:
         
         prompt = f"""Bạn là một trợ lý y tế chuyên nghiệp, có nhiệm vụ trả lời câu hỏi y học dựa trên các nghiên cứu khoa học từ PubMed.
 
-Câu hỏi của người dùng: {question}
+    Câu hỏi của người dùng: {question}
 
-{context_text}
+    {context_text}
 
-Yêu cầu:
-1. Hãy tổng hợp thông tin từ các nghiên cứu trên để trả lời câu hỏi một cách chi tiết, dễ hiểu
-2. Ưu tiên các nguồn có độ liên quan cao hơn
-3. Trả lời bằng tiếng Việt một cách tự nhiên, như một bác sĩ đang giải thích cho bệnh nhân
-4. Nếu có nhiều quan điểm khác nhau, hãy trình bày đầy đủ
-5. Cuối cùng, hãy liệt kê các nguồn tham khảo với format:
-   [Nguồn X] Tên bài báo - Tác giả, Journal (Năm)
+    NHIỆM VỤ CỦA BẠN:
+    1. PHẢI trả lời câu hỏi của người dùng một cách hữu ích và chi tiết
+    2. Tổng hợp thông tin từ các nghiên cứu trên, ưu tiên các nguồn có độ liên quan cao hơn
+    3. Trả lời bằng tiếng Việt một cách tự nhiên, như một bác sĩ đang giải thích cho bệnh nhân
+    4. Nếu các nghiên cứu có liên quan một phần (ví dụ: cùng lĩnh vực y học nhưng khác chủ đề), hãy:
+    - Trả lời dựa trên thông tin liên quan nhất mà bạn tìm thấy
+    - Giải thích sự liên kết giữa thông tin và câu hỏi
+    - Đề xuất người dùng tìm kiếm với từ khóa cụ thể hơn nếu cần
+    5. Nếu có nhiều quan điểm khác nhau, hãy trình bày đầy đủ
+    6. KHÔNG được chỉ nói "không có thông tin liên quan" - luôn cố gắng cung cấp giá trị từ những gì có sẵn
 
-Lưu ý: Đây là thông tin từ các nghiên cứu khoa học. Vui lòng tham khảo ý kiến bác sĩ cho tình huống cụ thể.
+    {relevance_note}
 
-Hãy bắt đầu trả lời:"""
+    Sau khi trả lời, hãy liệt kê các nguồn tham khảo với format:
+    [Nguồn X] Tên bài báo - Tác giả, Journal (Năm)
+
+    Lưu ý cuối: Đây là thông tin từ các nghiên cứu khoa học. Vui lòng tham khảo ý kiến bác sĩ cho tình huống cụ thể.
+
+    Hãy bắt đầu trả lời một cách hữu ích và chi tiết:"""
         
         try:
             # Generate answer using Gemini
@@ -581,7 +630,7 @@ Hãy bắt đầu trả lời:"""
             answer = response_obj.text.strip()
             
             # Thêm danh sách nguồn chi tiết vào cuối
-            answer += "\n\n---\n\n📚 Nguồn tham khảo:\n"
+            answer += "\n\n---\n\nNguồn tham khảo:\n"
             for source in context_sources:
                 answer += f"\n[{source['number']}] {source['title']}\n"
                 answer += f"   Tác giả: {source['authors']}\n"

@@ -15,24 +15,28 @@ var awsSecretKey = builder.Configuration["AWS:SecretKey"];
 
 if (string.IsNullOrEmpty(awsRegion) || awsRegion.Contains("${"))
 {
-    awsRegion = "us-east-1"; 
+    awsRegion = "us-east-1";
 }
 
-// Configure AWS credentials from appsettings.json
 var awsOptions = new AWSOptions
 {
     Region = RegionEndpoint.GetBySystemName(awsRegion)
 };
 
-// Use BasicAWSCredentials if AccessKey and SecretKey are provided
+
 if (!string.IsNullOrEmpty(awsAccessKey) && !string.IsNullOrEmpty(awsSecretKey))
 {
     awsOptions.Credentials = new Amazon.Runtime.BasicAWSCredentials(awsAccessKey, awsSecretKey);
 }
 
 builder.Services.AddAWSService<IAmazonDynamoDB>(awsOptions);
+builder.Services.AddAWSService<Amazon.S3.IAmazonS3>(awsOptions);
 
 // Add HTTP client for IdentityService
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<AdminService.Repositories.ReportTemplate.IReportTemplateRepository, AdminService.Repositories.ReportTemplate.ReportTemplateRepository>();
+builder.Services.AddScoped<AdminService.Repositories.S3.IS3Repository, AdminService.Repositories.S3.S3Repository>();
+builder.Services.AddScoped<AdminService.Services.ReportTemplate.IReportTemplateService, AdminService.Services.ReportTemplate.ReportTemplateService>();
 builder.Services.AddHttpClient<AdminService.Services.IUserService   , AdminService.Services.UserService>(client =>
 {
     var baseUrl = builder.Configuration["UserService:BaseUrl"] ?? "http://localhost:8082";
@@ -51,7 +55,7 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Admin Services", Version = "v1" });
 });
-// builder.Services.AddHostedService<AdminService.Utils.DynamoWarmupHostedService>();
+builder.Services.AddHostedService<AdminService.Utils.DynamoWarmupHostedService>();
 
 builder.Services.AddCors(o => 
     o.AddDefaultPolicy(p => p.AllowAnyOrigin()

@@ -50,7 +50,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             // Check if token is expired
             return payload.exp < currentTime;
         } catch (error) {
-            // If we can't decode the token, consider it expired
             return true;
         }
     };
@@ -204,7 +203,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         try {
             // Add a small delay to show the loading state
             await new Promise(resolve => setTimeout(resolve, 500));
-            
             localStorage.removeItem(AUTH_TOKENS_KEY);
             localStorage.removeItem(USER_PROFILE_KEY);
             setUser(null);

@@ -5,9 +5,18 @@ from typing import Optional, Dict, List
 import os
 from dotenv import load_dotenv
 import uvicorn
+import google.generativeai as genai
 from pubmed_rag_system import MedicalRAG
 
 load_dotenv()
+
+# Configure Gemini API for LLM generation
+gemini_api_key = os.getenv("GEMINI_API_KEY")
+if gemini_api_key:
+    genai.configure(api_key=gemini_api_key)
+    generation_model = genai.GenerativeModel('gemini-2.5-flash')
+else:
+    generation_model = None
 
 app = FastAPI(
     title="Medical RAG API",
@@ -49,7 +58,7 @@ class IndexRequest(BaseModel):
 
 class QueryRequest(BaseModel):
     question: str = Field(..., description="Question to ask the RAG system")
-    n_results: int = Field(default=3, ge=1, le=10, description="Number of relevant articles to return")
+    n_results: int = Field(default=5, ge=1, le=10, description="Number of relevant articles to return")
     auto_fetch: bool = Field(default=True, description="Automatically fetch data from PubMed if database is empty")
     auto_fetch_count: int = Field(default=30, ge=1, le=100, description="Number of articles to fetch automatically if database is empty")
 
@@ -127,11 +136,9 @@ async def index_topic(request: IndexRequest):
         raise HTTPException(status_code=503, detail="RAG system not initialized")
     
     try:
-        rag.index_topic(request.query, max_results=request.max_results)
-        
+        rag.index_topic(request.query, max_results=request.max_results)        
         # Get updated stats
         stats = rag.get_stats()
-        
         return {
             "status": "success",
             "message": f"Successfully indexed articles for query: '{request.query}'",
@@ -144,16 +151,115 @@ async def index_topic(request: IndexRequest):
         )
 
 
+def generate_answer_with_llm(question: str, context_sources: List[Dict], min_relevance: float = 30.0) -> str:
+    # Filter sources by relevance threshold
+    filtered_sources = [s for s in context_sources if s.get('relevance', 0) >= min_relevance]
+    
+    # If no sources meet threshold, use top source anyway (but warn in prompt)
+    if not filtered_sources and context_sources:
+        filtered_sources = [context_sources[0]]  # Use at least top result
+        low_relevance_warning = True
+    else:
+        low_relevance_warning = len(filtered_sources) < len(context_sources)
+    
+    if generation_model is None:
+        # Fallback if Gemini is not configured
+        response = f"Based on medical research, I found the following information related to your question:\n\n"
+        for source in filtered_sources:
+            response += f"Source {source['number']}: {source['title']}\n"
+            response += f"   Author: {source['authors']}\n"
+            response += f"   Journal: {source['journal']} ({source['date']})\n"
+            response += f"   Relevance: {source['relevance']:.1f}%\n"
+            abstract = source['abstract']
+            if len(abstract) > 400:
+                abstract = abstract[:400] + "..."
+            response += f"   {abstract}\n\n"
+        response += "\nNote: This is information from medical research. "
+        response += "Please consult with a doctor for the specific situation."
+        return response
+    
+    # Calculate average relevance
+    avg_relevance = sum(s.get('relevance', 0) for s in filtered_sources) / len(filtered_sources) if filtered_sources else 0
+    
+    # Prepare context text
+    context_text = "Medical research related:\n\n"
+    for source in filtered_sources:
+        context_text += f"Source {source['number']}: {source['title']}\n"
+        context_text += f"- Author: {source['authors']}\n"
+        context_text += f"- Journal: {source['journal']} ({source['date']})\n"
+        context_text += f"- Relevance: {source['relevance']:.1f}%\n"
+        context_text += f"- Abstract: {source['abstract']}\n\n"
+    
+    # Build prompt with better instructions
+    relevance_note = ""
+    if low_relevance_warning or avg_relevance < 50:
+        relevance_note = "\n\nLƯU Ý: Một số nguồn có độ liên quan thấp. Hãy cố gắng trả lời câu hỏi dựa trên bất kỳ thông tin liên quan nào bạn tìm thấy, ngay cả khi không hoàn toàn phù hợp. Nếu thông tin không đủ, hãy đề xuất người dùng tìm kiếm với từ khóa cụ thể hơn."
+    
+    prompt = f"""
+You are a professional medical assistant, tasked with answering medical questions based on scientific research from PubMed. User Question: {question}
+{context_text}
+YOUR TASKS:
+1. MUST answer the user's question in a useful and detailed way
+2. Synthesize information from the above studies, prioritizing sources with higher relevance
+3. Respond in Vietnamese naturally, like a doctor explaining to a patient
+4. If the studies are partially related (e.g., same medical field but different topic), please:
+- Answer based on the most relevant information you found
+- Explain the connection between the information and the question
+- Suggest the user to search with more specific keywords if needed
+5. If there are different views, present them fully
+6. DO NOT just say "no relevant information" - always try to provide value from what is available
+7. Answer based on the language of the user's question
+
+{relevance_note}
+
+After answering, list the references in the format:
+[Source X] Name Article - Author, Journal (Year)
+Final Note: This is information from scientific studies. Please consult your doctor for specific situations.
+Start answering in a helpful and detailed way:
+
+"""
+    
+    try:
+        response_obj = generation_model.generate_content(prompt)
+        answer = response_obj.text.strip()
+
+        answer += "\n\n---\n\nReferences:\n"
+        for source in context_sources:
+            answer += f"\n[{source['number']}] {source['title']}\n"
+            answer += f"   Author: {source['authors']}\n"
+            answer += f"   Journal: {source['journal']} ({source['date']})\n"
+            answer += f"   Relevance: {source['relevance']:.1f}%\n"
+        
+        return answer
+        
+    except Exception as e:
+        print(f"Error generating answer with LLM: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        # fallback
+        response = f"Based on medical research, I found the following information related to your question:\n\n"
+        
+        for source in context_sources:
+            response += f"Source {source['number']}: {source['title']}\n"
+            response += f"   Author: {source['authors']}\n"
+            response += f"   Journal: {source['journal']} ({source['date']})\n"
+            response += f"   Relevance: {source['relevance']:.1f}%\n"
+            
+            # extract abstract (limit length)
+            abstract = source['abstract']
+            if len(abstract) > 400:
+                abstract = abstract[:400] + "..."
+            response += f"   {abstract}\n\n"
+        
+        response += "\nNote: This is information from scientific studies. "
+        response += "Please consult your doctor for the specific situation."
+        
+        return response
+
+
 @app.post("/query", response_model=QueryResponse, responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}})
 async def query(request: QueryRequest):
-    """
-    Query the knowledge base with a question
-    
-    - **question**: Question to ask the RAG system
-    - **n_results**: Number of relevant articles to return (1-10)
-    - **auto_fetch**: Automatically fetch data from PubMed if database is empty
-    - **auto_fetch_count**: Number of articles to fetch automatically if database is empty
-    """
     if rag is None:
         raise HTTPException(status_code=503, detail="RAG system not initialized")
     
@@ -162,8 +268,8 @@ async def query(request: QueryRequest):
         stats_before = rag.get_stats()
         db_count_before = stats_before["total_articles"]
         
-        # Query the system
-        answer = rag.query(
+        # Retrieve context from RAG system (without LLM generation)
+        context_result = rag.retrieve_context(
             question=request.question,
             n_results=request.n_results,
             auto_fetch=request.auto_fetch,
@@ -174,8 +280,45 @@ async def query(request: QueryRequest):
         stats_after = rag.get_stats()
         auto_fetched = stats_after["total_articles"] > db_count_before
         
-        # Extract sources count from answer (count "Nguồn" occurrences)
-        sources_count = answer.count("Nguồn")
+        if not context_result["success"]:
+            # Return error message if no context found
+            sources_count = 0
+            answer = context_result["error_message"]
+        else:
+            # Generate answer using LLM at API layer
+            context_sources = context_result["context_sources"]
+            
+            # Check if average relevance is too low - might need to fetch more data
+            avg_relevance = sum(s.get('relevance', 0) for s in context_sources) / len(context_sources) if context_sources else 0
+            
+            # If average relevance is very low (< 40%) and auto_fetch is enabled, try fetching more specific data
+            if avg_relevance < 40 and request.auto_fetch and not auto_fetched:
+                # print(f"\nĐộ liên quan thấp ({avg_relevance:.1f}%). Đang thử crawl thêm dữ liệu với từ khóa cụ thể hơn...")
+                try:
+                    # Try to fetch more specific data
+                    rag.index_topic(request.question, max_results=request.auto_fetch_count)
+                    # Retrieve context again with new data
+                    context_result = rag.retrieve_context(
+                        question=request.question,
+                        n_results=request.n_results,
+                        auto_fetch=False,  # Don't auto-fetch again
+                        auto_fetch_count=0
+                    )
+                    if context_result["success"]:
+                        context_sources = context_result["context_sources"]
+                        new_avg_relevance = sum(s.get('relevance', 0) for s in context_sources) / len(context_sources) if context_sources else 0
+                        # print(f"Crawled more data. New relevance: {new_avg_relevance:.1f}%")
+                        auto_fetched = True
+                except Exception as e:
+                    print(f"Cannot crawl more data: {e}")
+            
+            # Generate answer
+            if avg_relevance < 40:
+                answer = generate_answer_with_llm(request.question, context_sources, min_relevance=20.0)
+            else:
+                answer = generate_answer_with_llm(request.question, context_sources)
+            
+            sources_count = len(context_sources)
         
         return QueryResponse(
             answer=answer,

@@ -7,7 +7,7 @@ namespace AdminService.Utils
     {
         private readonly IAmazonDynamoDB _dynamoDb;
         private readonly ILogger<DynamoWarmupHostedService> _logger;
-        private readonly string _tableName;
+        private readonly string[] _tableNames;
 
         public DynamoWarmupHostedService(
             IAmazonDynamoDB dynamoDb,
@@ -16,27 +16,33 @@ namespace AdminService.Utils
         {
             _dynamoDb = dynamoDb;
             _logger = logger;
-            _tableName = configuration["DynamoDB:UserTable"] ?? "prm392-users";
+            _tableNames = new[]
+            {
+                configuration["DynamoDB:ReportTemplateTable"] ?? "prm392-report-templates"
+            };
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
 
-            try
+            foreach (var tableName in _tableNames)
             {
-                _logger.LogInformation("Warming up DynamoDB by describing table: {Table}", _tableName);
-                await _dynamoDb.DescribeTableAsync(new DescribeTableRequest { TableName = _tableName }, linkedCts.Token);
-                _logger.LogInformation("DynamoDB warm-up completed");
-            }
-            catch (OperationCanceledException)
-            {
-                _logger.LogWarning("DynamoDB warm-up timed out; continuing startup");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "DynamoDB warm-up failed; will retry on first real call");
+                try
+                {
+                    _logger.LogInformation("Warming up DynamoDB by describing table: {Table}", tableName);
+                    await _dynamoDb.DescribeTableAsync(new DescribeTableRequest { TableName = tableName }, linkedCts.Token);
+                    _logger.LogInformation("DynamoDB warm-up completed for table: {Table}", tableName);
+                }
+                catch (OperationCanceledException)
+                {
+                    _logger.LogWarning("DynamoDB warm-up timed out for table: {Table}; continuing startup", tableName);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "DynamoDB warm-up failed for table: {Table}; will retry on first real call", tableName);
+                }
             }
         }
 

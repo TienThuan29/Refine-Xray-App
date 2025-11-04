@@ -29,9 +29,11 @@ builder.Services.Configure<HttpClientFactoryOptions>(options =>
     });
 });
 
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddOcelot()
     .AddDelegatingHandler<ExtendedTimeoutHandler>()
-    .AddDelegatingHandler<OverrideOcelotTimeoutHandler>();
+    .AddDelegatingHandler<OverrideOcelotTimeoutHandler>()
+    .AddDelegatingHandler<ApiGateway.Middleware.UserInfoForwardingHandler>();
 
 builder.Services.AddSingleton<Ocelot.Requester.TimeoutDelegatingHandler, DisabledTimeoutHandler>();
 builder.Services.AddHttpClient();
@@ -76,6 +78,32 @@ app.UseWhen(
     context => context.Request.Path.StartsWithSegments("/api/patients/v1/blogs") && 
                !context.Request.Path.StartsWithSegments("/swagger"),
     subApp => { subApp.UseMiddleware<ApiGateway.Middleware.JwtBlogValidationMiddleware>(); }
+// Admin service validation middleware - ADMIN or DOCTOR role for GET report templates
+app.UseWhen(
+    context => (context.Request.Path.StartsWithSegments("/api/admin/v1/report-templates") ||
+                context.Request.Path.StartsWithSegments("/api/admin/api/v1/report-templates")) &&
+               (context.Request.Method.Equals("GET", StringComparison.OrdinalIgnoreCase)) &&
+               !context.Request.Path.StartsWithSegments("/swagger"),
+    subApp => { subApp.UseMiddleware<ApiGateway.Middleware.JwtAdminOrDoctorValidationMiddleware>(); }
+);
+
+// Admin service validation middleware - ADMIN role only for POST/PUT report templates
+app.UseWhen(
+    context => (context.Request.Path.StartsWithSegments("/api/admin/v1/report-templates") ||
+                context.Request.Path.StartsWithSegments("/api/admin/api/v1/report-templates")) &&
+               (context.Request.Method.Equals("POST", StringComparison.OrdinalIgnoreCase) ||
+                context.Request.Method.Equals("PUT", StringComparison.OrdinalIgnoreCase)) &&
+               !context.Request.Path.StartsWithSegments("/swagger"),
+    subApp => { subApp.UseMiddleware<ApiGateway.Middleware.JwtAdminValidationMiddleware>(); }
+);
+
+// Admin service validation middleware - ADMIN role for all other admin endpoints
+app.UseWhen(
+    context => context.Request.Path.StartsWithSegments("/api/admin") &&
+               !context.Request.Path.StartsWithSegments("/api/admin/v1/report-templates") &&
+               !context.Request.Path.StartsWithSegments("/api/admin/api/v1/report-templates") &&
+               !context.Request.Path.StartsWithSegments("/swagger"),
+    subApp => { subApp.UseMiddleware<ApiGateway.Middleware.JwtAdminValidationMiddleware>(); }
 );
 
 // Map Swagger endpoints before Ocelot to ensure proper routing
