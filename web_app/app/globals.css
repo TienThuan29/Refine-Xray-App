@@ -320,3 +320,4 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+@import 'react-quill/dist/quill.snow.css';

@@ -22,7 +22,7 @@ namespace AdminService.Web.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<ApiResponse<ReportTemplateResponse>>> CreateReportTemplate(IFormFile file, [FromForm] string userId)
+        public async Task<ActionResult<ApiResponse<ReportTemplateResponse>>> CreateReportTemplate(IFormFile file, [FromForm] string userId, [FromForm] string? name = null)
         {
             try
             {
@@ -36,7 +36,7 @@ namespace AdminService.Web.Controllers
                     return ResponseUtil.Error<ReportTemplateResponse>("File is required", 400);
                 }
 
-                var created = await _reportTemplateService.CreateAsync(file, userId);
+                var created = await _reportTemplateService.CreateAsync(file, userId, name);
                 if (created == null)
                 {
                     return ResponseUtil.Error<ReportTemplateResponse>("Failed to create report template", 500);
@@ -114,9 +114,28 @@ namespace AdminService.Web.Controllers
                     request = new UpdateReportTemplateRequest();
                 }
 
-                // Handle activate/deactivate via IsDeleted field
-                // If IsDeleted is explicitly set in form data, use it
+                // Read form data to handle all fields properly
                 var form = await Request.ReadFormAsync();
+                
+                // Parse name from form data
+                if (form.ContainsKey("name"))
+                {
+                    request.Name = form["name"].ToString();
+                }
+                
+                // Parse template from form data
+                if (form.ContainsKey("template"))
+                {
+                    request.Template = form["template"].ToString();
+                }
+                
+                // Parse fileLink from form data
+                if (form.ContainsKey("fileLink"))
+                {
+                    request.FileLink = form["fileLink"].ToString();
+                }
+                
+                // Parse isDeleted from form data
                 if (form.ContainsKey("isDeleted"))
                 {
                     if (bool.TryParse(form["isDeleted"].ToString(), out var isDeleted))

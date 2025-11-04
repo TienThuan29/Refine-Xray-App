@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Table,
   Button,
@@ -48,7 +48,6 @@ const ReportTemplates: React.FC = () => {
     error,
     isCreating,
     isUpdating,
-    isFetching,
     getAllReportTemplates,
     createReportTemplate,
     updateReportTemplate,
@@ -65,9 +64,13 @@ const ReportTemplates: React.FC = () => {
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [editFileList, setEditFileList] = useState<UploadFile[]>([]);
 
+  const loadTemplates = useCallback(async () => {
+    await getAllReportTemplates();
+  }, [getAllReportTemplates]);
+
   useEffect(() => {
     loadTemplates();
-  }, []);
+  }, [loadTemplates]);
 
   useEffect(() => {
     if (error) {
@@ -75,10 +78,6 @@ const ReportTemplates: React.FC = () => {
       clearError();
     }
   }, [error, clearError]);
-
-  const loadTemplates = async () => {
-    await getAllReportTemplates();
-  };
 
   const handleCreate = () => {
     setIsCreateModalVisible(true);
@@ -97,6 +96,7 @@ const ReportTemplates: React.FC = () => {
 
       const result = await createReportTemplate({
         file: fileList[0].originFileObj,
+        name: values.name,
       });
 
       if (result) {
@@ -122,9 +122,10 @@ const ReportTemplates: React.FC = () => {
   const handleEdit = (template: ReportTemplate) => {
     setSelectedTemplate(template);
     editForm.setFieldsValue({
+      name: template.name,
       template: template.template,
       fileLink: template.fileLink,
-      isDeleted: template.isDeleted,
+      isDeleted: !template.isDeleted,
     });
     setEditFileList([]);
     setIsEditModalVisible(true);
@@ -136,11 +137,41 @@ const ReportTemplates: React.FC = () => {
       if (!selectedTemplate) return;
 
       const updateData: UpdateReportTemplateRequest = {};
-      if (values.template !== undefined) updateData.template = values.template;
-      if (values.fileLink !== undefined) updateData.fileLink = values.fileLink;
-      if (values.isDeleted !== undefined) updateData.isDeleted = values.isDeleted;
+      
+      // Only include fields that have been changed or are not empty
+      if (values.name !== undefined && values.name !== null && values.name.trim() !== '') {
+        updateData.name = values.name.trim();
+      }
+      if (values.template !== undefined && values.template !== null && values.template.trim() !== '') {
+        updateData.template = values.template.trim();
+      }
+      if (values.fileLink !== undefined && values.fileLink !== null && values.fileLink.trim() !== '') {
+        updateData.fileLink = values.fileLink.trim();
+      }
+      
+      // Always include isDeleted status (invert: Switch checked (Active) = !isDeleted)
+      if (values.isDeleted !== undefined) {
+        updateData.isDeleted = !values.isDeleted;
+      } else {
+        // If not provided, keep existing value
+        updateData.isDeleted = selectedTemplate.isDeleted;
+      }
+      
+      // Include file if a new one is uploaded
       if (editFileList.length > 0 && editFileList[0].originFileObj) {
         updateData.file = editFileList[0].originFileObj;
+      }
+
+      // Ensure at least one field is being updated
+      const hasChanges = updateData.name !== undefined || 
+                        updateData.template !== undefined || 
+                        updateData.fileLink !== undefined || 
+                        updateData.file !== undefined ||
+                        (updateData.isDeleted !== undefined && updateData.isDeleted !== selectedTemplate.isDeleted);
+
+      if (!hasChanges) {
+        toast.warning('No changes to update');
+        return;
       }
 
       const result = await updateReportTemplate(selectedTemplate.id, updateData);
@@ -155,9 +186,11 @@ const ReportTemplates: React.FC = () => {
       } else {
         toast.error('Failed to update report template');
       }
-    } catch (error) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
       console.error('Error updating template:', error);
-      toast.error('Failed to update report template');
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to update report template';
+      toast.error(errorMessage);
     }
   };
 
@@ -204,6 +237,18 @@ const ReportTemplates: React.FC = () => {
       render: (text: string) => (
         <Tooltip title={text}>
           <span>{text.substring(0, 8)}...</span>
+        </Tooltip>
+      ),
+    },
+    {
+      title: 'Name',
+      dataIndex: 'name',
+      key: 'name',
+      width: 200,
+      ellipsis: true,
+      render: (text: string) => (
+        <Tooltip title={text}>
+          <span>{text || '-'}</span>
         </Tooltip>
       ),
     },
@@ -311,9 +356,6 @@ const ReportTemplates: React.FC = () => {
     },
   ];
 
-  // Filter out deleted templates for display (optional - you can show all if needed)
-  const activeTemplates = reportTemplates.filter(t => !t.isDeleted);
-
   return (
     <Card>
       <div className="mb-4 flex justify-between items-center">
@@ -365,6 +407,13 @@ const ReportTemplates: React.FC = () => {
         width={600}
       >
         <Form form={createForm} layout="vertical">
+          <Form.Item
+            name="name"
+            label="Template Name"
+            rules={[{ required: false, message: 'Please enter a template name' }]}
+          >
+            <Input placeholder="Enter template name (optional, defaults to file name)" />
+          </Form.Item>
           <Form.Item
             name="file"
             label="Upload Template File"
@@ -430,6 +479,9 @@ const ReportTemplates: React.FC = () => {
             <div>
               <strong>ID:</strong> {selectedTemplate.id}
             </div>
+            <div>
+              <strong>Name:</strong> {selectedTemplate.name || '-'}
+            </div>
             {/* <div>
               <strong>Created By:</strong> {selectedTemplate.createBy}
             </div> */}
@@ -488,14 +540,20 @@ const ReportTemplates: React.FC = () => {
       >
         <Form form={editForm} layout="vertical">
           <Form.Item
+            name="name"
+            label="Template Name"
+          >
+            <Input placeholder="Enter template name" />
+          </Form.Item>
+          <Form.Item
             name="isDeleted"
             label="Status"
             valuePropName="checked"
+            initialValue={!selectedTemplate?.isDeleted}
           >
             <Switch
               checkedChildren="Active"
               unCheckedChildren="Inactive"
-              onChange={(checked) => editForm.setFieldsValue({ isDeleted: !checked })}
             />
           </Form.Item>
           <Form.Item

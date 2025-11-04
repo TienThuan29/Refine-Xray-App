@@ -8,6 +8,7 @@ import { Api } from '@/configs/api';
 // Types for report template operations
 export interface ReportTemplate {
     id: string;
+    name: string;
     template: string;
     fileLink: string;
     createBy: string;
@@ -18,9 +19,11 @@ export interface ReportTemplate {
 
 export interface CreateReportTemplateRequest {
     file: File;
+    name?: string;
 }
 
 export interface UpdateReportTemplateRequest {
+    name?: string;
     template?: string;
     fileLink?: string;
     isDeleted?: boolean;
@@ -94,6 +97,9 @@ const useReportTemplateManagement = (): UseReportTemplateManagerReturn => {
             const formData = new FormData();
             formData.append('file', data.file);
             formData.append('userId', user.id);
+            if (data.name) {
+                formData.append('name', data.name);
+            }
             
             // Don't manually set Content-Type - axios will set it automatically with boundary for FormData
             const response = await axios.post(Api.Admin.CREATE_REPORT_TEMPLATE, formData);
@@ -144,6 +150,8 @@ const useReportTemplateManagement = (): UseReportTemplateManagerReturn => {
             
             const response = await axios.get(Api.Admin.GET_ALL_REPORT_TEMPLATES);
             const templates = response.data.dataResponse || [];
+
+            console.log('templates', templates);
             
             updateState({
                 reportTemplates: templates,
@@ -169,12 +177,17 @@ const useReportTemplateManagement = (): UseReportTemplateManagerReturn => {
             const formData = new FormData();
             
             // Add optional fields to form data
-            if (data.template !== undefined) {
+            // Only append if value is not undefined and not empty string
+            if (data.name !== undefined && data.name !== null && data.name.trim() !== '') {
+                formData.append('name', data.name);
+            }
+            if (data.template !== undefined && data.template !== null && data.template.trim() !== '') {
                 formData.append('template', data.template);
             }
-            if (data.fileLink !== undefined) {
+            if (data.fileLink !== undefined && data.fileLink !== null && data.fileLink.trim() !== '') {
                 formData.append('fileLink', data.fileLink);
             }
+            // Always include isDeleted if provided (it's a boolean, so undefined check is enough)
             if (data.isDeleted !== undefined) {
                 formData.append('isDeleted', data.isDeleted.toString());
             }

@@ -6,18 +6,18 @@ namespace DoctorService.Models
     {
         [Key]
         public string Id { get; set; } = string.Empty;
-        
-        public bool? IsAccepted { get; set; }
+
+        public string? Title { get; set; }
         
         public string? TemplateId { get; set; }
         
-        public string? Template { get; set; } // markdown content
+        public string? Content { get; set; } // markdown content
         
         public string? ChatSessionId { get; set; }
         
         public DateTime? CreatedDate { get; set; }
         
-        public DateTime? UpdatedDate { get; set; }
+        public DateTime? UpdatedDate { get; set; }  
     }
 }
 

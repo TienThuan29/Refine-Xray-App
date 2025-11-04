@@ -23,7 +23,7 @@ namespace AdminService.Services.ReportTemplate
             _logger = logger;
         }
 
-        public async Task<ReportTemplateResponse?> CreateAsync(IFormFile file, string createBy)
+        public async Task<ReportTemplateResponse?> CreateAsync(IFormFile file, string createBy, string? name = null)
         {
             try
             {
@@ -58,6 +58,7 @@ namespace AdminService.Services.ReportTemplate
                 // Create report template
                 var reportTemplate = new Models.ReportTemplate
                 {
+                    Name = name ?? file.FileName,
                     Template = markdownTemplate,
                     FileLink = fileLink,
                     CreateBy = createBy,
@@ -124,6 +125,7 @@ namespace AdminService.Services.ReportTemplate
 
                 var updateTemplate = new Models.ReportTemplate
                 {
+                    Name = existing.Name,
                     Template = existing.Template,
                     FileLink = existing.FileLink
                 };
@@ -171,9 +173,13 @@ namespace AdminService.Services.ReportTemplate
                 }
                 else
                 {
-                    // Use provided values or keep existing
                     updateTemplate.Template = request.Template ?? existing.Template;
                     updateTemplate.FileLink = request.FileLink ?? existing.FileLink;
+                }
+
+                if (request.Name != null)
+                {
+                    updateTemplate.Name = request.Name;
                 }
 
                 // Update IsDeleted if provided, otherwise keep existing value
@@ -206,6 +212,7 @@ namespace AdminService.Services.ReportTemplate
             return new ReportTemplateResponse
             {
                 Id = template.Id,
+                Name = template.Name,
                 Template = template.Template,
                 FileLink = template.FileLink,
                 CreateBy = template.CreateBy,

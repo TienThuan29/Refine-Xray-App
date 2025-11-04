@@ -10,6 +10,7 @@ namespace AdminService.Repositories.ReportTemplate
             var item = new Dictionary<string, AttributeValue>
             {
                 ["id"] = new AttributeValue { S = reportTemplate.Id },
+                ["name"] = new AttributeValue { S = reportTemplate.Name },
                 ["template"] = new AttributeValue { S = reportTemplate.Template },
                 ["fileLink"] = new AttributeValue { S = reportTemplate.FileLink },
                 ["createBy"] = new AttributeValue { S = reportTemplate.CreateBy },
@@ -30,6 +31,7 @@ namespace AdminService.Repositories.ReportTemplate
             var reportTemplate = new Models.ReportTemplate
             {
                 Id = item["id"].S,
+                Name = item.ContainsKey("name") ? item["name"].S : string.Empty,
                 Template = item["template"].S,
                 FileLink = item["fileLink"].S,
                 CreateBy = item["createBy"].S,
