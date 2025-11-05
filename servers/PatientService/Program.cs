@@ -1,5 +1,6 @@
 using Microsoft.OpenApi.Models;
 using Amazon.DynamoDBv2;
+using Amazon.S3;
 using Amazon;
 using Amazon.Extensions.NETCore.Setup;
 using Microsoft.AspNetCore.Mvc;
@@ -7,6 +8,10 @@ using PatientService.Repositories.PatientProfile;
 using PatientService.Services.PatientProfile;
 using PatientService.Repositories.Blog;
 using PatientService.Services.Blog;
+using PatientService.Repositories.PatientReport;
+using PatientService.Services.PatientReport;
+using PatientService.Repositories.S3;
+using PatientService.Services.Identity;
 using DotNetEnv;
 using System.Text.Json.Serialization;
 
@@ -36,6 +41,7 @@ if (!string.IsNullOrEmpty(awsAccessKey) && !string.IsNullOrEmpty(awsSecretKey))
 }
 
 builder.Services.AddAWSService<IAmazonDynamoDB>(awsOptions);
+builder.Services.AddAWSService<IAmazonS3>(awsOptions);
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -64,6 +70,18 @@ builder.Services.AddScoped<IPatientProfileRepository, PatientProfileRepository>(
 builder.Services.AddScoped<IPatientProfileService, PatientProfileService>();
 builder.Services.AddScoped<IBlogRepository, BlogRepository>();
 builder.Services.AddScoped<IBlogService, BlogService>();
+builder.Services.AddScoped<IPatientReportRepository, PatientReportRepository>();
+builder.Services.AddScoped<IPatientReportService, PatientReportService>();
+builder.Services.AddScoped<IS3Repository, S3Repository>();
+
+// Add HTTP client for IdentityService
+builder.Services.AddHttpClient<IIdentityService, IdentityService>(client =>
+{
+    var baseUrl = builder.Configuration["IdentityService:BaseUrl"] ?? "http://localhost:8082";
+    client.BaseAddress = new Uri(baseUrl);
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+    client.DefaultRequestHeaders.Add("x-system-secret", builder.Configuration["SystemSecret:Value"] ?? builder.Configuration["SystemSecret"] ?? "");
+});
 
 var app = builder.Build();
 

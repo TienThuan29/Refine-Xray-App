@@ -18,8 +18,10 @@ export interface BlogManagerState {
 
 export interface BlogManagerActions {
     createBlog: (data: CreateBlogRequest) => Promise<Blog | null>;
+    createBlogWithForm: (formData: FormData) => Promise<Blog | null>;
     getBlog: (blogId: string) => Promise<Blog | null>;
     updateBlog: (blogId: string, data: UpdateBlogRequest) => Promise<Blog | null>;
+    updateBlogWithForm: (blogId: string, formData: FormData) => Promise<Blog | null>;
     deleteBlog: (blogId: string) => Promise<boolean>;
     listBlogs: () => Promise<Blog[] | null>;
     setCurrentBlog: (blog: Blog | null) => void;
@@ -29,6 +31,48 @@ export interface BlogManagerActions {
 }
 
 export type UseBlogManagerReturn = BlogManagerState & BlogManagerActions;
+
+// Backend response type (camelCase)
+interface BackendBlogResponse {
+    id?: string;
+    Id?: string;
+    createBy?: string;
+    create_by?: string;
+    CreateBy?: string;
+    title?: string;
+    Title?: string;
+    subtitle?: string;
+    Subtitle?: string;
+    content?: string;
+    Content?: string;
+    imageUrls?: string[];
+    image_urls?: string[];
+    ImageUrls?: string[];
+    isDeleted?: boolean;
+    is_deleted?: boolean;
+    IsDeleted?: boolean;
+    createdDate?: string;
+    created_date?: string;
+    CreatedDate?: string;
+    updatedDate?: string;
+    updated_date?: string;
+    UpdatedDate?: string;
+}
+
+// Helper function to transform backend response (camelCase) to frontend Blog type (snake_case)
+const transformBlogResponse = (backendBlog: BackendBlogResponse): Blog => {
+    return {
+        id: backendBlog.id || backendBlog.Id || '',
+        create_by: backendBlog.createBy || backendBlog.create_by || backendBlog.CreateBy || '',
+        title: backendBlog.title || backendBlog.Title || '',
+        subtitle: backendBlog.subtitle || backendBlog.Subtitle,
+        content: backendBlog.content || backendBlog.Content || '',
+        image_urls: backendBlog.imageUrls || backendBlog.image_urls || backendBlog.ImageUrls || [],
+        is_deleted: backendBlog.isDeleted !== undefined ? backendBlog.isDeleted : (backendBlog.is_deleted !== undefined ? backendBlog.is_deleted : (backendBlog.IsDeleted !== undefined ? backendBlog.IsDeleted : false)),
+        created_date: backendBlog.createdDate || backendBlog.created_date || backendBlog.CreatedDate || new Date().toISOString(),
+        updated_date: backendBlog.updatedDate || backendBlog.updated_date || backendBlog.UpdatedDate || new Date().toISOString(),
+    };
+};
 
 const useBlogManager = (): UseBlogManagerReturn => {
     const axios = useAxios();
@@ -48,9 +92,11 @@ const useBlogManager = (): UseBlogManagerReturn => {
         setState(prev => ({ ...prev, ...updates }));
     }, []);
 
-    const handleError = useCallback((error: any, operation: string) => {
+    const handleError = useCallback((error: unknown, operation: string) => {
         console.error(`Error in ${operation}:`, error);
-        const errorMessage = error.response?.data?.message || error.message || `Failed to ${operation}`;
+        const errorMessage = (error as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || 
+                            (error as { message?: string })?.message || 
+                            `Failed to ${operation}`;
         updateState({ error: errorMessage });
     }, [updateState]);
 
@@ -80,6 +126,37 @@ const useBlogManager = (): UseBlogManagerReturn => {
         }
     }, [axios, updateState, handleError]);
 
+    const createBlogWithForm = useCallback(async (formData: FormData): Promise<Blog | null> => {
+        try {
+            updateState({ isCreating: true, error: null });
+            
+            const response = await axios.post(`${Api.Blog.CREATE_BLOG}/form`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+            
+            if (!response.data || !response.data.success) {
+                throw new Error(response.data?.message || 'Failed to create blog');
+            }
+            
+            const backendBlog = response.data.dataResponse;
+            const newBlog = transformBlogResponse(backendBlog);
+            
+            setState(prev => ({
+                ...prev,
+                blogs: [newBlog, ...prev.blogs],
+                isCreating: false,
+            }));
+            
+            return newBlog;
+        } catch (error) {
+            handleError(error, 'create blog');
+            updateState({ isCreating: false });
+            return null;
+        }
+    }, [axios, updateState, handleError]);
+
     const getBlog = useCallback(async (blogId: string): Promise<Blog | null> => {
         try {
             updateState({ isFetching: true, error: null });
@@ -90,7 +167,8 @@ const useBlogManager = (): UseBlogManagerReturn => {
                 throw new Error(response.data?.message || 'Failed to fetch blog');
             }
             
-            const blog = response.data.dataResponse;
+            const backendBlog = response.data.dataResponse;
+            const blog = transformBlogResponse(backendBlog);
             
             updateState({
                 currentBlog: blog,
@@ -98,7 +176,7 @@ const useBlogManager = (): UseBlogManagerReturn => {
             });
             
             return blog;
-        } catch (error: any) {
+        } catch (error) {
             handleError(error, 'fetch blog');
             updateState({ isFetching: false });
             return null;
@@ -115,7 +193,40 @@ const useBlogManager = (): UseBlogManagerReturn => {
                 throw new Error(response.data?.message || 'Failed to update blog');
             }
             
-            const updatedBlog = response.data.dataResponse;
+            const backendBlog = response.data.dataResponse;
+            const updatedBlog = transformBlogResponse(backendBlog);
+            
+            setState(prev => ({
+                ...prev,
+                blogs: prev.blogs.map(blog => blog.id === blogId ? updatedBlog : blog),
+                currentBlog: prev.currentBlog?.id === blogId ? updatedBlog : prev.currentBlog,
+                isUpdating: false,
+            }));
+            
+            return updatedBlog;
+        } catch (error) {
+            handleError(error, 'update blog');
+            updateState({ isUpdating: false });
+            return null;
+        }
+    }, [axios, updateState, handleError]);
+
+    const updateBlogWithForm = useCallback(async (blogId: string, formData: FormData): Promise<Blog | null> => {
+        try {
+            updateState({ isUpdating: true, error: null });
+            
+            const response = await axios.put(`${Api.Blog.UPDATE_BLOG}/${blogId}/form`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+            
+            if (!response.data || !response.data.success) {
+                throw new Error(response.data?.message || 'Failed to update blog');
+            }
+            
+            const backendBlog = response.data.dataResponse;
+            const updatedBlog = transformBlogResponse(backendBlog);
             
             setState(prev => ({
                 ...prev,
@@ -167,7 +278,8 @@ const useBlogManager = (): UseBlogManagerReturn => {
                 throw new Error(response.data?.message || 'Failed to fetch blogs');
             }
             
-            const blogs = response.data.dataResponse || [];
+            const backendBlogs = response.data.dataResponse || [];
+            const blogs = backendBlogs.map((backendBlog: BackendBlogResponse) => transformBlogResponse(backendBlog));
             
             updateState({
                 blogs,
@@ -208,8 +320,10 @@ const useBlogManager = (): UseBlogManagerReturn => {
         isFetching: state.isFetching,
         isDeleting: state.isDeleting,
         createBlog,
+        createBlogWithForm,
         getBlog,
         updateBlog,
+        updateBlogWithForm,
         deleteBlog,
         listBlogs,
         setCurrentBlog,
@@ -219,8 +333,10 @@ const useBlogManager = (): UseBlogManagerReturn => {
     }), [
         state,
         createBlog,
+        createBlogWithForm,
         getBlog,
         updateBlog,
+        updateBlogWithForm,
         deleteBlog,
         listBlogs,
         setCurrentBlog,

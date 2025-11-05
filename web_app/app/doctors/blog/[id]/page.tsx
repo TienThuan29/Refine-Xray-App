@@ -200,13 +200,13 @@ export default function BlogDetailPage() {
 
                           {/* Author Info */}
                           <div className="flex items-center justify-center gap-4 mb-8">
-                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-md">
+                            {/* <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-md">
                               <span className="text-white font-bold text-lg">
                                 {blog.create_by?.[0]?.toUpperCase() || 'A'}
                               </span>
-                            </div>
+                            </div> */}
                             <div className="flex flex-col">
-                              <Text className="font-semibold text-gray-900">{blog.create_by}</Text>
+                              {/* <Text className="font-semibold text-gray-900">{blog.create_by}</Text> */}
                               <Text type="secondary" className="text-sm">
                                 {formatDate(blog.created_date)} • {readingTime} min. read
                               </Text>

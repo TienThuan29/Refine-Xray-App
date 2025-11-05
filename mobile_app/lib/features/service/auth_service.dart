@@ -1,7 +1,9 @@
 import '../model/auth/login_request.dart';
 import '../model/auth/login_response.dart';
+import '../model/auth/register_request.dart';
 import '../../core/network/api_network.dart';
 import '../../core/config/api_config.dart';
+import '../../core/storage/token_storage.dart';
 
 class AuthService {
   // Login method
@@ -12,9 +14,43 @@ class AuthService {
         body: loginRequest.toJson(),
       );
 
-      return LoginResponse.fromJson(response);
+      final loginResponse = LoginResponse.fromJson(response);
+
+      // Save tokens to local storage if login successful
+      if (loginResponse.success && loginResponse.dataResponse != null) {
+        await TokenStorage.saveTokens(
+          accessToken: loginResponse.dataResponse!.accessToken,
+          refreshToken: loginResponse.dataResponse!.refreshToken,
+        );
+      }
+
+      return loginResponse;
     } catch (e) {
       throw Exception('Login failed: $e');
+    }
+  }
+
+  // Register method
+  static Future<LoginResponse> register(RegisterRequest registerRequest) async {
+    try {
+      final response = await ApiNetwork.postWithoutAuth(
+        endpoint: ApiConfig.registerEndpoint,
+        body: registerRequest.toJson(),
+      );
+
+      final registerResponse = LoginResponse.fromJson(response);
+
+      // Save tokens to local storage if registration successful
+      if (registerResponse.success && registerResponse.dataResponse != null) {
+        await TokenStorage.saveTokens(
+          accessToken: registerResponse.dataResponse!.accessToken,
+          refreshToken: registerResponse.dataResponse!.refreshToken,
+        );
+      }
+
+      return registerResponse;
+    } catch (e) {
+      throw Exception('Registration failed: $e');
     }
   }
 

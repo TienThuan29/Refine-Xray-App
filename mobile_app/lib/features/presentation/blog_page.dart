@@ -1,25 +1,25 @@
 import 'package:flutter/material.dart';
+import '../model/blog/blog.dart';
+import '../service/blog_service.dart';
 
 class BlogPage extends StatefulWidget {
   final String? accessToken;
 
-  const BlogPage({
-    super.key,
-    this.accessToken,
-  });
+  const BlogPage({super.key, this.accessToken});
 
   @override
   State<BlogPage> createState() => _BlogPageState();
 }
 
-class _BlogPageState extends State<BlogPage> with SingleTickerProviderStateMixin {
+class _BlogPageState extends State<BlogPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final ScrollController _scrollController = ScrollController();
-  
+
   bool _isLoading = false;
   String? _error;
   String _selectedCategory = 'All';
-  
+
   final List<String> _categories = [
     'All',
     'X-Ray Analysis',
@@ -29,61 +29,8 @@ class _BlogPageState extends State<BlogPage> with SingleTickerProviderStateMixin
     'Research',
   ];
 
-  // Demo blog posts
-  final List<BlogPost> _blogPosts = [
-    BlogPost(
-      id: '1',
-      title: 'Understanding Chest X-Ray Analysis',
-      excerpt: 'Learn the basics of reading and interpreting chest X-rays, including common abnormalities and their clinical significance.',
-      category: 'X-Ray Analysis',
-      author: 'Dr. Sarah Chen',
-      authorAvatar: 'https://i.pravatar.cc/150?img=1',
-      publishedDate: DateTime.now().subtract(const Duration(days: 2)),
-      imageUrl: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=600&h=400&fit=crop',
-      readTime: 5,
-      likes: 124,
-      isBookmarked: false,
-    ),
-    BlogPost(
-      id: '2',
-      title: 'AI in Medical Imaging: The Future is Now',
-      excerpt: 'Discover how artificial intelligence is revolutionizing medical imaging diagnosis and improving patient outcomes.',
-      category: 'Technology',
-      author: 'Dr. Michael Johnson',
-      authorAvatar: 'https://i.pravatar.cc/150?img=2',
-      publishedDate: DateTime.now().subtract(const Duration(days: 5)),
-      imageUrl: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=600&h=400&fit=crop',
-      readTime: 8,
-      likes: 256,
-      isBookmarked: true,
-    ),
-    BlogPost(
-      id: '3',
-      title: '10 Tips for Maintaining Lung Health',
-      excerpt: 'Essential advice from medical experts on how to keep your lungs healthy and prevent respiratory diseases.',
-      category: 'Health',
-      author: 'Dr. Emily Rodriguez',
-      authorAvatar: 'https://i.pravatar.cc/150?img=3',
-      publishedDate: DateTime.now().subtract(const Duration(days: 7)),
-      imageUrl: 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=600&h=400&fit=crop',
-      readTime: 6,
-      likes: 189,
-      isBookmarked: false,
-    ),
-    BlogPost(
-      id: '4',
-      title: 'Latest Research in Radiology',
-      excerpt: 'Explore the cutting-edge research and breakthroughs in radiological science and imaging technology.',
-      category: 'Research',
-      author: 'Dr. James Wilson',
-      authorAvatar: 'https://i.pravatar.cc/150?img=4',
-      publishedDate: DateTime.now().subtract(const Duration(days: 10)),
-      imageUrl: 'https://images.unsplash.com/photo-1581093588401-fbb62a02f120?w=600&h=400&fit=crop',
-      readTime: 10,
-      likes: 342,
-      isBookmarked: false,
-    ),
-  ];
+  // Blog posts from API
+  List<BlogPost> _blogPosts = [];
 
   @override
   void initState() {
@@ -105,26 +52,106 @@ class _BlogPageState extends State<BlogPage> with SingleTickerProviderStateMixin
       _error = null;
     });
 
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      final response = await BlogService.getAllBlogs();
 
-    setState(() {
-      _isLoading = false;
-    });
+      if (response.success && response.dataResponse != null) {
+        setState(() {
+          _blogPosts = response.dataResponse!
+              .where((blog) => !blog.isDeleted) // Filter out deleted blogs
+              .map((blog) => _mapBlogToBlogPost(blog))
+              .toList();
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _error = response.error ?? response.message;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _error = 'Failed to load blogs: ${e.toString()}';
+        _isLoading = false;
+      });
+    }
+  }
+
+  BlogPost _mapBlogToBlogPost(Blog blog) {
+    // Parse date
+    DateTime publishedDate;
+    try {
+      publishedDate = DateTime.parse(blog.createdDate);
+    } catch (e) {
+      publishedDate = DateTime.now();
+    }
+
+    // Extract excerpt from content (first 150 characters)
+    String excerpt = blog.subtitle ?? blog.content;
+    if (excerpt.length > 150) {
+      excerpt = '${excerpt.substring(0, 150)}...';
+    }
+
+    // Get first image or use default
+    String? imageUrl = blog.imageUrls.isNotEmpty ? blog.imageUrls.first : null;
+
+    // Estimate read time (average reading speed: 200 words per minute)
+    int wordCount = blog.content.split(RegExp(r'\s+')).length;
+    int readTime = (wordCount / 200).ceil();
+    if (readTime < 1) readTime = 1;
+
+    // Extract category from title or use default
+    String category = 'Medical Tips';
+    if (blog.title.toLowerCase().contains('x-ray') ||
+        blog.title.toLowerCase().contains('xray') ||
+        blog.content.toLowerCase().contains('x-ray')) {
+      category = 'X-Ray Analysis';
+    } else if (blog.title.toLowerCase().contains('ai') ||
+        blog.title.toLowerCase().contains('technology') ||
+        blog.title.toLowerCase().contains('digital')) {
+      category = 'Technology';
+    } else if (blog.title.toLowerCase().contains('health') ||
+        blog.title.toLowerCase().contains('wellness')) {
+      category = 'Health';
+    } else if (blog.title.toLowerCase().contains('research') ||
+        blog.title.toLowerCase().contains('study')) {
+      category = 'Research';
+    }
+
+    return BlogPost(
+      id: blog.id,
+      title: blog.title,
+      excerpt: excerpt,
+      content: blog.content, // Store full content
+      category: category,
+      author:
+          blog.createByFullname ??
+          (blog.createBy.contains('@')
+              ? blog.createBy.split('@').first
+              : 'Unknown Author'), // Use fullname, or email prefix, or default
+      authorAvatar: 'https://i.pravatar.cc/150?img=${blog.id.hashCode % 10}',
+      publishedDate: publishedDate,
+      imageUrl: imageUrl,
+      readTime: readTime,
+      likes: 0, // API doesn't provide likes, default to 0
+      isBookmarked: false,
+    );
   }
 
   List<BlogPost> get _filteredPosts {
     if (_selectedCategory == 'All') {
       return _blogPosts;
     }
-    return _blogPosts.where((post) => post.category == _selectedCategory).toList();
+    return _blogPosts
+        .where((post) => post.category == _selectedCategory)
+        .toList();
   }
 
   void _toggleBookmark(BlogPost post) {
     setState(() {
       post.isBookmarked = !post.isBookmarked;
     });
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -143,10 +170,7 @@ class _BlogPageState extends State<BlogPage> with SingleTickerProviderStateMixin
       appBar: AppBar(
         title: const Text(
           'Medical Blog',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.white,
         elevation: 1,
@@ -208,9 +232,7 @@ class _BlogPageState extends State<BlogPage> with SingleTickerProviderStateMixin
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (_error != null) {
@@ -284,16 +306,12 @@ class _BlogPageState extends State<BlogPage> with SingleTickerProviderStateMixin
     return Card(
       elevation: 2,
       margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => BlogDetailPage(post: post),
-            ),
+            MaterialPageRoute(builder: (context) => BlogDetailPage(post: post)),
           );
         },
         borderRadius: BorderRadius.circular(12),
@@ -347,7 +365,7 @@ class _BlogPageState extends State<BlogPage> with SingleTickerProviderStateMixin
                       ),
                     ),
                   ),
-                  
+
                   const SizedBox(height: 12),
 
                   // Title
@@ -470,6 +488,7 @@ class BlogPost {
   final String id;
   final String title;
   final String excerpt;
+  final String content; // Full content for detail view
   final String category;
   final String author;
   final String authorAvatar;
@@ -483,6 +502,7 @@ class BlogPost {
     required this.id,
     required this.title,
     required this.excerpt,
+    required this.content,
     required this.category,
     required this.author,
     required this.authorAvatar,
@@ -512,10 +532,7 @@ class BlogDetailPage extends StatelessWidget {
             backgroundColor: Colors.blue[700],
             flexibleSpace: FlexibleSpaceBar(
               background: post.imageUrl != null
-                  ? Image.network(
-                      post.imageUrl!,
-                      fit: BoxFit.cover,
-                    )
+                  ? Image.network(post.imageUrl!, fit: BoxFit.cover)
                   : Container(color: Colors.grey[300]),
             ),
           ),
@@ -590,20 +607,10 @@ class BlogDetailPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 32),
 
-                  // Content (demo)
+                  // Content
                   Text(
-                    post.excerpt,
+                    post.content,
                     style: const TextStyle(
-                      fontSize: 18,
-                      height: 1.6,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  const Text(
-                    'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.\n\nDuis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
-                    style: TextStyle(
                       fontSize: 16,
                       height: 1.8,
                       color: Colors.black87,
@@ -639,7 +646,11 @@ class BookmarkedPostsPage extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.bookmark_border, size: 64, color: Colors.grey[400]),
+                  Icon(
+                    Icons.bookmark_border,
+                    size: 64,
+                    color: Colors.grey[400],
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     'No bookmarked posts',

@@ -28,7 +28,8 @@ namespace DoctorService.Utils
             var tablesToWarmUp = new List<string>
             {
                 _configuration["DynamoDB:FolderTable"] ?? "prm392-folders",
-                _configuration["DynamoDB:ChatSessionTable"] ?? "prm392-chatsessions"
+                _configuration["DynamoDB:ChatSessionTable"] ?? "prm392-chatsessions",
+                _configuration["DynamoDB:ReportTable"] ?? "prm392-reports"
             };
 
             // Optionally warm up ReportTable if it exists in this service

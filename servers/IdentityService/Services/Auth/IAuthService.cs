@@ -14,6 +14,7 @@ namespace IdentityService.Services.Auth
         Task<List<UserProfileResponse>> GetAllUsersAsync();
         Task<UserProfileResponse?> UpdateUserAsync(string userId, User updateData);
         Task<UserProfileResponse?> GetUserByEmailAsync(string email);
+        Task<UserProfileResponse?> GetUserByIdAsync(string userId);
         Task<UserProfileResponse?> UpdateUserByEmailAsync(string email, User updateData);
         Task<bool> DeleteUserByEmailAsync(string email);
         Task<UserProfileResponse?> UpdateUserStatusByEmailAsync(string email, bool isEnable);

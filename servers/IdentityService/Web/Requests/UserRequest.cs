@@ -12,6 +12,11 @@ namespace IdentityService.Web.Requests
         public string Email { get; set; } = string.Empty;
     }
 
+    public class GetUserByIdRequest
+    {
+        public string Id { get; set; } = string.Empty;
+    }
+
     public class UpdateUserRequest
     {
         public string Email { get; set; } = string.Empty;

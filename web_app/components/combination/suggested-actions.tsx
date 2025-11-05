@@ -21,7 +21,7 @@ const suggestedActions = [
   },
   {
     title: "Support Report Template",
-    description: "(Coming Soon)",
+    description: "",
     icon: <BulbOutlined className="text-xl" />,
     color: "bg-green-50 border-green-200 hover:bg-green-100"
   }

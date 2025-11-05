@@ -252,6 +252,24 @@ namespace IdentityService.Services.Auth
             }
         }
 
+        public async Task<UserProfileResponse?> GetUserByIdAsync(string userId)
+        {
+            try
+            {
+                var user = await _userRepository.FindByIdAsync(userId);
+                if (user == null)
+                {
+                    return null;
+                }
+                return UserMapper.MapUserToUserProfileResponse(user, _configuration);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting user by ID: {UserId}", userId);
+                throw;
+            }
+        }
+
         public async Task<UserProfileResponse?> UpdateUserByEmailAsync(string email, User updateData)
         {
             try

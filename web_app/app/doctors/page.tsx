@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Layout, Button, Dropdown, Card, Typography, Badge, Spin } from 'antd';
+import { Layout, Button, Dropdown, Card, Typography, Badge, Spin, Modal, List, Empty } from 'antd';
 import {
   ArrowLeftOutlined,
   PlusOutlined,
@@ -32,6 +32,7 @@ import useChatSessionManager from '@/hooks/useChatSessionManager';
 import useChatbot from '@/hooks/useChatbot';
 import useTextChat from '@/hooks/useTextChat';
 import usePatientProfileManager from '@/hooks/usePatientProfileManager';
+import useReportManagement from '@/hooks/useReportManagement';
 import TextChatbox from '@/components/combination/text-chatbox';
 import StartSection from '@/components/combination/start-section';
 import UserProfile from '@/components/combination/user-profile';
@@ -41,6 +42,7 @@ import ReportTemplateSelectionModal from '@/components/combination/report-templa
 import { ReportTemplate } from '@/hooks/useReportTemplateManagement';
 import { Type } from '@/types/folder';
 import { ChatSession, ChatItem, Report } from '@/types/chatsession';
+import { Report as ReportType } from '@/types/report';
 import { FaRegQuestionCircle } from "react-icons/fa";
 import Footer from '@/components/single/footer';
 import { PageUrl } from '@/configs/page.url';
@@ -74,6 +76,8 @@ export default function Page() {
   const [renameModalVisible, setRenameModalVisible] = useState(false);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [reportTemplateModalVisible, setReportTemplateModalVisible] = useState(false);
+  const [viewReportsModalVisible, setViewReportsModalVisible] = useState(false);
+  const [savedReports, setSavedReports] = useState<ReportType[]>([]);
   const [selectedFolderForEdit, setSelectedFolderForEdit] = useState<{ id: string; title: string; description?: string } | null>(null);
   const [editingType, setEditingType] = useState<'folder' | 'chatSession'>('folder');
   const [isLoadingPatient, setIsLoadingPatient] = useState(false);
@@ -118,6 +122,11 @@ export default function Page() {
     error: chatbotError,
     clearError: clearChatbotError
   } = useChatbot();
+
+  const {
+    getReportsByChatSession,
+    loading: isLoadingReports
+  } = useReportManagement();
 
   // Get selected folder ID for TEXT type folders
   const selectedFolderForTextChat = folders.find(f => f.id === selectedKey);
@@ -461,6 +470,24 @@ export default function Page() {
     setReportTemplateModalVisible(true);
   };
 
+  const handleViewReports = async () => {
+    if (!currentChatSession) {
+      toast.error('No chat session selected');
+      return;
+    }
+    
+    setViewReportsModalVisible(true);
+    
+    // Fetch reports for this chat session
+    const fetchedReports = await getReportsByChatSession(currentChatSession.id);
+    if (fetchedReports === null) {
+      toast.error('Failed to load reports');
+      setSavedReports([]);
+    } else {
+      setSavedReports(fetchedReports);
+    }
+  };
+
   const handleReportTemplateSelect = async (template: ReportTemplate) => {
     if (!currentChatSession) {
       toast.error('No chat session selected');
@@ -620,7 +647,17 @@ export default function Page() {
                   <FileTextOutlined className="text-gray-500" />
                   <span className="text-gray-700">
                     Report templates{' '}
-                    <span className="text-gray-400 text-xs">(Coming Soon)</span>
+                    {/* <span className="text-gray-400 text-xs">(Coming Soon)</span> */}
+                  </span>
+                </div>
+
+                <div
+                  className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-50 cursor-pointer"
+                  onClick={() => router.push(PageUrl.Doctor.BLOG_PAGE)}
+                >
+                  <EditOutlined className="text-gray-500" />
+                  <span className="text-gray-700">
+                    Manage blogs{' '}
                   </span>
                 </div>
                 
@@ -866,7 +903,9 @@ export default function Page() {
                     className="text-gray-500 hover:text-orange-500"
                     onClick={() => router.push(PageUrl.Doctor.BLOG_PAGE)}
                     title="Blog Management"
-                  />
+                  >
+                    Blogs
+                  </Button>
                   {isLoggedIn() && user ? (
                     <div className="flex items-center space-x-2">
                       <span className="text-sm text-gray-600">Welcome, {user.fullname}</span>
@@ -1012,7 +1051,11 @@ export default function Page() {
                                             X-ray Image
                                           </Title>
                                         <div className="flex items-center space-x-2">
-                                          <Button type="default" className="bg-orange-500 hover:bg-orange-600">
+                                            <Button 
+                                              type="default" 
+                                              className="bg-orange-500 hover:bg-orange-600"
+                                              onClick={handleViewReports}
+                                            >
                                               View report
                                             </Button>
                                             <Button 
@@ -1246,6 +1289,78 @@ export default function Page() {
         onClose={() => setReportTemplateModalVisible(false)}
         onSelect={handleReportTemplateSelect}
       />
+
+      {/* View Reports Modal */}
+      <Modal
+        title="Saved Reports"
+        open={viewReportsModalVisible}
+        onCancel={() => setViewReportsModalVisible(false)}
+        footer={null}
+        width={800}
+      >
+        {isLoadingReports ? (
+          <div className="flex justify-center items-center py-8">
+            <Spin size="large" />
+          </div>
+        ) : savedReports.length === 0 ? (
+          <Empty
+            description="No saved reports found for this chat session"
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+          />
+        ) : (
+          <List
+            dataSource={savedReports}
+            renderItem={(report: ReportType) => (
+              <List.Item
+                actions={[
+                  <Button
+                    key="view"
+                    type="link"
+                    onClick={() => {
+                      // Open report page in new tab with report ID
+                      const chatSessionId = report.chatSessionId || currentChatSession?.id;
+                      const url = `/doctors/reports/${chatSessionId}?reportId=${report.id}`;
+                      window.open(url, '_blank');
+                    }}
+                  >
+                    View
+                  </Button>
+                ]}
+              >
+                <List.Item.Meta
+                  title={
+                    <div className="flex items-center gap-2">
+                      <span>{report.title || 'Untitled Report'}</span>
+                      {report.isSent && (
+                        <Badge status="success" text="Sent" />
+                      )}
+                    </div>
+                  }
+                  description={
+                    <div className="space-y-1">
+                      {report.createdDate && (
+                        <Text type="secondary" className="text-sm">
+                          Created: {formatDate(report.createdDate)}
+                        </Text>
+                      )}
+                      {report.updatedDate && report.updatedDate !== report.createdDate && (
+                        <Text type="secondary" className="text-sm block">
+                          Updated: {formatDate(report.updatedDate)}
+                        </Text>
+                      )}
+                      {report.sentDate && (
+                        <Text type="secondary" className="text-sm block">
+                          Sent: {formatDate(report.sentDate)}
+                        </Text>
+                      )}
+                    </div>
+                  }
+                />
+              </List.Item>
+            )}
+          />
+        )}
+      </Modal>
 
       <SessionExpiredWrapper />
 

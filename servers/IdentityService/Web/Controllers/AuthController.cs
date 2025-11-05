@@ -171,6 +171,62 @@ namespace IdentityService.Web.Controllers
             }
         }
 
+        [HttpPost("internal/users/by-email")]
+        public async Task<ActionResult<ApiResponse<UserProfileResponse>>> GetUserByEmailInternal([FromBody] GetUserByEmailRequest request)
+        {
+            try
+            {
+                // This endpoint is for internal service-to-service calls using system secret
+                // System secret is validated by SystemSecretMiddleware
+
+                if (string.IsNullOrEmpty(request.Email))
+                {
+                    return ResponseUtil.Error<UserProfileResponse>("Email is required", 400);
+                }
+
+                var user = await _authService.GetUserByEmailAsync(request.Email);
+                if (user == null)
+                {
+                    return ResponseUtil.Error<UserProfileResponse>("User not found", 404);
+                }
+
+                return ResponseUtil.Success(user, "User retrieved successfully", 200);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Get user by email (internal) error");
+                return ResponseUtil.Error<UserProfileResponse>("Internal Server Error", 500);
+            }
+        }
+
+        [HttpPost("internal/users/by-id")]
+        public async Task<ActionResult<ApiResponse<UserProfileResponse>>> GetUserByIdInternal([FromBody] GetUserByIdRequest request)
+        {
+            try
+            {
+                // This endpoint is for internal service-to-service calls using system secret
+                // System secret is validated by SystemSecretMiddleware
+
+                if (string.IsNullOrEmpty(request.Id))
+                {
+                    return ResponseUtil.Error<UserProfileResponse>("User ID is required", 400);
+                }
+
+                var user = await _authService.GetUserByIdAsync(request.Id);
+                if (user == null)
+                {
+                    return ResponseUtil.Error<UserProfileResponse>("User not found", 404);
+                }
+
+                return ResponseUtil.Success(user, "User retrieved successfully", 200);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Get user by ID (internal) error");
+                return ResponseUtil.Error<UserProfileResponse>("Internal Server Error", 500);
+            }
+        }
+
         [HttpPut("users")]
         public async Task<ActionResult<ApiResponse<UserProfileResponse>>> UpdateUser([FromBody] UpdateUserRequest request)
         {

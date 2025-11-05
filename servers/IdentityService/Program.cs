@@ -134,9 +134,10 @@ app.MapWhen(context =>
         appBuilder.UseEndpoints(endpoints => endpoints.MapControllers());
     });
 
+// Apply system secret middleware for admin create-account and internal endpoints
 app.MapWhen(context => 
-    context.Request.Path.StartsWithSegments("/api/v1/register") ||
-    context.Request.Path.StartsWithSegments("/api/v1/users/create-account"),
+    context.Request.Path.StartsWithSegments("/api/v1/users/create-account") ||
+    context.Request.Path.StartsWithSegments("/api/v1/internal"),
     appBuilder => 
     {
         appBuilder.UseSystemSecretMiddleware();
@@ -145,7 +146,7 @@ app.MapWhen(context =>
     }
 );
 
-// Map all other controllers without JWT validation
+// Map all other controllers without JWT validation (includes /api/v1/login and /api/v1/register/patient)
 app.MapControllers();
 
 app.Run();

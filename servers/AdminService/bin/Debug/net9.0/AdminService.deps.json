@@ -73,15 +73,15 @@
         "runtime": {
           "lib/net5.0/Xceed.Document.NET.dll": {
             "assemblyVersion": "5.0.0.0",
-            "fileVersion": "0.0.0.0"
+            "fileVersion": "5.0.0.0"
           },
           "lib/net5.0/Xceed.Drawing.NET.dll": {
             "assemblyVersion": "1.0.0.0",
-            "fileVersion": "0.0.0.0"
+            "fileVersion": "1.0.0.0"
           },
           "lib/net5.0/Xceed.Words.NET.dll": {
             "assemblyVersion": "5.0.0.0",
-            "fileVersion": "0.0.0.0"
+            "fileVersion": "5.0.0.0"
           }
         }
       },
