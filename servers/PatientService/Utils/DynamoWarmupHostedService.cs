@@ -16,7 +16,7 @@ namespace PatientService.Utils
         {
             _dynamoDb = dynamoDb;
             _logger = logger;
-            _tableName = configuration["DynamoDB:UserTable"] ?? "prm392-users";
+            _tableName = configuration["DynamoDB:BlogTable"] ?? "prm392-blogs";
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)

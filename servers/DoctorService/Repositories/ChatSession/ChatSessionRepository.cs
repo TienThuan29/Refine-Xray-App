@@ -367,7 +367,7 @@ namespace DoctorService.Repositories.ChatSession
 
                 if (!string.IsNullOrEmpty(item.GetValueOrDefault("reports")?.S))
                 {
-                    chatSession.Reports = JsonSerializer.Deserialize<List<Report>>(item["reports"].S);
+                    chatSession.Reports = JsonSerializer.Deserialize<List<Models.Report>>(item["reports"].S);
                 }
 
                 return chatSession;

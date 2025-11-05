@@ -1,4 +1,5 @@
 class UserProfile {
+  final String? id;
   final String email;
   final String fullname;
   final String phone;
@@ -10,6 +11,7 @@ class UserProfile {
   final String updatedDate;
 
   UserProfile({
+    this.id,
     required this.email,
     required this.fullname,
     required this.phone,
@@ -23,6 +25,7 @@ class UserProfile {
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
+      id: json['id'],
       email: json['email'] ?? '',
       fullname: json['fullname'] ?? '',
       phone: json['phone'] ?? '',
@@ -37,6 +40,7 @@ class UserProfile {
 
   Map<String, dynamic> toJson() {
     return {
+      'id': id,
       'email': email,
       'fullname': fullname,
       'phone': phone,

@@ -14,6 +14,12 @@ namespace DoctorService.Models
         public string? Content { get; set; } // markdown content
         
         public string? ChatSessionId { get; set; }
+
+        public string? PatientEmail { get; set; } // is user's email
+
+        public bool IsSent { get; set; } = false; // if IsSent is true => doctor cannot edit the report
+
+        public DateTime? SentDate { get; set; }
         
         public DateTime? CreatedDate { get; set; }
         

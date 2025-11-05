@@ -107,9 +107,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }) => {
                                         <Text className="text-sm font-medium">
                                             Enable notifications
                                         </Text>
-                                        <Text type="secondary" className="text-xs">
+                                        {/* <Text type="secondary" className="text-xs">
                                             (Coming soon)
-                                        </Text>
+                                        </Text> */}
                                     </div>
                                     <Switch defaultChecked={false} disabled/>
                                 </div>

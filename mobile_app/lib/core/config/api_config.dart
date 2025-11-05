@@ -17,11 +17,17 @@ class ApiConfig {
     }
   }
 
-  static String get loginEndpoint => '/master-services/api/v1/auth/login';
-  static String get userProfileEndpoint =>
-      '/master-services/api/v1/auth/profile';
-  static String get refreshTokenEndpoint =>
-      '/master-services/api/v1/auth/refresh';
+  static String get loginEndpoint => '/api/auth/v1/login';
+  static String get registerEndpoint => '/api/auth/v1/register/patient';
+  static String get userProfileEndpoint => '/api/auth/v1/profile';
+  static String get refreshTokenEndpoint => '/api/auth/v1/refresh';
+
+  // Blog endpoints
+  static String get blogsEndpoint => '/api/patients/v1/blogs';
+
+  // Patient Report endpoints
+  static String get patientReportsEndpoint =>
+      '/api/patients/v1/patient-reports';
 
   static Duration get requestTimeout {
     try {

@@ -82,6 +82,7 @@ app.UseWhen(
     context => context.Request.Path.StartsWithSegments("/api/patients/v1/blogs") && 
                !context.Request.Path.StartsWithSegments("/swagger"),
     subApp => { subApp.UseMiddleware<ApiGateway.Middleware.JwtBlogValidationMiddleware>(); }
+);
 // Admin service validation middleware - ADMIN or DOCTOR role for GET report templates
 app.UseWhen(
     context => (context.Request.Path.StartsWithSegments("/api/admin/v1/report-templates") ||

@@ -3,7 +3,8 @@ import { ReportTemplate } from '@/hooks/useReportTemplateManagement';
 import { config } from '@/configs/config';
 
 const GEMINI_API_KEY = config.GEMINI_API_KEY;
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent';
+const GEMINI_API_MODEL = config.GEMINI_API_MODEL; // gemini-2.5-pro
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_API_MODEL}:generateContent`;
 
 export interface GenerateReportRequest {
   chatSession: ChatSession;
@@ -78,6 +79,7 @@ export async function generateReport(
       reportContent,
       gradcamImages,
     };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error('Error generating report:', error);
     throw new Error(error.message || 'Failed to generate report');
@@ -213,11 +215,13 @@ Generate the report now, starting immediately with the report content:`;
 /**
  * Extracts text content from Gemini API response
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function extractTextFromResponse(data: any): string {
   try {
     if (data.candidates && data.candidates[0]?.content?.parts) {
       const parts = data.candidates[0].content.parts;
       return parts
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .map((part: any) => part.text || '')
         .join('\n');
     }

@@ -1,9 +1,11 @@
 'use client';
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Input, Button } from 'antd';
-import { FileTextOutlined } from '@ant-design/icons';
-import { Blog, CreateBlogRequest, UpdateBlogRequest } from '@/types/blog';
+import { Modal, Form, Input, Button, Upload } from 'antd';
+import { FileTextOutlined, InboxOutlined } from '@ant-design/icons';
+import { Blog, CreateBlogRequest } from '@/types/blog';
 
 interface BlogModalProps {
     visible: boolean;
@@ -24,6 +26,8 @@ const BlogModal: React.FC<BlogModalProps> = ({
 }) => {
     const [form] = Form.useForm();
     const [formValues, setFormValues] = useState<Partial<CreateBlogRequest>>({});
+    const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
     useEffect(() => {
         if (visible) {
@@ -40,9 +44,12 @@ const BlogModal: React.FC<BlogModalProps> = ({
                     content: editingBlog.content,
                     image_urls: editingBlog.image_urls
                 });
+                setUploadedUrls(editingBlog.image_urls || []);
             } else {
                 form.resetFields();
                 setFormValues({});
+                setUploadedUrls([]);
+                setSelectedFile(null);
             }
         }
     }, [visible, editingBlog, form]);
@@ -57,16 +64,18 @@ const BlogModal: React.FC<BlogModalProps> = ({
         try {
             const values = await form.validateFields();
             
-            // Process image_urls - convert from textarea (newline-separated) to array
-            const imageUrlsArray = values.image_urls 
+            // Process image_urls - prefer uploadedUrls state if present; fallback to textarea value
+            const textareaUrls = values.image_urls 
                 ? values.image_urls.split('\n').filter((url: string) => url.trim() !== '')
                 : [];
+            const imageUrlsArray = (uploadedUrls && uploadedUrls.length > 0) ? uploadedUrls : textareaUrls;
 
             const blogData = {
                 title: values.title,
                 subtitle: values.subtitle || undefined,
                 content: values.content,
-                image_urls: imageUrlsArray.length > 0 ? imageUrlsArray : undefined
+                image_urls: imageUrlsArray.length > 0 ? imageUrlsArray : undefined,
+                imageFile: selectedFile || undefined
             };
 
             // onComplete will handle create/update with proper data structure
@@ -137,7 +146,7 @@ const BlogModal: React.FC<BlogModalProps> = ({
 
                 <Form.Item
                     name="subtitle"
-                    label="Subtitle (Optional)"
+                    label="Subtitle"
                     rules={[
                         { max: 300, message: 'Subtitle must not exceed 300 characters' }
                     ]}
@@ -164,15 +173,51 @@ const BlogModal: React.FC<BlogModalProps> = ({
                 </Form.Item>
 
                 <Form.Item
-                    name="image_urls"
-                    label="Image URLs (Optional)"
-                    help="Enter one URL per line"
+                    label="Image (Upload an image )"
+                    tooltip="Drag and drop images or click to select"
                 >
-                    <Input.TextArea
-                        placeholder="https://example.com/image1.jpg&#10;https://example.com/image2.jpg"
-                        rows={4}
-                    />
+                    <Upload.Dragger
+                        multiple
+                        accept="image/*"
+                        listType="picture"
+                        beforeUpload={() => false}
+                        onChange={({ fileList }) => {
+                            // Build URLs from fileList (use existing url or create object URL)
+                            const urls: string[] = [];
+                            let firstFile: File | null = null;
+                            fileList.forEach((f, idx) => {
+                                const url = (f.url as string) || (f.originFileObj ? URL.createObjectURL(f.originFileObj as File) : '');
+                                if (url) urls.push(url);
+                                if (idx === 0 && f.originFileObj) {
+                                    firstFile = f.originFileObj as File;
+                                }
+                            });
+                            setUploadedUrls(urls);
+                            setSelectedFile(firstFile);
+                            // Keep hidden field synced for submit fallback
+                            form.setFieldsValue({ image_urls: urls.join('\n') });
+                        }}
+                        onRemove={(file) => {
+                            if (file.originFileObj) {
+                                const tmp = URL.createObjectURL(file.originFileObj as File);
+                                URL.revokeObjectURL(tmp);
+                            }
+                            return true;
+                        }}
+                    >
+                        <p className="ant-upload-drag-icon">
+                            <InboxOutlined />
+                        </p>
+                        <p className="ant-upload-text">Click or drag image files to this area to upload</p>
+                        <p className="ant-upload-hint">Support for multiple images. Only image files are accepted.</p>
+                    </Upload.Dragger>
                 </Form.Item>
+
+                {/* Hidden field to preserve compatibility with existing submit logic */}
+                <Form.Item name="image_urls" hidden>
+                    <Input type="hidden" />
+                </Form.Item>
+                
             </Form>
         </Modal>
     );

@@ -11,8 +11,7 @@ import {
   StrikethroughOutlined,
   OrderedListOutlined,
   UnorderedListOutlined,
-  LinkOutlined,
-  CodeOutlined,
+  LinkOutlined
 } from '@ant-design/icons';
 import { marked } from 'marked';
 import TurndownService from 'turndown';
@@ -61,6 +60,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   // Convert markdown to HTML when content changes (only when not editing)
   useEffect(() => {
     // Only update if not editing and not currently updating from user input
+    // Never update the editor's HTML while user is actively editing
     if (!isEditing && !isUpdatingRef.current && content && content !== markdownContent) {
       setMarkdownContent(content);
       try {
@@ -72,50 +72,80 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       }
     }
   }, [content, markdownContent, isEditing]);
+  
+  // Prevent React from updating editor HTML during editing
+  // This ensures cursor position is preserved during typing
+  useEffect(() => {
+    // Only sync HTML when NOT editing - let contentEditable handle itself during editing
+    if (!isEditing && editorRef.current && htmlContent) {
+      // Only update if HTML actually differs to avoid unnecessary DOM updates
+      if (editorRef.current.innerHTML !== htmlContent) {
+        isUpdatingRef.current = true;
+        editorRef.current.innerHTML = htmlContent;
+        isUpdatingRef.current = false;
+      }
+    }
+  }, [htmlContent, isEditing]);
 
   // Convert markdown to HTML when entering edit mode
   useEffect(() => {
     if (isEditing && editorRef.current) {
-      try {
-        // Get the current markdown content
-        const contentToConvert = markdownContent || content || '';
-        
-        if (contentToConvert.trim()) {
+      // Only set initial HTML when first entering edit mode
+      // After that, let the user's input control the content
+      const contentToConvert = markdownContent || content || '';
+      
+      if (contentToConvert.trim()) {
+        try {
           // Convert markdown to HTML
           const html = marked.parse(contentToConvert);
           
-          // Set the content in the editor and focus it
-          setTimeout(() => {
-            if (editorRef.current) {
-              editorRef.current.innerHTML = html as string;
-              // Focus the editor
-              editorRef.current.focus();
-              
-              // Move cursor to end
-              const range = document.createRange();
-              const selection = window.getSelection();
-              if (selection && editorRef.current.childNodes.length > 0) {
-                range.selectNodeContents(editorRef.current);
-                range.collapse(false);
-                selection.removeAllRanges();
-                selection.addRange(range);
+          // Set the content in the editor and focus it (only once when entering edit mode)
+          if (editorRef.current.innerHTML !== html) {
+            isUpdatingRef.current = true;
+            setTimeout(() => {
+              if (editorRef.current) {
+                editorRef.current.innerHTML = html as string;
+                // Focus the editor
+                editorRef.current.focus();
+                
+                // Move cursor to end only on initial load
+                const range = document.createRange();
+                const selection = window.getSelection();
+                if (selection && editorRef.current.childNodes.length > 0) {
+                  range.selectNodeContents(editorRef.current);
+                  range.collapse(false);
+                  selection.removeAllRanges();
+                  selection.addRange(range);
+                }
+                isUpdatingRef.current = false;
               }
-            }
-          }, 10);
-        } else {
-          // Empty editor - just focus it
+            }, 10);
+          } else {
+            // Content already set, just ensure focus
+            editorRef.current.focus();
+          }
+        } catch (error) {
+          console.error('Error converting markdown to HTML:', error);
+          // Fallback: use markdown as plain text
+          if (editorRef.current) {
+            isUpdatingRef.current = true;
+            editorRef.current.innerHTML = contentToConvert;
+            editorRef.current.focus();
+            isUpdatingRef.current = false;
+          }
+        }
+      } else {
+        // Empty editor - just focus it
+        if (editorRef.current.innerHTML !== '') {
+          isUpdatingRef.current = true;
           setTimeout(() => {
             if (editorRef.current) {
               editorRef.current.innerHTML = '';
               editorRef.current.focus();
+              isUpdatingRef.current = false;
             }
           }, 10);
-        }
-      } catch (error) {
-        console.error('Error converting markdown to HTML:', error);
-        // Fallback: use markdown as plain text
-        if (editorRef.current) {
-          editorRef.current.innerHTML = markdownContent || content || '';
+        } else {
           editorRef.current.focus();
         }
       }
@@ -123,9 +153,11 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       // Clear selection when exiting edit mode
       selectionRef.current.range = null;
     }
-  }, [isEditing, markdownContent, content]);
+    // Only run when isEditing changes, not when content changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditing]);
 
-  // Save cursor position
+  // Save cursor position using Range object for better reliability
   const saveCursorPosition = useCallback(() => {
     if (!editorRef.current) return null;
     
@@ -133,53 +165,78 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     if (!selection || selection.rangeCount === 0) return null;
     
     const range = selection.getRangeAt(0);
-    const preCaretRange = range.cloneRange();
-    preCaretRange.selectNodeContents(editorRef.current);
-    preCaretRange.setEnd(range.endContainer, range.endOffset);
     
-    return preCaretRange.toString().length;
+    // Check if selection is within editor
+    if (!editorRef.current.contains(range.commonAncestorContainer)) {
+      return null;
+    }
+    
+    // Clone the range to preserve it
+    return range.cloneRange();
   }, []);
 
-  // Restore cursor position
-  const restoreCursorPosition = useCallback((position: number) => {
-    if (!editorRef.current || position === null) return;
+  // Restore cursor position using Range object
+  const restoreCursorPosition = useCallback((savedRange: Range | null) => {
+    if (!editorRef.current || !savedRange) return;
     
     const selection = window.getSelection();
     if (!selection) return;
     
     try {
-      const range = document.createRange();
-      let currentPos = 0;
-      let found = false;
+      // Try to restore the saved range directly
+      const range = savedRange.cloneRange();
       
-      const walk = (node: Node) => {
-        if (found) return;
-        
-        if (node.nodeType === Node.TEXT_NODE) {
-          const textLength = node.textContent?.length || 0;
-          if (currentPos + textLength >= position) {
-            range.setStart(node, position - currentPos);
-            range.collapse(true);
-            found = true;
-            return;
-          }
-          currentPos += textLength;
-        } else {
-          for (let i = 0; i < node.childNodes.length; i++) {
-            walk(node.childNodes[i]);
-            if (found) return;
-          }
-        }
-      };
-      
-      walk(editorRef.current);
-      
-      if (found) {
+      // Check if the range is still valid
+      if (editorRef.current.contains(range.commonAncestorContainer)) {
         selection.removeAllRanges();
         selection.addRange(range);
+        return;
       }
     } catch (error) {
-      console.error('Error restoring cursor position:', error);
+      // Range is invalid, try to restore by position
+      console.debug('Range invalid, attempting position-based restore');
+      
+      try {
+        // Calculate position from saved range
+        const preCaretRange = savedRange.cloneRange();
+        preCaretRange.selectNodeContents(editorRef.current);
+        preCaretRange.setEnd(savedRange.endContainer, savedRange.endOffset);
+        const position = preCaretRange.toString().length;
+        
+        // Restore by walking the DOM
+        const range = document.createRange();
+        let currentPos = 0;
+        let found = false;
+        
+        const walk = (node: Node) => {
+          if (found) return;
+          
+          if (node.nodeType === Node.TEXT_NODE) {
+            const textLength = node.textContent?.length || 0;
+            if (currentPos + textLength >= position) {
+              range.setStart(node, Math.min(position - currentPos, textLength));
+              range.collapse(true);
+              found = true;
+              return;
+            }
+            currentPos += textLength;
+          } else {
+            for (let i = 0; i < node.childNodes.length; i++) {
+              walk(node.childNodes[i]);
+              if (found) return;
+            }
+          }
+        };
+        
+        walk(editorRef.current);
+        
+        if (found) {
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
+      } catch (restoreError) {
+        console.error('Error restoring cursor position:', restoreError);
+      }
     }
   }, []);
 
@@ -192,12 +249,10 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       clearTimeout(updateTimeoutRef.current);
     }
     
-    // Debounce the update
+    // Debounce the update - during typing, we don't modify the DOM
+    // so cursor position should be preserved naturally
     updateTimeoutRef.current = setTimeout(() => {
       if (!editorRef.current || isUpdatingRef.current) return;
-      
-      // Save cursor position before update
-      const cursorPos = saveCursorPosition();
       
       const html = editorRef.current.innerHTML;
       try {
@@ -212,20 +267,16 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             onChange(markdown);
           }
           
-          // Restore cursor position after React updates
-          requestAnimationFrame(() => {
-            if (cursorPos !== null) {
-              restoreCursorPosition(cursorPos);
-            }
-            isUpdatingRef.current = false;
-          });
+          // Don't restore cursor here since we didn't modify the DOM
+          // The cursor should remain where the user placed it
+          isUpdatingRef.current = false;
         }
       } catch (error) {
         console.error('Error converting HTML to markdown:', error);
         isUpdatingRef.current = false;
       }
-    }, 500); // Increased to 500ms for better stability
-  }, [onChange, markdownContent, saveCursorPosition, restoreCursorPosition]);
+    }, 300); // Reduced debounce for more responsive updates
+  }, [onChange, markdownContent]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -556,8 +607,19 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           <div
             ref={editorRef}
             contentEditable={true}
-            onInput={handleEditorChange}
-            onKeyDown={handleKeyDown}
+            onInput={(e) => {
+              // Handle input immediately without preventing default
+              // This preserves natural cursor behavior
+              handleEditorChange();
+            }}
+            onKeyDown={(e) => {
+              handleKeyDown(e);
+              // Save selection on key events to help preserve cursor position
+              if (e.key === 'Backspace' || e.key === 'Delete') {
+                // Immediately save selection before deletion
+                setTimeout(() => saveSelection(), 0);
+              }
+            }}
             onMouseUp={saveSelection}
             onClick={(e) => {
               e.stopPropagation();
@@ -565,6 +627,10 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
               if (editorRef.current) {
                 editorRef.current.focus();
               }
+            }}
+            onKeyUp={(e) => {
+              // Save selection after key up to capture final cursor position
+              saveSelection();
             }}
             onPaste={(e) => {
               // Handle paste events

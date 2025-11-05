@@ -16,35 +16,8 @@ services:
       start_period: 10s
     networks:
       - prm392-network
-  
-  # Ai Service Api (Old)
-  # clinisearch:
-  #   image: tienthuan29/clinisearch:latest
-  #   container_name: clinisearch
-  #   ports:
-  #     - "8000:8000"
-  #   environment:
-  #     - GOOGLE_API_KEY=
-  #     - NCBI_EMAIL=
-  #     - ANTHROPIC_API_KEY=
-  #     - GEMINI_MODEL_NAME=
-  #     - LOG_LEVEL=${LOG_LEVEL:-INFO}
-  #     - API_HOST=0.0.0.0
-  #     - API_PORT=8000
-  #   volumes:
-  #     - model_cache:/app/.cache
-  #     - ./logs:/app/logs
-  #   restart: unless-stopped
-  #   healthcheck:
-  #     test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 3
-  #     start_period: 40s
-  #   networks:
-  #     - prm392-network
 
-    # Ai Service Api (New)
+  # Ai Service Api (New)
   clinisearch:
     image: tienthuan29/clinisearch:latest
     container_name: clinisearch

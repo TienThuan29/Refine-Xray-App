@@ -8,6 +8,7 @@ export const Api = {
         LOGIN: '/api/auth/v1/login',
         REFRESH_TOKEN: '/api/auth/v1/refresh',
         GET_PROFILE: '/api/auth/v1/profile',
+        GET_USER_BY_EMAIL: '/api/auth/v1/users/by-email',
     },
 
     Admin: {
@@ -69,5 +70,22 @@ export const Api = {
         UPDATE_BLOG: '/api/patients/v1/blogs',                    // PUT /:id (DOCTOR only)
         DELETE_BLOG: '/api/patients/v1/blogs',                    // DELETE /:id (DOCTOR only)
         LIST_BLOGS: '/api/patients/v1/blogs'                      // GET (Public - all blogs)
+    },
+
+    Report: {
+        CREATE_REPORT: '/api/doctors/v1/reports',                 // POST
+        GET_REPORT: '/api/doctors/v1/reports',                    // GET /:reportId
+        GET_REPORTS_BY_CHAT_SESSION: '/api/doctors/v1/reports/chat-session',  // GET /:chatSessionId
+        GET_REPORTS_BY_PATIENT: '/api/doctors/v1/reports/patient',            // GET /:patientEmail
+        UPDATE_REPORT: '/api/doctors/v1/reports',                 // PUT /:reportId
+        SEND_REPORT: '/api/doctors/v1/reports',                   // POST /:reportId/send
+        DELETE_REPORT: '/api/doctors/v1/reports'                  // DELETE /:reportId
+    },
+
+    PatientReport: {
+        CREATE_PATIENT_REPORT: '/api/patients/v1/patient-reports',         // POST
+        GET_PATIENT_REPORTS_BY_EMAIL: '/api/patients/v1/patient-reports/patient', // GET /:email
+        DELETE_PATIENT_REPORT: '/api/patients/v1/patient-reports',         // DELETE /:id
+        MARK_PATIENT_REPORT_READ: '/api/patients/v1/patient-reports'       // PUT /:id/mark-read
     }
 }
