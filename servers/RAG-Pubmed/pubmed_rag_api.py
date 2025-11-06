@@ -33,21 +33,34 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize RAG system
+# Initialize RAG system with retry logic
 email = os.getenv("PUBMED_EMAIL", "nguyentienthuan9595@gmail.com")
 chroma_host = os.getenv("CHROMA_HOST", "localhost")
 chroma_port = int(os.getenv("CHROMA_PORT", "7000"))
 
-try:
-    rag = MedicalRAG(
-        email=email,
-        chroma_host=chroma_host,
-        chroma_port=chroma_port
-    )
-    print("Medical RAG System initialized successfully")
-except Exception as e:
-    print(f"Error initializing RAG system: {e}")
-    rag = None
+rag = None
+max_retries = 5
+retry_delay = 5  # seconds
+
+for attempt in range(max_retries):
+    try:
+        rag = MedicalRAG(
+            email=email,
+            chroma_host=chroma_host,
+            chroma_port=chroma_port
+        )
+        print("Medical RAG System initialized successfully")
+        break
+    except Exception as e:
+        if attempt < max_retries - 1:
+            print(f"Error initializing RAG system (attempt {attempt + 1}/{max_retries}): {e}")
+            print(f"Retrying in {retry_delay} seconds...")
+            import time
+            time.sleep(retry_delay)
+        else:
+            print(f"Error initializing RAG system after {max_retries} attempts: {e}")
+            print(f"ChromaDB may not be ready. Please ensure ChromaDB container is running and healthy.")
+            rag = None
 
 
 # Request/Response Models
