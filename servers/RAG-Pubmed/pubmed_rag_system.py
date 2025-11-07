@@ -264,14 +264,170 @@ class VectorDatabase:
                  embedding_model: str = "text-embedding-004"):
 
         try:
-            self.client = chromadb.HttpClient(
-                host=chroma_host,
-                port=chroma_port
-            )
-            print(f"Đã kết nối đến ChromaDB tại {chroma_host}:{chroma_port}")
+            # Configure ChromaDB client with proper settings
+            # For ChromaDB 1.0.0 server with 0.4.22 client, we need to handle tenant/database
+            # Try creating tenant/database via HTTP API first if needed
+            import time
+            max_connection_retries = 3
+            connection_retry_delay = 2
+            
+            for retry in range(max_connection_retries):
+                try:
+                    # First, verify ChromaDB server is accessible via HTTP
+                    try:
+                        version_url = f"http://{chroma_host}:{chroma_port}/api/v2/version"
+                        response = requests.get(version_url, timeout=5)
+                        if response.status_code == 200:
+                            print(f"ChromaDB server version: {response.text.strip()}")
+                    except Exception as http_error:
+                        if retry < max_connection_retries - 1:
+                            print(f"ChromaDB server chưa sẵn sàng (thử {retry + 1}/{max_connection_retries}): {http_error}")
+                            time.sleep(connection_retry_delay)
+                            continue
+                        else:
+                            raise Exception(f"Không thể kết nối đến ChromaDB server tại {chroma_host}:{chroma_port}")
+                    
+                    # Try to create default tenant and database via HTTP API if needed
+                    # ChromaDB 1.0.0 uses different API endpoints
+                    tenant_created = False
+                    database_created = False
+                    
+                    try:
+                        # Try v1 API first
+                        tenant_url = f"http://{chroma_host}:{chroma_port}/api/v1/tenants/default_tenant"
+                        tenant_response = requests.put(tenant_url, json={}, timeout=5)
+                        if tenant_response.status_code in [200, 201, 409]:  # 409 = already exists
+                            print("Đã đảm bảo tenant 'default_tenant' tồn tại (v1 API)")
+                            tenant_created = True
+                    except Exception as e1:
+                        try:
+                            # Try v2 API
+                            tenant_url = f"http://{chroma_host}:{chroma_port}/api/v2/tenants/default_tenant"
+                            tenant_response = requests.put(tenant_url, json={}, timeout=5)
+                            if tenant_response.status_code in [200, 201, 409]:
+                                print("Đã đảm bảo tenant 'default_tenant' tồn tại (v2 API)")
+                                tenant_created = True
+                        except Exception as e2:
+                            print(f"Không thể tạo tenant qua API (v1: {e1}, v2: {e2}). Sẽ thử AdminClient...")
+                    
+                    if tenant_created:
+                        try:
+                            # Create database if tenant was created
+                            db_url = f"http://{chroma_host}:{chroma_port}/api/v1/databases/default_database"
+                            db_payload = {"tenant": "default_tenant"}
+                            db_response = requests.put(db_url, json=db_payload, timeout=5)
+                            if db_response.status_code in [200, 201, 409]:
+                                print("Đã đảm bảo database 'default_database' tồn tại (v1 API)")
+                                database_created = True
+                        except Exception as e1:
+                            try:
+                                # Try v2 API
+                                db_url = f"http://{chroma_host}:{chroma_port}/api/v2/databases/default_database"
+                                db_payload = {"tenant": "default_tenant"}
+                                db_response = requests.put(db_url, json=db_payload, timeout=5)
+                                if db_response.status_code in [200, 201, 409]:
+                                    print("Đã đảm bảo database 'default_database' tồn tại (v2 API)")
+                                    database_created = True
+                            except Exception as e2:
+                                print(f"Không thể tạo database qua API (v1: {e1}, v2: {e2})")
+                    
+                    # Try using AdminClient if HTTP API didn't work
+                    if not tenant_created or not database_created:
+                        try:
+                            from chromadb import AdminClient
+                            admin_client = AdminClient(
+                                settings=Settings(
+                                    chroma_server_host=chroma_host,
+                                    chroma_server_http_port=chroma_port,
+                                    anonymized_telemetry=False
+                                )
+                            )
+                            if not tenant_created:
+                                try:
+                                    admin_client.create_tenant("default_tenant")
+                                    print("Đã tạo tenant 'default_tenant' qua AdminClient")
+                                except Exception as e:
+                                    if "already exists" in str(e).lower() or "409" in str(e):
+                                        print("Tenant 'default_tenant' đã tồn tại")
+                                    else:
+                                        print(f"Không thể tạo tenant qua AdminClient: {e}")
+                            
+                            if not database_created:
+                                try:
+                                    admin_client.create_database("default_database", tenant="default_tenant")
+                                    print("Đã tạo database 'default_database' qua AdminClient")
+                                except Exception as e:
+                                    if "already exists" in str(e).lower() or "409" in str(e):
+                                        print("Database 'default_database' đã tồn tại")
+                                    else:
+                                        print(f"Không thể tạo database qua AdminClient: {e}")
+                        except ImportError:
+                            print("AdminClient không khả dụng trong phiên bản này")
+                        except Exception as admin_error:
+                            print(f"Lỗi khi sử dụng AdminClient: {admin_error}")
+                    
+                    # Now create the HttpClient
+                    # For ChromaDB 1.0.0, we may need to specify tenant/database
+                    try:
+                        # Try with explicit tenant/database if supported
+                        self.client = chromadb.HttpClient(
+                            host=chroma_host,
+                            port=chroma_port,
+                            tenant="default_tenant",
+                            database="default_database",
+                            settings=Settings(
+                                anonymized_telemetry=False,
+                                allow_reset=True
+                            )
+                        )
+                    except TypeError:
+                        # If tenant/database params not supported, use basic client
+                        self.client = chromadb.HttpClient(
+                            host=chroma_host,
+                            port=chroma_port,
+                            settings=Settings(
+                                anonymized_telemetry=False,
+                                allow_reset=True
+                            )
+                        )
+                    
+                    # Test connection by trying to list collections
+                    # This will fail if tenant/database doesn't exist
+                    try:
+                        _ = self.client.list_collections()
+                        print(f"Đã kết nối đến ChromaDB tại {chroma_host}:{chroma_port}")
+                        break  # Success, exit retry loop
+                    except Exception as list_error:
+                        # If list_collections fails with tenant error, raise it to trigger retry
+                        error_str = str(list_error).lower()
+                        if "tenant" in error_str or "default_tenant" in error_str:
+                            raise list_error  # Re-raise to trigger retry logic
+                        else:
+                            # Other error, but connection works
+                            print(f"Đã kết nối đến ChromaDB tại {chroma_host}:{chroma_port} (cảnh báo: {list_error})")
+                            break  # Connection works, continue
+                    
+                except Exception as test_error:
+                    error_str = str(test_error).lower()
+                    if "tenant" in error_str or "default_tenant" in error_str:
+                        if retry < max_connection_retries - 1:
+                            print(f"Lỗi tenant (thử {retry + 1}/{max_connection_retries}): {test_error}")
+                            print(f"Đang thử lại sau {connection_retry_delay} giây...")
+                            time.sleep(connection_retry_delay)
+                            continue
+                        else:
+                            # Last retry failed, raise the error
+                            raise Exception(f"Không thể kết nối đến tenant default_tenant sau {max_connection_retries} lần thử. "
+                                          f"Đảm bảo ChromaDB container đã khởi động hoàn toàn và tenant/database đã được tạo.")
+                    else:
+                        # Other error, raise immediately
+                        raise
+                        
         except Exception as e:
             print(f"Lỗi khi kết nối đến ChromaDB: {e}")
             print(f"Đảm bảo ChromaDB container đang chạy: docker-compose up -d")
+            print(f"Kiểm tra ChromaDB tại {chroma_host}:{chroma_port}")
+            print(f"Kiểm tra ChromaDB version: curl http://{chroma_host}:{chroma_port}/api/v2/version")
             raise
         
         # Setup Gemini API
@@ -596,6 +752,12 @@ class MedicalRAG:
             context_text += f"- Tạp chí: {source['journal']} ({source['date']})\n"
             context_text += f"- Độ liên quan: {source['relevance']:.1f}%\n"
             context_text += f"- Tóm tắt: {source['abstract']}\n\n"
+        
+        # Calculate average relevance for note
+        avg_relevance = sum(s.get('relevance', 0) for s in context_sources) / len(context_sources) if context_sources else 0
+        relevance_note = ""
+        if avg_relevance < 50:
+            relevance_note = "\n\nLƯU Ý: Một số nguồn có độ liên quan thấp. Hãy cố gắng trả lời câu hỏi dựa trên bất kỳ thông tin liên quan nào bạn tìm thấy, ngay cả khi không hoàn toàn phù hợp. Nếu thông tin không đủ, hãy đề xuất người dùng tìm kiếm với từ khóa cụ thể hơn."
         
         prompt = f"""Bạn là một trợ lý y tế chuyên nghiệp, có nhiệm vụ trả lời câu hỏi y học dựa trên các nghiên cứu khoa học từ PubMed.
 

@@ -37,5 +37,6 @@ ENV API_PORT=8001
 ENV PYTHONUNBUFFERED=1
 
 # Run the application
-CMD ["uvicorn", "pubmed_rag_api:app", "--host", "0.0.0.0", "--port", "8001"]
+# First initialize ChromaDB, then start the API server
+CMD python init_chromadb.py && uvicorn pubmed_rag_api:app --host 0.0.0.0 --port 8001
 

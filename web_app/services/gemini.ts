@@ -24,7 +24,15 @@ export interface GenerateReportResponse {
 }
 
 /**
+ * Sleep utility for retry delays
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
  * Generates a markdown report based on chat session analysis results and template
+ * Includes retry logic for rate limiting and overload errors
  */
 export async function generateReport(
   chatSession: ChatSession,
@@ -42,43 +50,97 @@ export async function generateReport(
     // Build the prompt from template and chat session data
     const { prompt, gradcamImages } = buildReportPrompt(chatSession, template);
 
-    // Call Gemini API with text-only prompt (images will be displayed on frontend)
-    const response = await fetch(
-      `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
+    // Retry configuration
+    const maxRetries = 5;
+    const baseDelay = 2000; // 2 seconds
+    let lastError: Error | null = null;
+
+    // Retry loop with exponential backoff
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        // Call Gemini API with text-only prompt (images will be displayed on frontend)
+        const response = await fetch(
+          `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              contents: [
                 {
-                  text: prompt
+                  parts: [
+                    {
+                      text: prompt
+                    }
+                  ]
                 }
               ]
-            }
-          ]
-        })
-      }
-    );
+            })
+          }
+        );
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(
-        errorData.error?.message || 
-        `Gemini API error: ${response.status} ${response.statusText}`
-      );
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          const errorMessage = errorData.error?.message || 
+            `Gemini API error: ${response.status} ${response.statusText}`;
+
+          // Check if it's a retryable error (503, 429, or overload message)
+          const isRetryable = response.status === 503 || 
+                             response.status === 429 ||
+                             errorMessage.toLowerCase().includes('overloaded') ||
+                             errorMessage.toLowerCase().includes('quota') ||
+                             errorMessage.toLowerCase().includes('rate limit');
+
+          if (isRetryable && attempt < maxRetries - 1) {
+            // Calculate exponential backoff delay: 2s, 4s, 8s, 16s, 32s
+            const delay = baseDelay * Math.pow(2, attempt);
+            console.warn(
+              `Gemini API overloaded (attempt ${attempt + 1}/${maxRetries}). ` +
+              `Retrying in ${delay / 1000}s...`
+            );
+            await sleep(delay);
+            lastError = new Error(errorMessage);
+            continue; // Retry
+          }
+
+          // Non-retryable error or max retries reached
+          throw new Error(errorMessage);
+        }
+
+        // Success - parse and return response
+        const data = await response.json();
+        const reportContent = extractTextFromResponse(data);
+
+        return {
+          reportContent,
+          gradcamImages,
+        };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } catch (error: any) {
+        // Check if it's a network error that should be retried
+        if (attempt < maxRetries - 1 && (
+          error.message?.toLowerCase().includes('network') ||
+          error.message?.toLowerCase().includes('fetch') ||
+          error.message?.toLowerCase().includes('timeout')
+        )) {
+          const delay = baseDelay * Math.pow(2, attempt);
+          console.warn(
+            `Network error (attempt ${attempt + 1}/${maxRetries}). ` +
+            `Retrying in ${delay / 1000}s...`
+          );
+          await sleep(delay);
+          lastError = error;
+          continue;
+        }
+
+        // Re-throw if not retryable or max retries reached
+        throw error;
+      }
     }
 
-    const data = await response.json();
-    const reportContent = extractTextFromResponse(data);
-
-    return {
-      reportContent,
-      gradcamImages,
-    };
+    // If we've exhausted all retries, throw the last error
+    throw lastError || new Error('Failed to generate report after multiple attempts');
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error('Error generating report:', error);

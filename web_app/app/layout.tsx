@@ -13,6 +13,7 @@ const sans = Inter({
   weight: ['300','400','500','600','700'],
   display: 'swap',
   variable: '--font-sans',
+  fallback: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
 })
 
 const mono = JetBrains_Mono({
@@ -20,6 +21,7 @@ const mono = JetBrains_Mono({
   weight: ['400','500','600'],
   display: 'swap',
   variable: '--font-mono',
+  fallback: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
 })
 
 export const metadata: Metadata = {
