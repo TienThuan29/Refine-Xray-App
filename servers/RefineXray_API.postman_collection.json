@@ -1,0 +1,2196 @@
+{
+	"info": {
+		"_postman_id": "refinexray-api-collection",
+		"name": "RefineXray API Collection",
+		"description": "Complete API collection for RefineXray backend services. Includes Identity Service, Patient Service, Doctor Service, Admin Service, and RAG-Pubmed Service.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Identity Service (Auth)",
+			"item": [
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.data && jsonData.data.accessToken) {",
+									"        pm.collectionVariables.set('access_token', jsonData.data.accessToken);",
+									"        pm.collectionVariables.set('refresh_token', jsonData.data.refreshToken);",
+									"        pm.collectionVariables.set('user_id', jsonData.data.userProfile.id);",
+									"        pm.collectionVariables.set('user_email', jsonData.data.userProfile.email);",
+									"        pm.collectionVariables.set('user_role', jsonData.data.userProfile.role);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/v1/login",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "v1", "login"]
+						}
+					}
+				},
+				{
+					"name": "Register Patient",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"patient@example.com\",\n  \"fullname\": \"John Doe\",\n  \"password\": \"password123\",\n  \"role\": \"PATIENT\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/v1/register/patient",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "v1", "register", "patient"]
+						}
+					}
+				},
+				{
+					"name": "Refresh Token",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/v1/refresh",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "v1", "refresh"]
+						}
+					}
+				},
+				{
+					"name": "Get Profile",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/auth/v1/profile",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "v1", "profile"]
+						}
+					}
+				},
+				{
+					"name": "Get All Users (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/auth/v1/users",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "v1", "users"]
+						}
+					}
+				},
+				{
+					"name": "Get User By Email",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/v1/users/by-email",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "v1", "users", "by-email"]
+						}
+					}
+				},
+				{
+					"name": "Get User By Email (Internal)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-System-Secret",
+								"value": "{{system_secret}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{identity_service}}/api/v1/internal/users/by-email",
+							"host": ["{{identity_service}}"],
+							"path": ["api", "v1", "internal", "users", "by-email"]
+						}
+					}
+				},
+				{
+					"name": "Get User By ID (Internal)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-System-Secret",
+								"value": "{{system_secret}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"user-id-123\"\n}"
+						},
+						"url": {
+							"raw": "{{identity_service}}/api/v1/internal/users/by-id",
+							"host": ["{{identity_service}}"],
+							"path": ["api", "v1", "internal", "users", "by-id"]
+						}
+					}
+				},
+				{
+					"name": "Update User (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\",\n  \"fullname\": \"Updated Name\",\n  \"phone\": \"1234567890\",\n  \"dateOfBirth\": \"1990-01-01T00:00:00Z\",\n  \"role\": \"PATIENT\",\n  \"isEnable\": true,\n  \"password\": \"newpassword\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/v1/users",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "v1", "users"]
+						}
+					}
+				},
+				{
+					"name": "Delete User (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/v1/users",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "v1", "users"]
+						}
+					}
+				},
+				{
+					"name": "Update User Status (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\",\n  \"isEnable\": false\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/v1/users/status",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "v1", "users", "status"]
+						}
+					}
+				},
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{identity_service}}/api/health",
+							"host": ["{{identity_service}}"],
+							"path": ["api", "health"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Patient Service",
+			"item": [
+				{
+					"name": "Patient Profiles",
+					"item": [
+						{
+							"name": "Get All Patient Profiles",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/patients/v1/patient-profiles",
+									"host": ["{{base_url}}"],
+									"path": ["api", "patients", "v1", "patient-profiles"]
+								}
+							}
+						},
+						{
+							"name": "Get Patient Profile By ID",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/patients/v1/patient-profiles/:id",
+									"host": ["{{base_url}}"],
+									"path": ["api", "patients", "v1", "patient-profiles", ":id"],
+									"variable": [
+										{
+											"key": "id",
+											"value": "patient-profile-id"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Create Patient Profile",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"fullname\": \"John Doe\",\n  \"gender\": \"MALE\",\n  \"phone\": \"1234567890\",\n  \"houseNumber\": \"123\",\n  \"commune\": {\n    \"id\": \"commune-id\",\n    \"name\": \"Commune Name\"\n  },\n  \"province\": {\n    \"id\": \"province-id\",\n    \"name\": \"Province Name\"\n  },\n  \"nation\": \"Vietnam\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/patients/v1/patient-profiles?folderId={{folder_id}}",
+									"host": ["{{base_url}}"],
+									"path": ["api", "patients", "v1", "patient-profiles"],
+									"query": [
+										{
+											"key": "folderId",
+											"value": "{{folder_id}}"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Update Patient Profile",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"fullname\": \"John Doe Updated\",\n  \"gender\": \"MALE\",\n  \"phone\": \"1234567890\",\n  \"houseNumber\": \"123\",\n  \"commune\": {\n    \"id\": \"commune-id\",\n    \"name\": \"Commune Name\"\n  },\n  \"province\": {\n    \"id\": \"province-id\",\n    \"name\": \"Province Name\"\n  },\n  \"nation\": \"Vietnam\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/patients/v1/patient-profiles/:id",
+									"host": ["{{base_url}}"],
+									"path": ["api", "patients", "v1", "patient-profiles", ":id"],
+									"variable": [
+										{
+											"key": "id",
+											"value": "patient-profile-id"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Delete Patient Profile",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/patients/v1/patient-profiles/:id",
+									"host": ["{{base_url}}"],
+									"path": ["api", "patients", "v1", "patient-profiles", ":id"],
+									"variable": [
+										{
+											"key": "id",
+											"value": "patient-profile-id"
+										}
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Patient Reports",
+					"item": [
+						{
+							"name": "Create Patient Report",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"title\": \"Report Title\",\n  \"content\": \"Report Content\",\n  \"patient_email\": \"patient@example.com\",\n  \"is_sent\": false,\n  \"sent_date\": \"2024-01-01T00:00:00Z\",\n  \"sent_by_id\": \"doctor-id\",\n  \"sent_by_fullname\": \"Dr. Smith\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/patients/v1/patient-reports",
+									"host": ["{{base_url}}"],
+									"path": ["api", "patients", "v1", "patient-reports"]
+								}
+							}
+						},
+						{
+							"name": "Get Reports By Patient Email",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/patients/v1/patient-reports/patient/:email",
+									"host": ["{{base_url}}"],
+									"path": ["api", "patients", "v1", "patient-reports", "patient", ":email"],
+									"variable": [
+										{
+											"key": "email",
+											"value": "patient@example.com"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Mark Report As Read",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PUT",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/patients/v1/patient-reports/:id/mark-read",
+									"host": ["{{base_url}}"],
+									"path": ["api", "patients", "v1", "patient-reports", ":id", "mark-read"],
+									"variable": [
+										{
+											"key": "id",
+											"value": "report-id"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Delete Patient Report",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/patients/v1/patient-reports/:id",
+									"host": ["{{base_url}}"],
+									"path": ["api", "patients", "v1", "patient-reports", ":id"],
+									"variable": [
+										{
+											"key": "id",
+											"value": "report-id"
+										}
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Blogs",
+					"item": [
+						{
+							"name": "Get All Blogs",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/patients/v1/blogs",
+									"host": ["{{base_url}}"],
+									"path": ["api", "patients", "v1", "blogs"]
+								}
+							}
+						},
+						{
+							"name": "Get Blog By ID",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/patients/v1/blogs/:id",
+									"host": ["{{base_url}}"],
+									"path": ["api", "patients", "v1", "blogs", ":id"],
+									"variable": [
+										{
+											"key": "id",
+											"value": "blog-id"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Create Blog (JSON)",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"create_by\": \"{{user_id}}\",\n  \"title\": \"Blog Title\",\n  \"image_urls\": [\"url1\", \"url2\"],\n  \"subtitle\": \"Subtitle\",\n  \"content\": \"Blog content\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/patients/v1/blogs",
+									"host": ["{{base_url}}"],
+									"path": ["api", "patients", "v1", "blogs"]
+								}
+							}
+						},
+						{
+							"name": "Create Blog (Form Data)",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "create_by",
+											"value": "{{user_id}}",
+											"type": "text"
+										},
+										{
+											"key": "title",
+											"value": "Blog Title",
+											"type": "text"
+										},
+										{
+											"key": "subtitle",
+											"value": "Subtitle",
+											"type": "text"
+										},
+										{
+											"key": "content",
+											"value": "Blog content",
+											"type": "text"
+										},
+										{
+											"key": "image",
+											"type": "file",
+											"src": []
+										}
+									]
+								},
+								"url": {
+									"raw": "{{base_url}}/api/patients/v1/blogs/form",
+									"host": ["{{base_url}}"],
+									"path": ["api", "patients", "v1", "blogs", "form"]
+								}
+							}
+						},
+						{
+							"name": "Update Blog (JSON)",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"create_by\": \"{{user_id}}\",\n  \"title\": \"Updated Blog Title\",\n  \"image_urls\": [\"url1\", \"url2\"],\n  \"subtitle\": \"Updated Subtitle\",\n  \"content\": \"Updated Blog content\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/patients/v1/blogs/:id",
+									"host": ["{{base_url}}"],
+									"path": ["api", "patients", "v1", "blogs", ":id"],
+									"variable": [
+										{
+											"key": "id",
+											"value": "blog-id"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Update Blog (Form Data)",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "create_by",
+											"value": "{{user_id}}",
+											"type": "text"
+										},
+										{
+											"key": "title",
+											"value": "Updated Blog Title",
+											"type": "text"
+										},
+										{
+											"key": "subtitle",
+											"value": "Updated Subtitle",
+											"type": "text"
+										},
+										{
+											"key": "content",
+											"value": "Updated Blog content",
+											"type": "text"
+										},
+										{
+											"key": "image",
+											"type": "file",
+											"src": []
+										}
+									]
+								},
+								"url": {
+									"raw": "{{base_url}}/api/patients/v1/blogs/:id/form",
+									"host": ["{{base_url}}"],
+									"path": ["api", "patients", "v1", "blogs", ":id", "form"],
+									"variable": [
+										{
+											"key": "id",
+											"value": "blog-id"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Delete Blog",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/patients/v1/blogs/:id",
+									"host": ["{{base_url}}"],
+									"path": ["api", "patients", "v1", "blogs", ":id"],
+									"variable": [
+										{
+											"key": "id",
+											"value": "blog-id"
+										}
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Vietnam Address",
+					"item": [
+						{
+							"name": "Get Provinces",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/patients/v1/vietnam-address/provinces",
+									"host": ["{{base_url}}"],
+									"path": ["api", "patients", "v1", "vietnam-address", "provinces"]
+								}
+							}
+						},
+						{
+							"name": "Get Communes By Province",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/patients/v1/vietnam-address/provinces/:provinceId/communes",
+									"host": ["{{base_url}}"],
+									"path": ["api", "patients", "v1", "vietnam-address", "provinces", ":provinceId", "communes"],
+									"variable": [
+										{
+											"key": "provinceId",
+											"value": "province-id"
+										}
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{patient_service}}/api/health",
+							"host": ["{{patient_service}}"],
+							"path": ["api", "health"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Doctor Service",
+			"item": [
+				{
+					"name": "Folders",
+					"item": [
+						{
+							"name": "Create Folder",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"title\": \"Folder Title\",\n  \"description\": \"Folder Description\",\n  \"createdBy\": \"{{user_id}}\",\n  \"type\": \"ANALYZE\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/doctors/v1/folders",
+									"host": ["{{base_url}}"],
+									"path": ["api", "doctors", "v1", "folders"]
+								}
+							},
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if (pm.response.code === 201 || pm.response.code === 200) {",
+											"    var jsonData = pm.response.json();",
+											"    if (jsonData.data && jsonData.data.id) {",
+											"        pm.collectionVariables.set('folder_id', jsonData.data.id);",
+											"    }",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							]
+						},
+						{
+							"name": "Get Folder By ID",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/doctors/v1/folders/:folderId",
+									"host": ["{{base_url}}"],
+									"path": ["api", "doctors", "v1", "folders", ":folderId"],
+									"variable": [
+										{
+											"key": "folderId",
+											"value": "{{folder_id}}"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Get Folders By User ID",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/doctors/v1/folders/created-by?userId={{user_id}}",
+									"host": ["{{base_url}}"],
+									"path": ["api", "doctors", "v1", "folders", "created-by"],
+									"query": [
+										{
+											"key": "userId",
+											"value": "{{user_id}}"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Update Folder",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"title\": \"Updated Folder Title\",\n  \"description\": \"Updated Folder Description\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/doctors/v1/folders/:folderId",
+									"host": ["{{base_url}}"],
+									"path": ["api", "doctors", "v1", "folders", ":folderId"],
+									"variable": [
+										{
+											"key": "folderId",
+											"value": "{{folder_id}}"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Update Patient Profile ID",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"patientProfileId\": \"{{patient_profile_id}}\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/doctors/v1/folders/patient-profile/:folderId",
+									"host": ["{{base_url}}"],
+									"path": ["api", "doctors", "v1", "folders", "patient-profile", ":folderId"],
+									"variable": [
+										{
+											"key": "folderId",
+											"value": "{{folder_id}}"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Delete Folder",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/doctors/v1/folders/:folderId",
+									"host": ["{{base_url}}"],
+									"path": ["api", "doctors", "v1", "folders", ":folderId"],
+									"variable": [
+										{
+											"key": "folderId",
+											"value": "{{folder_id}}"
+										}
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Chat Sessions",
+					"item": [
+						{
+							"name": "Analyze and Create Chat Session",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "folderId",
+											"value": "{{folder_id}}",
+											"type": "text"
+										},
+										{
+											"key": "title",
+											"value": "X-Ray Analysis",
+											"type": "text"
+										},
+										{
+											"key": "xrayImage",
+											"type": "file",
+											"src": []
+										},
+										{
+											"key": "patientProfileId",
+											"value": "{{patient_profile_id}}",
+											"type": "text",
+											"disabled": true
+										}
+									]
+								},
+								"url": {
+									"raw": "{{base_url}}/api/doctors/v1/chatsessions/analyze-and-create-chatsession",
+									"host": ["{{base_url}}"],
+									"path": ["api", "doctors", "v1", "chatsessions", "analyze-and-create-chatsession"]
+								}
+							},
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if (pm.response.code === 200 || pm.response.code === 201) {",
+											"    var jsonData = pm.response.json();",
+											"    if (jsonData.data && jsonData.data.id) {",
+											"        pm.collectionVariables.set('chat_session_id', jsonData.data.id);",
+											"    }",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							]
+						},
+						{
+							"name": "Create Text Chat Session",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"folderId\": \"{{folder_id}}\",\n  \"title\": \"Text Chat Session\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/doctors/v1/chatsessions/create-text-chatsession",
+									"host": ["{{base_url}}"],
+									"path": ["api", "doctors", "v1", "chatsessions", "create-text-chatsession"]
+								}
+							}
+						},
+						{
+							"name": "Get Chat Session By ID",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/doctors/v1/chatsessions/:chatSessionId",
+									"host": ["{{base_url}}"],
+									"path": ["api", "doctors", "v1", "chatsessions", ":chatSessionId"],
+									"variable": [
+										{
+											"key": "chatSessionId",
+											"value": "{{chat_session_id}}"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Get Chat Sessions By Folder ID",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/doctors/v1/chatsessions/folder/:folderId",
+									"host": ["{{base_url}}"],
+									"path": ["api", "doctors", "v1", "chatsessions", "folder", ":folderId"],
+									"variable": [
+										{
+											"key": "folderId",
+											"value": "{{folder_id}}"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Send Chat Message",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"message\": \"What are the findings in this X-ray?\",\n  \"action\": \"question\",\n  \"context\": {\n    \"specialty\": \"Radiology\",\n    \"urgency\": \"medium\",\n    \"includeReferences\": true,\n    \"age\": 45,\n    \"gender\": \"MALE\"\n  }\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/doctors/v1/chatsessions/:chatSessionId/chat",
+									"host": ["{{base_url}}"],
+									"path": ["api", "doctors", "v1", "chatsessions", ":chatSessionId", "chat"],
+									"variable": [
+										{
+											"key": "chatSessionId",
+											"value": "{{chat_session_id}}"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Delete Chat Session",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/doctors/v1/chatsessions/:chatSessionId",
+									"host": ["{{base_url}}"],
+									"path": ["api", "doctors", "v1", "chatsessions", ":chatSessionId"],
+									"variable": [
+										{
+											"key": "chatSessionId",
+											"value": "{{chat_session_id}}"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Test CliniAI Service",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/doctors/v1/chatsessions/test-cliniai",
+									"host": ["{{base_url}}"],
+									"path": ["api", "doctors", "v1", "chatsessions", "test-cliniai"]
+								}
+							}
+						},
+						{
+							"name": "Test GradCam Processing",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"base64Image\": \"base64-encoded-image-here\",\n  \"chatSessionId\": \"{{chat_session_id}}\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/doctors/v1/chatsessions/test-gradcam",
+									"host": ["{{base_url}}"],
+									"path": ["api", "doctors", "v1", "chatsessions", "test-gradcam"]
+								}
+							}
+						},
+						{
+							"name": "Query PubMed RAG",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"question\": \"What are the symptoms of pneumonia?\",\n  \"nResults\": 3,\n  \"autoFetch\": true,\n  \"autoFetchCount\": 30\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/doctors/v1/chatsessions/query-pubmed-rag",
+									"host": ["{{base_url}}"],
+									"path": ["api", "doctors", "v1", "chatsessions", "query-pubmed-rag"]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Reports",
+					"item": [
+						{
+							"name": "Create Report",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"title\": \"Medical Report\",\n  \"templateId\": \"template-id\",\n  \"content\": \"# Report Content\\n\\n## Findings\\n- Finding 1\\n- Finding 2\\n\\n## Diagnosis\\nDiagnosis here\",\n  \"chatSessionId\": \"{{chat_session_id}}\",\n  \"patientEmail\": \"patient@example.com\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/doctors/v1/reports",
+									"host": ["{{base_url}}"],
+									"path": ["api", "doctors", "v1", "reports"]
+								}
+							},
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if (pm.response.code === 201 || pm.response.code === 200) {",
+											"    var jsonData = pm.response.json();",
+											"    if (jsonData.data && jsonData.data.id) {",
+											"        pm.collectionVariables.set('report_id', jsonData.data.id);",
+											"    }",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							]
+						},
+						{
+							"name": "Get Report By ID",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/doctors/v1/reports/:reportId",
+									"host": ["{{base_url}}"],
+									"path": ["api", "doctors", "v1", "reports", ":reportId"],
+									"variable": [
+										{
+											"key": "reportId",
+											"value": "{{report_id}}"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Get Reports By Chat Session ID",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/doctors/v1/reports/chat-session/:chatSessionId",
+									"host": ["{{base_url}}"],
+									"path": ["api", "doctors", "v1", "reports", "chat-session", ":chatSessionId"],
+									"variable": [
+										{
+											"key": "chatSessionId",
+											"value": "{{chat_session_id}}"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Get Reports By Patient Email",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/doctors/v1/reports/patient/:patientEmail",
+									"host": ["{{base_url}}"],
+									"path": ["api", "doctors", "v1", "reports", "patient", ":patientEmail"],
+									"variable": [
+										{
+											"key": "patientEmail",
+											"value": "patient@example.com"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Update Report",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"title\": \"Updated Medical Report\",\n  \"templateId\": \"template-id\",\n  \"content\": \"# Updated Report Content\",\n  \"patientEmail\": \"patient@example.com\",\n  \"isSent\": true,\n  \"sentDate\": \"2024-01-01T00:00:00Z\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/doctors/v1/reports/:reportId",
+									"host": ["{{base_url}}"],
+									"path": ["api", "doctors", "v1", "reports", ":reportId"],
+									"variable": [
+										{
+											"key": "reportId",
+											"value": "{{report_id}}"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Send Report",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/doctors/v1/reports/:reportId/send",
+									"host": ["{{base_url}}"],
+									"path": ["api", "doctors", "v1", "reports", ":reportId", "send"],
+									"variable": [
+										{
+											"key": "reportId",
+											"value": "{{report_id}}"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Delete Report",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/doctors/v1/reports/:reportId",
+									"host": ["{{base_url}}"],
+									"path": ["api", "doctors", "v1", "reports", ":reportId"],
+									"variable": [
+										{
+											"key": "reportId",
+											"value": "{{report_id}}"
+										}
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{doctor_service}}/api/health",
+							"host": ["{{doctor_service}}"],
+							"path": ["api", "health"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Admin Service",
+			"item": [
+				{
+					"name": "Users",
+					"item": [
+						{
+							"name": "Create Account",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"email\": \"user@example.com\",\n  \"fullname\": \"User Name\",\n  \"password\": \"password123\",\n  \"role\": \"PATIENT\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/admin/v1/users/create-account",
+									"host": ["{{base_url}}"],
+									"path": ["api", "admin", "v1", "users", "create-account"]
+								}
+							}
+						},
+						{
+							"name": "Get All Users",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/admin/v1/users",
+									"host": ["{{base_url}}"],
+									"path": ["api", "admin", "v1", "users"]
+								}
+							}
+						},
+						{
+							"name": "Get User By Email",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"email\": \"user@example.com\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/admin/v1/users/by-email",
+									"host": ["{{base_url}}"],
+									"path": ["api", "admin", "v1", "users", "by-email"]
+								}
+							}
+						},
+						{
+							"name": "Update User",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"email\": \"user@example.com\",\n  \"fullname\": \"Updated Name\",\n  \"phone\": \"1234567890\",\n  \"dateOfBirth\": \"1990-01-01T00:00:00Z\",\n  \"password\": \"newpassword\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/admin/v1/users",
+									"host": ["{{base_url}}"],
+									"path": ["api", "admin", "v1", "users"]
+								}
+							}
+						},
+						{
+							"name": "Delete User",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"email\": \"user@example.com\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/admin/v1/users",
+									"host": ["{{base_url}}"],
+									"path": ["api", "admin", "v1", "users"]
+								}
+							}
+						},
+						{
+							"name": "Update User Status",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"email\": \"user@example.com\",\n  \"isEnable\": false\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/admin/v1/users/status",
+									"host": ["{{base_url}}"],
+									"path": ["api", "admin", "v1", "users", "status"]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Report Templates",
+					"item": [
+						{
+							"name": "Create Report Template",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "file",
+											"type": "file",
+											"src": []
+										},
+										{
+											"key": "userId",
+											"value": "{{user_id}}",
+											"type": "text"
+										},
+										{
+											"key": "name",
+											"value": "Template Name",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{base_url}}/api/admin/v1/report-templates",
+									"host": ["{{base_url}}"],
+									"path": ["api", "admin", "v1", "report-templates"]
+								}
+							}
+						},
+						{
+							"name": "Get All Report Templates",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/admin/v1/report-templates",
+									"host": ["{{base_url}}"],
+									"path": ["api", "admin", "v1", "report-templates"]
+								}
+							}
+						},
+						{
+							"name": "Get Report Template By ID",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/admin/v1/report-templates/:id",
+									"host": ["{{base_url}}"],
+									"path": ["api", "admin", "v1", "report-templates", ":id"],
+									"variable": [
+										{
+											"key": "id",
+											"value": "template-id"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Update Report Template",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "file",
+											"type": "file",
+											"src": [],
+											"disabled": true
+										},
+										{
+											"key": "name",
+											"value": "Updated Template Name",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "template",
+											"value": "Template content",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "fileLink",
+											"value": "file-link-url",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "isDeleted",
+											"value": "false",
+											"type": "text",
+											"disabled": true
+										}
+									]
+								},
+								"url": {
+									"raw": "{{base_url}}/api/admin/v1/report-templates/:id",
+									"host": ["{{base_url}}"],
+									"path": ["api", "admin", "v1", "report-templates", ":id"],
+									"variable": [
+										{
+											"key": "id",
+											"value": "template-id"
+										}
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{admin_service}}/api/health",
+							"host": ["{{admin_service}}"],
+							"path": ["api", "health"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "RAG-Pubmed Service",
+			"item": [
+				{
+					"name": "Root Endpoint",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{rag_service}}/",
+							"host": ["{{rag_service}}"],
+							"path": [""]
+						}
+					}
+				},
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{rag_service}}/health",
+							"host": ["{{rag_service}}"],
+							"path": ["health"]
+						}
+					}
+				},
+				{
+					"name": "Crawl/Index Articles",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"query\": \"diabetes treatment\",\n  \"max_results\": 50\n}"
+						},
+						"url": {
+							"raw": "{{rag_service}}/crawl",
+							"host": ["{{rag_service}}"],
+							"path": ["crawl"]
+						}
+					}
+				},
+				{
+					"name": "Query RAG System",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"question\": \"What are the symptoms of pneumonia?\",\n  \"n_results\": 5,\n  \"auto_fetch\": true,\n  \"auto_fetch_count\": 30\n}"
+						},
+						"url": {
+							"raw": "{{rag_service}}/query",
+							"host": ["{{rag_service}}"],
+							"path": ["query"]
+						}
+					}
+				},
+				{
+					"name": "Get Statistics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{rag_service}}/stats",
+							"host": ["{{rag_service}}"],
+							"path": ["stats"]
+						}
+					}
+				},
+				{
+					"name": "Clear Database",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{rag_service}}/clear",
+							"host": ["{{rag_service}}"],
+							"path": ["clear"]
+						}
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "identity_service",
+			"value": "http://localhost:8082",
+			"type": "string"
+		},
+		{
+			"key": "doctor_service",
+			"value": "http://localhost:8083",
+			"type": "string"
+		},
+		{
+			"key": "patient_service",
+			"value": "http://localhost:8085",
+			"type": "string"
+		},
+		{
+			"key": "admin_service",
+			"value": "http://localhost:8086",
+			"type": "string"
+		},
+		{
+			"key": "rag_service",
+			"value": "http://localhost:8001",
+			"type": "string"
+		},
+		{
+			"key": "access_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refresh_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_email",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_role",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "folder_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "patient_profile_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "chat_session_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "report_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "system_secret",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
+

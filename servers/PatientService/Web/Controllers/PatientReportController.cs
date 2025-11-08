@@ -34,7 +34,7 @@ namespace PatientService.Web.Controllers
 
             try
             {
-                // Validate patient email exists in the system
+                // Validate patient email exists
                 if (!string.IsNullOrEmpty(request.PatientEmail))
                 {
                     var userFullname = await _identityService.GetUserFullnameByEmailAsync(request.PatientEmail);

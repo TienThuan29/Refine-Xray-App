@@ -17,8 +17,9 @@ export const useVietnamAddress = () => {
         
         setLoadingProvinces(true);
         try {
-            const response = await axios.get(Api.ThirdParty.VietnamAddress.GET_PROVINCES);
-            // console.log('response', response.data);
+            const response = await axios.get(
+                Api.BASE_API + Api.ThirdParty.VietnamAddress.GET_PROVINCES
+            );
             const data = Array.isArray(response.data.provinces) ? response.data.provinces : [];
             setProvinces(data);
         } 
@@ -38,7 +39,7 @@ export const useVietnamAddress = () => {
         setLoadingCommunes(true);
         try {
             const response = await axios.get(
-                Api.ThirdParty.VietnamAddress.GET_COMMUNES_FROM_PROVINCE.replace('{province_id}', provinceId)
+                Api.BASE_API + Api.ThirdParty.VietnamAddress.GET_COMMUNES_FROM_PROVINCE.replace('{province_id}', provinceId)
             );
             const data = Array.isArray(response.data.communes) ? response.data.communes : [];
             setCommunesOfProvince(data);

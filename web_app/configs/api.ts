@@ -55,8 +55,8 @@ export const Api = {
 
     ThirdParty: {
         VietnamAddress: {
-            GET_PROVINCES: 'https://production.cas.so/address-kit/2025-07-01/provinces',
-            GET_COMMUNES_FROM_PROVINCE: 'https://production.cas.so/address-kit/2025-07-01/provinces/{province_id}/communes',
+            GET_PROVINCES: '/api/patients/v1/vietnam-address/provinces',
+            GET_COMMUNES_FROM_PROVINCE: '/api/patients/v1/vietnam-address/provinces/{province_id}/communes',
         }
     },
 

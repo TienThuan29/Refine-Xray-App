@@ -28,13 +28,12 @@ if (string.IsNullOrEmpty(awsRegion) || awsRegion.Contains("${"))
     awsRegion = "us-east-1"; 
 }
 
-// Configure AWS credentials from appsettings.json
+// AWS
 var awsOptions = new AWSOptions
 {
     Region = RegionEndpoint.GetBySystemName(awsRegion)
 };
 
-// Use BasicAWSCredentials if AccessKey and SecretKey are provided
 if (!string.IsNullOrEmpty(awsAccessKey) && !string.IsNullOrEmpty(awsSecretKey))
 {
     awsOptions.Credentials = new Amazon.Runtime.BasicAWSCredentials(awsAccessKey, awsSecretKey);
@@ -74,7 +73,8 @@ builder.Services.AddScoped<IPatientReportRepository, PatientReportRepository>();
 builder.Services.AddScoped<IPatientReportService, PatientReportService>();
 builder.Services.AddScoped<IS3Repository, S3Repository>();
 
-// Add HTTP client for IdentityService
+builder.Services.AddHttpClient();
+
 builder.Services.AddHttpClient<IIdentityService, IdentityService>(client =>
 {
     var baseUrl = builder.Configuration["IdentityService:BaseUrl"] ?? "http://localhost:8082";

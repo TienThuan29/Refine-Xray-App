@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "d:\\Fullsnack\\PRM392-RefineXrayApp\\servers\\AdminService\\AdminService.csproj": {}
+    "D:\\Fullsnack\\PRM392-RefineXrayApp\\servers\\AdminService\\AdminService.csproj": {}
   },
   "projects": {
-    "d:\\Fullsnack\\PRM392-RefineXrayApp\\servers\\AdminService\\AdminService.csproj": {
+    "D:\\Fullsnack\\PRM392-RefineXrayApp\\servers\\AdminService\\AdminService.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "d:\\Fullsnack\\PRM392-RefineXrayApp\\servers\\AdminService\\AdminService.csproj",
+        "projectUniqueName": "D:\\Fullsnack\\PRM392-RefineXrayApp\\servers\\AdminService\\AdminService.csproj",
         "projectName": "AdminService",
-        "projectPath": "d:\\Fullsnack\\PRM392-RefineXrayApp\\servers\\AdminService\\AdminService.csproj",
+        "projectPath": "D:\\Fullsnack\\PRM392-RefineXrayApp\\servers\\AdminService\\AdminService.csproj",
         "packagesPath": "C:\\Users\\ADMIN\\.nuget\\packages\\",
-        "outputPath": "d:\\Fullsnack\\PRM392-RefineXrayApp\\servers\\AdminService\\obj\\",
+        "outputPath": "D:\\Fullsnack\\PRM392-RefineXrayApp\\servers\\AdminService\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "D:\\New folder (2)\\NuGetPackages"
