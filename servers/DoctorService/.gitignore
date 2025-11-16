@@ -423,8 +423,4 @@ ehthumbs.db
 Thumbs.db
 
 # Application specific
-appsettings.Production.json
-appsettings.Staging.json
-appsettings.Development.json
-appsettings.json
 .env

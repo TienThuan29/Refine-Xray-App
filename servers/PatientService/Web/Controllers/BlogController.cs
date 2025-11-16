@@ -251,7 +251,6 @@ namespace PatientService.Web.Controllers
 
         private async Task<BlogResponse> MapToResponseAsync(Blog blog)
         {
-            // GetUserFullnameAsync handles both email and ID automatically
             var fullname = await _identityService.GetUserFullnameAsync(blog.CreateBy);
             
             return new BlogResponse

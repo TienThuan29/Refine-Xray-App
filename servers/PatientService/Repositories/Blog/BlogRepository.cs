@@ -126,7 +126,6 @@ namespace PatientService.Repositories.Blog
                     return false;
                 }
 
-                // Soft delete: Set is_deleted to true
                 blog.IsDeleted = true;
                 blog.UpdatedDate = DateTime.UtcNow;
                 var item = BlogDynamoMapper.BlogToDynamoItem(blog);

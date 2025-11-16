@@ -22,8 +22,6 @@ namespace IdentityService.Repositories.User
         {
             _configuration = configuration;
             _userTableName = configuration["DynamoDB:UserTable"] ?? "";
-            
-            // Log repository initialization with AWS region and table name
             var awsRegion = configuration["AWS:Region"] ?? "Not configured";
             logger.LogInformation("UserRepository initialized - Region: {Region}, Table: {Table}", awsRegion, _userTableName);
         }
@@ -80,7 +78,6 @@ namespace IdentityService.Repositories.User
         {
             try
             {
-                // Log DynamoDB operation details
                 var region = _configuration["AWS:Region"] ?? "Unknown";
                 var regionEndpoint = _dynamoDBClient.Config.RegionEndpoint?.SystemName ?? "Unknown";
                 _logger.LogInformation("Finding user by email - Region: {Region} ({RegionEndpoint}), Table: {Table}, Email: {Email}", 

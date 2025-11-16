@@ -33,7 +33,6 @@ namespace PatientService.Services.Identity
                 _logger.LogInformation("Fetching user fullname for email: {Email}", email);
 
                 var request = new { Email = email };
-                // Use internal endpoint that accepts system secret
                 var response = await _httpClient.PostAsJsonAsync("api/v1/internal/users/by-email", request, _jsonOptions);
 
                 if (!response.IsSuccessStatusCode)

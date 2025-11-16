@@ -69,7 +69,7 @@ namespace IdentityService.Web.Controllers
         {
             try
             {
-                // Get access token from context (set by JwtValidationMiddleware)
+                // Get access token from context, set by JwtValidationMiddleware
                 var accessToken = HttpContext.Items["AccessToken"] as string;
                 if (string.IsNullOrEmpty(accessToken))
                 {
@@ -116,7 +116,7 @@ namespace IdentityService.Web.Controllers
         {
             try
             {
-                // Get user from context (set by JwtValidationMiddleware)
+                // Get user from context, set by JwtValidationMiddleware
                 var user = HttpContext.Items["User"] as User;
                 if (user == null)
                 {
@@ -144,7 +144,7 @@ namespace IdentityService.Web.Controllers
         {
             try
             {
-                // Get user from context (set by JwtValidationMiddleware)
+                // Get user from context, set by JwtValidationMiddleware
                 var currentUser = HttpContext.Items["User"] as User;
                 if (currentUser == null)
                 {
@@ -176,9 +176,6 @@ namespace IdentityService.Web.Controllers
         {
             try
             {
-                // This endpoint is for internal service-to-service calls using system secret
-                // System secret is validated by SystemSecretMiddleware
-
                 if (string.IsNullOrEmpty(request.Email))
                 {
                     return ResponseUtil.Error<UserProfileResponse>("Email is required", 400);
@@ -204,9 +201,6 @@ namespace IdentityService.Web.Controllers
         {
             try
             {
-                // This endpoint is for internal service-to-service calls using system secret
-                // System secret is validated by SystemSecretMiddleware
-
                 if (string.IsNullOrEmpty(request.Id))
                 {
                     return ResponseUtil.Error<UserProfileResponse>("User ID is required", 400);
@@ -232,14 +226,13 @@ namespace IdentityService.Web.Controllers
         {
             try
             {
-                // Get user from context (set by JwtValidationMiddleware)
+                // Get user from context, set by JwtValidationMiddleware
                 var currentUser = HttpContext.Items["User"] as User;
                 if (currentUser == null)
                 {
                     return ResponseUtil.Error<UserProfileResponse>("User not authenticated", 401);
                 }
 
-                // Verify user has admin role
                 if (currentUser.Role != Role.ADMIN)
                 {
                     return ResponseUtil.Error<UserProfileResponse>("Insufficient permissions", 403);
@@ -250,7 +243,6 @@ namespace IdentityService.Web.Controllers
                     return ResponseUtil.Error<UserProfileResponse>("Email is required", 400);
                 }
 
-                // Remove sensitive fields that shouldn't be updated via this endpoint
                 var updateData = new User
                 {
                     Email = request.Email,
@@ -282,14 +274,13 @@ namespace IdentityService.Web.Controllers
         {
             try
             {
-                // Get user from context (set by JwtValidationMiddleware)
+                // Get user from context, set by JwtValidationMiddleware
                 var currentUser = HttpContext.Items["User"] as User;
                 if (currentUser == null)
                 {
                     return ResponseUtil.Error<object>("User not authenticated", 401);
                 }
 
-                // Verify user has admin role
                 if (currentUser.Role != Role.ADMIN)
                 {
                     return ResponseUtil.Error<object>("Insufficient permissions", 403);
@@ -300,7 +291,6 @@ namespace IdentityService.Web.Controllers
                     return ResponseUtil.Error<object>("Email is required", 400);
                 }
 
-                // Prevent self-deletion
                 if (currentUser.Email == request.Email)
                 {
                     return ResponseUtil.Error<object>("Cannot delete your own account", 400);
@@ -326,14 +316,13 @@ namespace IdentityService.Web.Controllers
         {
             try
             {
-                // Get user from context (set by JwtValidationMiddleware)
+                // Get user from context, set by JwtValidationMiddleware
                 var currentUser = HttpContext.Items["User"] as User;
                 if (currentUser == null)
                 {
                     return ResponseUtil.Error<UserProfileResponse>("User not authenticated", 401);
                 }
 
-                // Verify user has admin role
                 if (currentUser.Role != Role.ADMIN)
                 {
                     return ResponseUtil.Error<UserProfileResponse>("Insufficient permissions", 403);
@@ -349,7 +338,6 @@ namespace IdentityService.Web.Controllers
                     return ResponseUtil.Error<UserProfileResponse>("isEnable must be a boolean value", 400);
                 }
 
-                // Prevent self-status change
                 if (currentUser.Email == request.Email)
                 {
                     return ResponseUtil.Error<UserProfileResponse>("Cannot change your own status", 400);

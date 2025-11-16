@@ -29,13 +29,11 @@ if (string.IsNullOrEmpty(awsRegion) || awsRegion.Contains("${"))
     awsRegion = "us-east-1"; 
 }
 
-// Configure AWS credentials from appsettings.json
 var awsOptions = new AWSOptions
 {
     Region = RegionEndpoint.GetBySystemName(awsRegion)
 };
 
-// Use BasicAWSCredentials if AccessKey and SecretKey are provided
 if (!string.IsNullOrEmpty(awsAccessKey) && !string.IsNullOrEmpty(awsSecretKey))
 {
     awsOptions.Credentials = new Amazon.Runtime.BasicAWSCredentials(awsAccessKey, awsSecretKey);
@@ -43,21 +41,16 @@ if (!string.IsNullOrEmpty(awsAccessKey) && !string.IsNullOrEmpty(awsSecretKey))
 
 builder.Services.AddAWSService<IAmazonDynamoDB>(awsOptions);
 builder.Services.AddAWSService<IAmazonS3>(awsOptions);
-
-// Add repositories
 builder.Services.AddScoped<IFolderRepository, FolderRepository>();
 builder.Services.AddScoped<IChatSessionRepository, ChatSessionRepository>();
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
 builder.Services.AddScoped<IS3Repository, S3Repository>();
-
-// Add services
 builder.Services.AddScoped<IFolderService, FolderService>();
 builder.Services.AddScoped<IChatSessionService, ChatSessionService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<ICliniAiService, CliniAiService>();
 builder.Services.AddScoped<IGradCamImageService, GradCamImageService>();
 
-// Add HTTP client for CliniAI service
 builder.Services.AddHttpClient<ICliniAiService, CliniAiService>(client =>
 {
     var baseUrl = builder.Configuration["CliniAI:BaseUrl"];
@@ -81,7 +74,7 @@ builder.Services.AddHttpClient<ICliniAiService, CliniAiService>(client =>
     MaxRequestContentBufferSize = 1024 * 1024 * 100 // 100MB buffer
 });
 
-// Add HTTP client for PubMed RAG API
+// PubMed RAG API
 builder.Services.AddHttpClient("PubMedRAG", client =>
 {
     var baseUrl = builder.Configuration["PubMedRAG:BaseUrl"];
